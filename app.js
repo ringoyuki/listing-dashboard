@@ -156,7 +156,7 @@ function renderNotFound(code, title) {
   // それでも各プラットで検索できるボタンを表示
   var rows = PLATS.map(function(p){
     if (p.key === 'mercari_shops') {
-        var su = 'https://mercari-shops.com/search?keyword=' + encodeURIComponent(code);
+        var su = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?keyword=' + encodeURIComponent(code);
         return '<div class="plat-row">'
           + '<div class="plat-name">' + p.emoji + ' ' + p.name + '</div>'
           + '<div class="plat-actions"><span style="color:#f87171;font-size:0.85rem;margin-right:10px;font-weight:bold;">📦 Shops在庫なし</span><a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">↗ 検索で開く</a></div>'
@@ -319,7 +319,7 @@ function parseCsv(text){
     var code=cols[COL.CODE].trim()||extractCode(cols[COL.DESC].trim());
     var price=cols[COL.PRICE].trim();
     if(!code){code='CHECK';noCode++;}
-    var shopsUrl=itemId?'https://mercari-shops.com/products/'+itemId:'';
+    var shopsUrl=itemId?'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/'+itemId:'';
     pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,stock:stock,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
@@ -422,6 +422,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
