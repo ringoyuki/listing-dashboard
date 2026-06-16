@@ -109,10 +109,17 @@ function doSearch(){
 
   var el = document.getElementById('results');
 
-  if (!matched.length) {
-    // ★ 商品が見つからない = Shopsの在庫にない = 売れた/削除済みの可能性
-    el.innerHTML = renderNotFound(code, title);
-    return;
+    if (!matched.length) {
+    var dict = JSON.parse(localStorage.getItem('item_dict') || '{}');
+    var hist = dict[code];
+    if (code && hist) {
+      var urls = {};
+      if(hist.shopsUrl) urls['mercari_shops'] = hist.shopsUrl;
+      matched.push({ code: code, title: hist.title, stock: 0, urls: urls });
+    } else {
+      el.innerHTML = renderNotFound(code, title);
+      return;
+    }
   }
 
   el.innerHTML = matched.slice(0,20).map(function(item){
@@ -401,6 +408,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
