@@ -133,7 +133,7 @@ function renderNotFound(code, title) {
   if (code) {
     warn = '<div class="warn-box">'
       + '<div class="warn-title">⚠ 「' + esc(code) + '」はShopsの在庫データにありません</div>'
-      + '<div class="warn-body">※番号の間違い、またはShopsに出品したことがない商品です。</div>'
+      + '<div class="warn-body">※ 番号の間違い、Shopsで売却済みの商品、または他プラットフォームの消し忘れの可能性があります。</div>'
       + '</div>';
   }
 
@@ -408,6 +408,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
