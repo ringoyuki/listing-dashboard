@@ -99,9 +99,8 @@ function doSearch(){
       if (code) {
         var ic = (item.code || '').toLowerCase();
         var it = (item.title || '').toLowerCase();
-        if (ic.indexOf(lc) >= 0 || it.indexOf(lc) >= 0) {
-          matchCode = true;
-        }
+        if (ic && (ic.indexOf(lc) >= 0 || lc.indexOf(ic) >= 0)) matchCode = true;
+        if (it && (it.indexOf(lc) >= 0 || lc.indexOf(it) >= 0)) matchCode = true;
       }
       var matchTitle = false;
       if (title) {
@@ -127,7 +126,17 @@ function doSearch(){
 
     if (!matched.length) {
     var dict = JSON.parse(localStorage.getItem('item_dict') || '{}');
-    var hist = dict[code];
+    var hist = null;
+    if (code) {
+      var keys = Object.keys(dict);
+      for(var k=0; k<keys.length; k++){
+        var dk = keys[k].toLowerCase();
+        if(dk && (dk.indexOf(lc) >= 0 || lc.indexOf(dk) >= 0)){
+          hist = dict[keys[k]];
+          break;
+        }
+      }
+    }
     if (code && hist) {
       var urls = {};
       if(hist.shopsUrl) urls['mercari_shops'] = hist.shopsUrl;
@@ -422,6 +431,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
