@@ -1,0 +1,104 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出品管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ログイン画面 -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-box">
+      <div class="login-icon">📦</div>
+      <h2>出品管理へようこそ</h2>
+      <p>パスワードを入力してください</p>
+      <input type="password" id="inp-pass" class="sinput" placeholder="パスワード" onkeydown="if(event.key==='Enter')checkAuth()">
+      <button class="btn-ok" style="width:100%; margin-top:10px" onclick="checkAuth()">ログイン</button>
+      <p id="login-err" class="login-err"></p>
+    </div>
+  </div>
+
+  <!-- アプリ本体（初期は非表示） -->
+  <div id="app-main" style="display:none;">
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">📦 出品管理</div>
+        <div class="hstats">
+          <span class="spill"><b id="stat-total">0</b> 件</span>
+          <span class="spill seed" id="seed-info"></span>
+        </div>
+        <button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button>
+      </div>
+    </header>
+
+    <!-- 検索 -->
+    <div class="search-panel">
+      <div class="search-row">
+        <div class="sinput-wrap">
+          <label>管理番号</label>
+          <input id="inp-code" type="text" class="sinput" placeholder="D790　B1016　C124…"
+                 onkeydown="if(event.key==='Enter')doSearch()">
+        </div>
+        <div class="sor">または</div>
+        <div class="sinput-wrap">
+          <label>商品名</label>
+          <input id="inp-title" type="text" class="sinput" placeholder="セイコー　バカラ　ウェッジウッド…"
+                 onkeydown="if(event.key==='Enter')doSearch()">
+        </div>
+        <button class="btn-search" onclick="doSearch()">🔍&nbsp;検索</button>
+      </div>
+      <p class="shint">管理番号は上4文字でもOK　　どちらか一方だけでも検索できます</p>
+    </div>
+
+    <!-- 結果 -->
+    <main id="results" class="results">
+      <div class="welcome">
+        <div class="welcome-icon">🔍</div>
+        <p>管理番号か商品名を入力して「検索」を押してください</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- CSV更新モーダル -->
+  <div class="backdrop" id="csv-modal" onclick="if(event.target.id==='csv-modal')closeCsvModal()">
+    <div class="modal">
+      <div class="mhead">
+        <div>
+          <h2>📥 ShopsCSV で更新</h2>
+          <p class="msub">在庫数=1の商品のみ取り込みます</p>
+        </div>
+        <button class="mclose" onclick="closeCsvModal()">✕</button>
+      </div>
+      <div class="mbody">
+        <div class="dropzone" onclick="document.getElementById('csvfile').click()">
+          <div class="dz-icon">📂</div>
+          <p class="dz-text">クリックしてCSVを選択</p>
+          <p class="dz-hint">Shops管理画面 → 商品管理 → CSVダウンロード</p>
+          <input type="file" id="csvfile" accept=".csv" style="display:none">
+        </div>
+        <div id="prev-area"></div>
+        <div class="mfooter">
+          <button class="btn-sec" onclick="closeCsvModal()">キャンセル</button>
+          <button class="btn-ok" id="btn-import" style="display:none" onclick="runImport()">インポート実行</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 更新バナー -->
+  <div id="upd-banner" class="upd-banner" style="display:none">
+    <span id="upd-msg"></span>
+    <button class="btn-ok btn-sm" onclick="applyNewSeed()">Shopsデータで更新</button>
+    <button class="btn-sec btn-sm" onclick="dismissBanner()">あとで</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="seed_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
