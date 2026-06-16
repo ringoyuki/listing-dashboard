@@ -95,9 +95,25 @@ function doSearch(){
   var lt = title.toLowerCase();
 
   var matched = items.filter(function(item){
-    var byCode  = code  && item.code  && item.code.toLowerCase().indexOf(lc) === 0;
-    var byTitle = title && item.title && item.title.toLowerCase().indexOf(lt) >= 0;
-    return byCode || byTitle;
+    var matchCode = false;
+      if (code) {
+        var ic = (item.code || '').toLowerCase();
+        var it = (item.title || '').toLowerCase();
+        if (ic.indexOf(lc) >= 0 || it.indexOf(lc) >= 0) {
+          matchCode = true;
+        }
+      }
+      var matchTitle = false;
+      if (title) {
+        var it2 = (item.title || '').toLowerCase();
+        if (it2.indexOf(lt) >= 0) {
+          matchTitle = true;
+        }
+      }
+      if (code && title) return matchCode || matchTitle;
+      if (code) return matchCode;
+      if (title) return matchTitle;
+      return false;
   });
 
   // 完全一致を上位に
@@ -406,6 +422,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
