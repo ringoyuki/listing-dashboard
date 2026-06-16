@@ -148,8 +148,8 @@ function renderNotFound(code, title) {
       }
     var actions = '';
     if (p.codeSearch && code)  actions += '<a href="'+esc(makeUrl(p.key,'code',code,title))+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
-    if (p.titleSearch && title) actions += '<a href="'+esc(makeUrl(p.key,'title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
-    if (p.key === 'yahoo_auction' && title) actions = '<a href="'+esc(makeUrl('yahoo_auction','title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+    if (p.titleSearch) actions += '<a href="'+esc(makeUrl(p.key,'title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+    if (p.key === 'yahoo_auction') actions = '<a href="'+esc(makeUrl('yahoo_auction','title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
     return '<div class="plat-row">'
       + '<div class="plat-name">' + p.emoji + ' ' + p.name + '</div>'
       + '<div class="plat-actions">' + (actions||'<span class="plat-note">入力が必要</span>') + '</div>'
@@ -186,18 +186,15 @@ function renderCard(item, searchCode, searchTitle) {
 
       if (p.key === 'yahoo_auction') {
         // ヤフオクはタイトルのみ
-        var tu = makeUrl('yahoo_auction','title',code,title);
-        if (tu) actions += '<a href="'+esc(tu)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+        var tu = makeUrl('yahoo_auction','title',code,title); if(true) actions += '<a href="'+esc(tu)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
       } else if (p.key === 'rakuma') {
         // ラクマはタイトル優先で表示
-        var tu2 = makeUrl('rakuma','title',code,title);
-        var cu2 = makeUrl('rakuma','code',code,title);
-        if (tu2) actions += '<a href="'+esc(tu2)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+        var tu2 = makeUrl('rakuma','title',code,title); var cu2 = makeUrl('rakuma','code',code,title); if(true) actions += '<a href="'+esc(tu2)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
         if (cu2 && code) actions += '<a href="'+esc(cu2)+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
       } else {
         // メルカリ・Yフリマ：コード優先
         var cu3 = p.codeSearch && code ? makeUrl(p.key,'code',code,title) : null;
-        var tu3 = p.titleSearch && title ? makeUrl(p.key,'title',code,title) : null;
+        var tu3 = p.titleSearch ? makeUrl(p.key,'title',code,title) : null;
         if (cu3) actions += '<a href="'+esc(cu3)+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
         if (tu3) actions += '<a href="'+esc(tu3)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
       }
@@ -409,6 +406,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
