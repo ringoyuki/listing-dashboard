@@ -14,10 +14,8 @@ function checkAuth() {
   } else {
     document.getElementById('login-err').textContent = 'パスワードが違います';
   }
-} else {
-    document.getElementById('login-err').textContent = 'パスワードが違います';
-  }
 }
+
 function initApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-main').style.display = 'block';
@@ -409,5 +407,6 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
