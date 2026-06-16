@@ -126,12 +126,7 @@ function renderNotFound(code, title) {
   if (code) {
     warn = '<div class="warn-box">'
       + '<div class="warn-title">⚠ 「' + esc(code) + '」はShopsの在庫データにありません</div>'
-      + '<div class="warn-body">'
-      + '考えられる原因：<br>'
-      + '① Shopsで売れた or 数量0にした（他のプラットフォームの消し忘れ確認を！）<br>'
-      + '② CSV更新がまだ（デスクトップの「出品データを更新」を実行してください）<br>'
-      + '③ Shops以外にのみ出品している商品'
-      + '</div>'
+      + '<div class="warn-body">※番号の間違い、またはShopsに出品したことがない商品です。</div>'
       + '</div>';
   }
 
@@ -232,8 +227,7 @@ function openAll(id) {
   PLATS.forEach(function(p){
     var url = item.urls && item.urls[p.key];
 
-    if (p.key === 'mercari_shops') {
-      if (url) { window.open(url,'_blank'); opened++; }
+    if (p.key === 'mercari_shops') { if (item.stock === 0) { actions += '<span style="color:#f87171;font-size:0.85rem;margin-right:10px;font-weight:bold;">📦 Shops在庫なし</span>'; } if (url) { window.open(url,'_blank'); opened++; }
       return;
     }
 
@@ -298,14 +292,14 @@ function parseCsv(text){
     var l=lines[i].trim(); if(!l) continue;
     var cols=splitCsv(l);
     if(cols.length<71){skip++;continue;}
-    if(cols[COL.STOCK].trim()!=='1'){skip++;continue;}
+    var stock = cols[COL.STOCK].trim()==='1'?1:0;
     var itemId=cols[COL.ID].trim();
     var title=cols[COL.NAME].trim();
     var code=cols[COL.CODE].trim()||extractCode(cols[COL.DESC].trim());
     var price=cols[COL.PRICE].trim();
     if(!code){code='CHECK';noCode++;}
     var shopsUrl=itemId?'https://mercari-shops.com/products/'+itemId:'';
-    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,stock:stock,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
   if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">在庫数=1の商品が見つかりませんでした</p>';return;}
@@ -336,14 +330,14 @@ function runImport(){
   pendingRows.forEach(function(row){
     var ex=row.code!=='CHECK'?items.find(function(i){return i.code===row.code;}):null;
     if(ex){
-      ex.title=row.title; ex.price=row.price;
+      ex.title=row.title; ex.price=row.price; ex.stock=row.stock;
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,memo:'',urls:urls,createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,memo:'',urls:urls,createdAt:Date.now()});
       added++;
     }
   });
@@ -407,6 +401,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
