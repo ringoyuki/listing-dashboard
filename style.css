@@ -167,18 +167,34 @@ body{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);co
   .plat-name{min-width:110px}
 }
 
-/* ─── ログイン画面 ─── */
+/* ─── ログイン画面（プレミアムデザイン） ─── */
 .login-screen{
-  position:fixed;inset:0;background:var(--bg);z-index:999;
+  position:fixed;inset:0;background:#0a0a0f;z-index:999;
   display:flex;align-items:center;justify-content:center;
-  padding:20px;
 }
 .login-box{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:14px;padding:40px 30px;width:100%;max-width:360px;
-  text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.5);
+  text-align:center; width:100%; max-width:320px; padding:20px;
 }
-.login-icon{font-size:3rem;margin-bottom:10px}
-.login-box h2{font-size:1.2rem;margin-bottom:6px}
-.login-box p{font-size:0.85rem;color:var(--muted);margin-bottom:20px}
-.login-err{color:var(--red);font-size:0.8rem;margin-top:10px;height:1em}
+.login-icon{font-size:1.8rem;margin-bottom:12px;opacity:0.9;}
+.login-box h2{
+  font-size:1.05rem;letter-spacing:0.35em;font-weight:400;
+  color:#d4af37;margin-bottom:40px;font-family:serif;
+  margin-left:0.35em; /* 文字間隔のズレ補正 */
+}
+.pass-input{
+  width:100%; background:transparent; border:none;
+  border-bottom:1px solid #333; color:#fff;
+  text-align:center; padding:12px 0; font-size:0.9rem;
+  letter-spacing:0.2em; outline:none; transition:var(--tr);
+  margin-bottom:24px;
+}
+.pass-input:focus{border-bottom-color:#d4af37;}
+.pass-input::placeholder{color:#555;letter-spacing:0.1em;font-size:0.75rem;}
+.btn-login{
+  width:100%; background:#c5a059; color:#111;
+  border:none; padding:14px; font-size:0.85rem; font-weight:700;
+  letter-spacing:0.1em; cursor:pointer; transition:var(--tr);
+}
+.btn-login:hover{background:#d4af37;transform:translateY(-1px);}
+.login-hint{font-size:0.65rem;color:#444;margin-top:16px;}
+.login-err{color:#ef4444;font-size:0.75rem;margin-top:12px;height:1em;}

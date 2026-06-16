@@ -14,11 +14,11 @@
   <!-- ログイン画面 -->
   <div id="login-screen" class="login-screen">
     <div class="login-box">
-      <div class="login-icon">📦</div>
-      <h2>出品管理へようこそ</h2>
-      <p>パスワードを入力してください</p>
-      <input type="password" id="inp-pass" class="sinput" placeholder="パスワード" onkeydown="if(event.key==='Enter')checkAuth()">
-      <button class="btn-ok" style="width:100%; margin-top:10px" onclick="checkAuth()">ログイン</button>
+      <div class="login-icon">🔒</div>
+      <h2>PRIVATE ACCESS</h2>
+      <input type="password" id="inp-pass" class="pass-input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')checkAuth()">
+      <button class="btn-login" onclick="checkAuth()">開く</button>
+      <p class="login-hint">半角/全角数字のみ</p>
       <p id="login-err" class="login-err"></p>
     </div>
   </div>
@@ -102,3 +102,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+

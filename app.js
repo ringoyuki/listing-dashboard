@@ -1,11 +1,20 @@
 ﻿// ===== パスワード認証 =====
 var PASS = '132';
+function toHalfWidth(str) {
+  return str.replace(/[０-９]/g, function(s) {
+    return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+  });
+}
 function checkAuth() {
-  var val = document.getElementById('inp-pass').value;
+  var raw = document.getElementById('inp-pass').value;
+  var val = toHalfWidth(raw).trim();
   if(val === PASS) {
     localStorage.setItem('auth_ok', 'true');
     initApp();
   } else {
+    document.getElementById('login-err').textContent = 'パスワードが違います';
+  }
+} else {
     document.getElementById('login-err').textContent = 'パスワードが違います';
   }
 }
@@ -400,4 +409,5 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
