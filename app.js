@@ -140,11 +140,12 @@ function renderNotFound(code, title) {
   // それでも各プラットで検索できるボタンを表示
   var rows = PLATS.map(function(p){
     if (p.key === 'mercari_shops') {
-      return '<div class="plat-row">'
-        + '<div class="plat-name">' + p.emoji + ' ' + p.name + '</div>'
-        + '<div class="plat-actions"><span class="plat-note">Shops在庫なし</span></div>'
-        + '</div>';
-    }
+        var su = 'https://mercari-shops.com/search?keyword=' + encodeURIComponent(code);
+        return '<div class="plat-row">'
+          + '<div class="plat-name">' + p.emoji + ' ' + p.name + '</div>'
+          + '<div class="plat-actions"><span style="color:#f87171;font-size:0.85rem;margin-right:10px;font-weight:bold;">📦 Shops在庫なし</span><a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">↗ 検索で開く</a></div>'
+          + '</div>';
+      }
     var actions = '';
     if (p.codeSearch && code)  actions += '<a href="'+esc(makeUrl(p.key,'code',code,title))+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
     if (p.titleSearch && title) actions += '<a href="'+esc(makeUrl(p.key,'title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
@@ -408,6 +409,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
