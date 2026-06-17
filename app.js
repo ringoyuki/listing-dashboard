@@ -203,9 +203,17 @@ function renderCard(item, searchCode, searchTitle) {
     var actions = '';
 
     if (p.key === 'mercari_shops') {
-      actions = url
-        ? '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops">↗ 開く</a>'
-        : '<span class="plat-note">CSV取込後に表示</span>';
+      var su = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?keyword=' + encodeURIComponent(code);
+      if (url) {
+        var idMatch = url.match(/\/products\/([a-zA-Z0-9]+)$/);
+        var itemId = idMatch ? idMatch[1] : '';
+        var pubUrl = itemId ? 'https://jp.mercari.com/shops/product/' + itemId : '';
+        actions = '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops">管理画面</a>'
+                + '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">検索</a>';
+        if(pubUrl) actions += '<a href="'+esc(pubUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">客観的</a>';
+      } else {
+        actions = '<span class="plat-note">CSV取込後に表示</span>';
+      }
     } else {
       if (url) actions += '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops" style="margin-right:2px">↗ 開く</a>';
 
@@ -232,7 +240,8 @@ function renderCard(item, searchCode, searchTitle) {
   }).join('');
 
   // ★ 全部開くボタン：item.id のみ渡す（タイトルの特殊文字でJSが壊れる問題を修正）
-  var openAllBtn = '<button class="btn-openall" onclick="openAll(\''+item.id+'\')">🔗 全プラット一気に開く</button>';
+  var sUrl = (item.urls && item.urls['mercari_shops']) ? item.urls['mercari_shops'] : '';
+   var openAllBtn = '<button class="btn-openall" onclick="openAllByData(\'' + esc(code) + '\', \'' + esc(title) + '\', \'' + esc(sUrl) + '\')">🔗 全プラット一気に開く</button>';
 
   return '<div class="rcard">'
     + '<div class="rcard-info">'
@@ -247,35 +256,24 @@ function renderCard(item, searchCode, searchTitle) {
 
 // ===== 全プラット一気に開く =====
 // ★ 修正: item.id だけ受け取り、item から code/title を直接取得
-function openAll(id) {
-  var item = items.find(function(i){return i.id===id;});
-  if (!item) return;
-  var code  = item.code  || '';
-  var title = item.title || '';
+function openAllByData(code, title, shopsUrl) {
   var opened = 0;
-
   PLATS.forEach(function(p){
-    var url = item.urls && item.urls[p.key];
-
-    if (p.key === 'mercari_shops') { if (item.stock === 0) { actions += '<span style="color:#f87171;font-size:0.85rem;margin-right:10px;font-weight:bold;">📦 Shops在庫なし</span>'; } if (url) { window.open(url,'_blank'); opened++; }
+    var u = null;
+    if (p.key === 'mercari_shops') {
+      if (shopsUrl) { window.open(shopsUrl, '_blank'); opened++; }
       return;
     }
-
-    var u = null;
     if (p.preferTitle) {
-      // ラクマ・ヤフオク：タイトル優先
-      if (title) u = makeUrl(p.key,'title',code,title);
+      if (title) u = makeUrl(p.key, 'title', code, title);
     } else {
-      // メルカリ・Yフリマ：コード優先
-      if (code)  u = makeUrl(p.key,'code',code,title);
-      if (!u && title) u = makeUrl(p.key,'title',code,title);
+      if (code) u = makeUrl(p.key, 'code', code, title);
+      if (!u && title) u = makeUrl(p.key, 'title', code, title);
     }
-    if (u) { window.open(u,'_blank'); opened++; }
+    if (u) { window.open(u, '_blank'); opened++; }
   });
-
-  showToast(opened+'つのページを開きました');
+  if (opened === 0) showToast('開けるページがありません');
 }
-
 // ===== CSV インポート =====
 function openCsvModal(){ document.getElementById('csv-modal').classList.add('open'); }
 function closeCsvModal(){
