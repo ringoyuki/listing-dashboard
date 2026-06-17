@@ -210,12 +210,12 @@ function renderCard(item, searchCode, searchTitle) {
         if (itemId) {
           var adminUrl = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/' + itemId;
           var pubUrl = 'https://jp.mercari.com/shops/product/' + itemId;
-          actions = '<a href="'+esc(adminUrl)+'" target="_blank" class="pbtn pbtn-shops">管理画面</a>'
-                  + '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">検索</a>'
-                  + '<a href="'+esc(pubUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">客観的</a>';
+          actions = '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">検索</a>'
+                  + '<a href="'+esc(adminUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">管理画面</a>'
+                  + '<a href="'+esc(pubUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">商品ページ</a>';
         } else {
-          actions = '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops">管理画面</a>'
-                  + '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">検索</a>';
+          actions = '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">検索</a>'
+                  + '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">管理画面</a>';
         }
       } else {
         actions = '<span class="plat-note">CSV取込後に表示</span>';
