@@ -316,12 +316,28 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 function parseCsv(text){
-  var lines=text.split(/\r?\n/);
-  pendingRows=[]; var skip=0,noCode=0;
-  for(var i=1;i<lines.length;i++){
-    var l=lines[i].trim(); if(!l) continue;
-    var cols=splitCsv(l);
-    if(cols.length<71){skip++;continue;}
+  var rows = [];
+  var r = [], c = '', inQ = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (ch === '"') {
+      if (inQ && text[i+1] === '"') { c += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (ch === ',' && !inQ) {
+      r.push(c); c = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      r.push(c); rows.push(r); r = []; c = '';
+    } else {
+      c += ch;
+    }
+  }
+  if (c !== '' || r.length > 0) { r.push(c); rows.push(r); }
+
+  pendingRows = []; var skip = 0, noCode = 0;
+  for(var i = 1; i < rows.length; i++){
+    var cols = rows[i];
+    if(cols.length < 71){ skip++; continue; }
     var stock = cols[COL.STOCK].trim()==='1'?1:0;
     var itemId=cols[COL.ID].trim();
     var title=cols[COL.NAME].trim();
@@ -332,7 +348,7 @@ function parseCsv(text){
     pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,stock:stock,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
-  if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">在庫数=1の商品が見つかりませんでした</p>';return;}
+  if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">データが見つかりません</p>';return;}
   var html='<div class="prev-bar">'
     +'<span class="prev-ok">対象: <b>'+pendingRows.length+'件</b></span>'
     +(skip?'<span class="prev-skip">スキップ: '+skip+'件</span>':'')
@@ -344,8 +360,8 @@ function parseCsv(text){
       return '<tr'+(r.noCode?' class="warn-row"':'')+'>'
         +'<td><code>'+esc(r.code)+'</code></td>'
         +'<td>'+esc(r.title.slice(0,35))+(r.title.length>35?'…':'')+'</td>'
-        +'<td>¥'+Number(r.price||0).toLocaleString()+'</td>'
-        +'<td>'+(r.shopsUrl?'<a href="'+r.shopsUrl+'" target="_blank">確認</a>':'—')+'</td>'
+        +'<td>&yen;'+Number(r.price||0).toLocaleString()+'</td>'
+        +'<td>'+(r.shopsUrl?'<a href="'+r.shopsUrl+'" target="_blank">確認</a>':'-')+'</td>'
         +'</tr>';
     }).join('')
     +(pendingRows.length>25?'<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:8px">他 '+(pendingRows.length-25)+'件</td></tr>':'')
@@ -376,16 +392,7 @@ function runImport(){
   showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
 }
 
-function splitCsv(line){
-  var res=[],cur='',inQ=false;
-  for(var i=0;i<line.length;i++){
-    var c=line[i];
-    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
-    else if(c===','&&!inQ){res.push(cur);cur='';}
-    else cur+=c;
-  }
-  res.push(cur); return res;
-}
+
 
 // ===== seed_data.js 自動インポート =====
 var SEED_KEY='last_seed_file';
@@ -431,6 +438,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 
