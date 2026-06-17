@@ -205,12 +205,18 @@ function renderCard(item, searchCode, searchTitle) {
     if (p.key === 'mercari_shops') {
       var su = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?keyword=' + encodeURIComponent(code);
       if (url) {
-        var idMatch = url.match(/\/products\/([a-zA-Z0-9]+)$/);
-        var itemId = idMatch ? idMatch[1] : '';
-        var pubUrl = itemId ? 'https://jp.mercari.com/shops/product/' + itemId : '';
-        actions = '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops">管理画面</a>'
-                + '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">検索</a>';
-        if(pubUrl) actions += '<a href="'+esc(pubUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">客観的</a>';
+        var idMatch = url.match(/\/product(s)?\/([a-zA-Z0-9]+)$/);
+        var itemId = idMatch ? idMatch[2] : '';
+        if (itemId) {
+          var adminUrl = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/' + itemId;
+          var pubUrl = 'https://jp.mercari.com/shops/product/' + itemId;
+          actions = '<a href="'+esc(adminUrl)+'" target="_blank" class="pbtn pbtn-shops">管理画面</a>'
+                  + '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">検索</a>'
+                  + '<a href="'+esc(pubUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">客観的</a>';
+        } else {
+          actions = '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops">管理画面</a>'
+                  + '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">検索</a>';
+        }
       } else {
         actions = '<span class="plat-note">CSV取込後に表示</span>';
       }
@@ -261,7 +267,16 @@ function openAllByData(code, title, shopsUrl) {
   PLATS.forEach(function(p){
     var u = null;
     if (p.key === 'mercari_shops') {
-      if (shopsUrl) { window.open(shopsUrl, '_blank'); opened++; }
+      if (shopsUrl) {
+        var idMatch = shopsUrl.match(/\/product(s)?\/([a-zA-Z0-9]+)$/);
+        var itemId = idMatch ? idMatch[2] : '';
+        if (itemId) {
+          window.open('https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/' + itemId, '_blank');
+        } else {
+          window.open(shopsUrl, '_blank');
+        }
+        opened++;
+      }
       return;
     }
     if (p.preferTitle) {
