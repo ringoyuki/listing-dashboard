@@ -198,3 +198,24 @@ body{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);co
 .btn-login:hover{background:#d4af37;transform:translateY(-1px);}
 .login-hint{font-size:0.65rem;color:#444;margin-top:16px;}
 .login-err{color:#ef4444;font-size:0.75rem;margin-top:12px;height:1em;}
+
+/* ステータスバッジ */
+.rbadge {
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:4px;
+  font-size:0.72rem;
+  font-weight:700;
+  margin-left:8px;
+  vertical-align:middle;
+}
+.rbadge-private {
+  background:rgba(139,92,246,0.2);
+  color:#a78bfa;
+  border:1px solid rgba(139,92,246,0.4);
+}
+.rbadge-sold {
+  background:rgba(239,68,68,0.15);
+  color:#f87171;
+  border:1px solid rgba(239,68,68,0.3);
+}

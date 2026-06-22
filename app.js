@@ -254,6 +254,7 @@ function renderCard(item, searchCode, searchTitle) {
     + '<span class="rcode">'+esc(item.code)+'</span>'
     + '<span class="rtitle">'+esc(item.title)+'</span>'
     + (item.price?'<span class="rprice">¥'+Number(item.price).toLocaleString()+'</span>':'')
+    + (item.stock >= 1 ? '' : (item.status === '1' ? '<span class="rbadge rbadge-private">🔒 非公開保存</span>' : '<span class="rbadge rbadge-sold">📦 売り切れ</span>'))
     + '</div>'
     + '<div class="plat-rows">'+rows+'</div>'
     + '<div class="plat-footer">'+openAllBtn+'</div>'
@@ -313,7 +314,7 @@ function extractCode(desc){
   }
   return '';
 }
-var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155};
+var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,STATUS:163};
 
 document.addEventListener('DOMContentLoaded',function(){
   var fi=document.getElementById('csvfile');
@@ -351,14 +352,15 @@ function parseCsv(text){
   for(var i = 1; i < rows.length; i++){
     var cols = rows[i];
     if(cols.length < 71){ skip++; continue; }
-    var stock = cols[COL.STOCK].trim()==='1'?1:0;
+    var stock = parseInt(cols[COL.STOCK].trim()) || 0;
+    var status = cols.length > COL.STATUS ? cols[COL.STATUS].trim() : '';
     var itemId=cols[COL.ID].trim();
     var title=cols[COL.NAME].trim();
     var code=cols[COL.CODE].trim()||extractCode(cols[COL.DESC].trim());
     var price=cols[COL.PRICE].trim();
     if(!code){code='CHECK';noCode++;}
     var shopsUrl=itemId?'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/'+itemId:'';
-    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,stock:stock,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,stock:stock,status:status,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
   if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">データが見つかりません</p>';return;}
@@ -394,14 +396,14 @@ function runImport(){
   pendingRows.forEach(function(row){
     var ex=row.code!=='CHECK'?items.find(function(i){return i.code===row.code;}):null;
     if(ex){
-      ex.title=row.title; ex.price=row.price; ex.stock=row.stock;
+      ex.title=row.title; ex.price=row.price; ex.stock=row.stock; ex.status=row.status||'';
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,memo:'',urls:urls,createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,createdAt:Date.now()});
       added++;
     }
   });
