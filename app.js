@@ -53,8 +53,10 @@ var PLATS = [
 function makeUrl(platKey, type, code, title) {
   var qc = encodeURIComponent(code  || '');
   var qt = encodeURIComponent(title || '');
-  // ラクマはタイトル最大40文字のため、タイトル検索は先頭40文字に切り詰める
-  var qtRakuma = encodeURIComponent((title || '').slice(0, 40));
+  // ラクマはタイトル最大40文字のため、スペース区切りでキリよく切り詰める
+  var _rt = (title || '').length > 40 ? (title||'').slice(0,40) : (title||'');
+  var _sp = _rt.lastIndexOf(' ');
+  var qtRakuma = encodeURIComponent(_sp > 0 ? _rt.slice(0, _sp) : _rt);
   if (type === 'code') {
     if (platKey === 'mercari')    return 'https://jp.mercari.com/search?keyword=' + qc;
     if (platKey === 'rakuma')     return 'https://fril.jp/s?query=' + qc;
