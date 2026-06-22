@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 
@@ -70,7 +70,7 @@
       <div class="mhead">
         <div>
           <h2>📥 ShopsCSV で更新</h2>
-          <p class="msub">在庫数=1の商品のみ取り込みます</p>
+          <p class="msub">公開・非公開どちらのCSVも取り込めます</p>
         </div>
         <button class="mclose" onclick="closeCsvModal()">✕</button>
       </div>
@@ -78,7 +78,7 @@
         <div class="dropzone" onclick="document.getElementById('csvfile').click()">
           <div class="dz-icon">📂</div>
           <p class="dz-text">クリックしてCSVを選択</p>
-          <p class="dz-hint">Shops管理画面 → 商品管理 → CSVダウンロード</p>
+          <p class="dz-hint">Shops管理 → 商品管理 → CSV一括機能 → CSVダウンロード（公開・非公開それぞれ）</p>
           <input type="file" id="csvfile" accept=".csv" style="display:none">
         </div>
         <div id="prev-area"></div>

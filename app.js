@@ -369,12 +369,17 @@ function parseCsv(text){
     +'</div>'
     +'<div class="prev-wrap"><table class="prev-tbl">'
     +'<thead><tr><th>管理番号</th><th>商品名</th><th>価格</th><th>Shops</th></tr></thead><tbody>'
-    +pendingRows.slice(0,25).map(function(r){
-      return '<tr'+(r.noCode?' class="warn-row"':'')+'>'
-        +'<td><code>'+esc(r.code)+'</code></td>'
-        +'<td>'+esc(r.title.slice(0,35))+(r.title.length>35?'…':'')+'</td>'
+        +pendingRows.slice(0,100).map(function(r){
+      var isCheck = r.code === 'CHECK';
+      return '<tr'+(isCheck?' style="background:rgba(239,68,68,0.12);"':'')+'>'
+        +'<td>'+(isCheck
+          ? '<span style="color:#f87171;font-size:0.75rem;font-weight:700;">⚠️ 管理番号なし</span><br><span style="color:#e2e8f0;font-weight:600;">'+esc(r.title)+'</span>'
+          : '<code>'+esc(r.code)+'</code>')
+        +'</td>'
+        +(isCheck ? '' : '<td>'+esc(r.title.slice(0,30))+(r.title.length>30?'…':'')+'</td>')
+        +(isCheck ? '<td></td>' : '')
         +'<td>&yen;'+Number(r.price||0).toLocaleString()+'</td>'
-        +'<td>'+(r.shopsUrl?'<a href="'+r.shopsUrl+'" target="_blank">確認</a>':'-')+'</td>'
+        +'<td>'+(r.shopsUrl?'<a href="'+r.shopsUrl+'" target="_blank" style="color:#a78bfa;">Shops確認</a>':'-')+'</td>'
         +'</tr>';
     }).join('')
     +(pendingRows.length>25?'<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:8px">他 '+(pendingRows.length-25)+'件</td></tr>':'')
@@ -400,6 +405,14 @@ function runImport(){
       added++;
     }
   });
+  // item_dict に保存（管理番号→タイトル+ShopsURL の辞書）
+  var dict = JSON.parse(localStorage.getItem('item_dict') || '{}');
+  pendingRows.forEach(function(row){
+    if (row.code && row.code !== 'CHECK') {
+      dict[row.code] = { title: row.title, shopsUrl: row.shopsUrl };
+    }
+  });
+  localStorage.setItem('item_dict', JSON.stringify(dict));
   localStorage.setItem('last_seed','manual');
   save(); updateStats(); closeCsvModal();
   showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
