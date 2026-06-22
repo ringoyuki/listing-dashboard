@@ -53,6 +53,8 @@ var PLATS = [
 function makeUrl(platKey, type, code, title) {
   var qc = encodeURIComponent(code  || '');
   var qt = encodeURIComponent(title || '');
+  // ラクマはタイトル最大40文字のため、タイトル検索は先頭40文字に切り詰める
+  var qtRakuma = encodeURIComponent((title || '').slice(0, 40));
   if (type === 'code') {
     if (platKey === 'mercari')    return 'https://jp.mercari.com/search?keyword=' + qc;
     if (platKey === 'rakuma')     return 'https://fril.jp/s?query=' + qc;
@@ -61,7 +63,7 @@ function makeUrl(platKey, type, code, title) {
   if (type === 'title') {
     if (platKey === 'mercari')       return 'https://jp.mercari.com/search?keyword=' + qt;
     if (platKey === 'yahoo_auction') return 'https://auctions.yahoo.co.jp/search/search?auccat=&tab_ex=commerce&ei=utf-8&aq=-1&oq=&sc_i=&fr=auc_top&p=' + qt;
-    if (platKey === 'rakuma')        return 'https://fril.jp/s?query=' + qt;
+    if (platKey === 'rakuma')        return 'https://fril.jp/s?query=' + qtRakuma;
     if (platKey === 'yahoo_flea')    return 'https://paypayfleamarket.yahoo.co.jp/search/' + qt + '?page=1';
   }
   return null;
