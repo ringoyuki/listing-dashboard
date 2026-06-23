@@ -10,6 +10,7 @@ function checkAuth() {
   var val = toHalfWidth(raw).trim();
   if(val === PASS) {
     localStorage.setItem('auth_ok', 'true');
+    localStorage.setItem('auth_time', Date.now().toString()); // 期限管理
     recordLogin(true); // ← ログイン記録
     initApp();
   } else {
@@ -87,7 +88,16 @@ function initApp() {
 // 起動時の判定
 document.addEventListener('DOMContentLoaded', function(){
   if(localStorage.getItem('auth_ok') === 'true') {
-    initApp();
+    // 2日(48時間)でセッション期限切れ
+    var loginTime = parseInt(localStorage.getItem('auth_time') || '0');
+    var elapsed = Date.now() - loginTime;
+    var twoDays = 48 * 60 * 60 * 1000;
+    if (elapsed > twoDays) {
+      localStorage.removeItem('auth_ok');
+      localStorage.removeItem('auth_time');
+    } else {
+      initApp();
+    }
   }
 });
 
