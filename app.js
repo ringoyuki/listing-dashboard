@@ -19,6 +19,13 @@ function checkAuth() {
   }
 }
 
+// ===== ログアウト =====
+function logout() {
+  localStorage.removeItem('auth_ok');
+  localStorage.removeItem('auth_time');
+  location.reload();
+}
+
 // ===== ログイン履歴記録 =====
 function recordLogin(success) {
   var now = new Date();
