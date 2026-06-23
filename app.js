@@ -96,6 +96,10 @@ function closeLoginLog() {
 function initApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-main').style.display = 'block';
+  // ファイル名を復元
+  var si = document.getElementById('seed-info');
+  var savedFn = localStorage.getItem('csv_filename');
+  if (si && savedFn) si.textContent = '📄 ' + savedFn;
   // 更新日時を復元
   var ua = document.getElementById('csv-updated-at');
   if (ua) {
@@ -416,6 +420,7 @@ document.addEventListener('DOMContentLoaded',function(){
   var fi=document.getElementById('csvfile');
   if(fi) fi.addEventListener('change',function(e){
     var f=e.target.files[0]; if(!f)return;
+    window._csvFileName = f.name; // ファイル名を保存
     var reader=new FileReader();
     reader.onload=function(ev){ parseCsv(ev.target.result); };
     reader.readAsText(f,'Shift_JIS');
@@ -519,6 +524,12 @@ function runImport(){
   localStorage.setItem('csv_updated_at', updatedStr);
   var ua = document.getElementById('csv-updated-at');
   if (ua) ua.textContent = updatedStr;
+  // ファイル名をヘッダーに表示・保存
+  if (window._csvFileName) {
+    var si = document.getElementById('seed-info');
+    if (si) si.textContent = '📄 ' + window._csvFileName;
+    localStorage.setItem('csv_filename', window._csvFileName);
+  }
   localStorage.setItem('last_seed','manual');
   save(); updateStats(); closeCsvModal();
   showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
