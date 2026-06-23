@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=22">
+  <link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
 
@@ -32,7 +32,7 @@
           <span class="spill"><b id="stat-total">0</b> 件</span>
           <span class="spill seed" id="seed-info"></span><span class="spill" id="csv-updated-at" style="font-size:0.72rem;color:var(--tx2,#94a3b8);margin-left:4px;"></span>
         </div>
-        <button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button>
+        <button class="btn-log" onclick="showLoginLog()" title="ログイン履歴" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--tx1,#f1f5f9);border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🔒 ログイン履歴</button><button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button>
       </div>
     </header>
 
@@ -98,6 +98,18 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  <!-- ログイン履歴モーダル -->
+  <div class="backdrop" id="login-log-modal" onclick="if(event.target.id==='login-log-modal')closeLoginLog()">
+    <div class="modal" style="max-width:520px;">
+      <div class="mhead">
+        <div><h2>🔒 ログイン履歴</h2><p class="msub">最新30件のログインを記録しています</p></div>
+        <button class="mclose" onclick="closeLoginLog()">×</button>
+      </div>
+      <div class="mbody" style="padding:0;">
+        <div id="login-log-body" style="max-height:400px;overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
   <script src="seed_data.js"></script>
   <script src="app.js?v=14"></script>
 </body>
