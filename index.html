@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=27">
+  <link rel="stylesheet" href="style.css?v=28">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>emailjs.init("v4_FoQtSLS1iANLLK");</script>
 </head>
@@ -32,11 +32,14 @@
         <div class="logo">📦 出品管理</div>
         <div class="hstats">
           <span class="spill"><b id="stat-total">0</b> 件</span>
-          <span class="spill seed" id="seed-info"></span><span class="spill" id="csv-updated-at" style="font-size:0.72rem;color:var(--tx2,#94a3b8);margin-left:4px;"></span>
+          <span class="spill seed" id="seed-info"></span>
         </div>
         <button class="btn-logout" onclick="logout()" title="ログアウト" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🚪 ログアウト</button><button class="btn-log" onclick="showLoginLog()" title="ログイン履歴" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--tx1,#f1f5f9);border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🔒 ログイン履歴</button><button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button>
       </div>
-    </header>
+      <div id="csv-updated-bar" style="background:rgba(15,15,19,.7);border-bottom:1px solid rgba(255,255,255,0.06);text-align:left;padding:2px 16px;">
+      <span id="csv-updated-at" style="font-size:0.7rem;color:#64748b;"></span>
+    </div>
+  </header>
 
     <!-- 検索 -->
     <div class="search-panel">
