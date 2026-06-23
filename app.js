@@ -40,8 +40,33 @@ function recordLogin(success) {
     : 'その他';
   var log = JSON.parse(localStorage.getItem('login_log') || '[]');
   log.unshift({ ts: ts, device: device, browser: browser, ok: success });
-  if (log.length > 30) log = log.slice(0, 30); // 最新30件のみ保持
+  if (log.length > 30) log = log.slice(0, 30);
   localStorage.setItem('login_log', JSON.stringify(log));
+
+  // Gmail通知（EmailJS + IP位置情報）
+  var resultText = success ? '✅ ログイン成功' : '❌ パスワード失敗';
+  fetch('https://ipapi.co/json/')
+    .then(function(r){ return r.json(); })
+    .then(function(geo){
+      var location = (geo.city || '') + ' ' + (geo.region || '') + ' ' + (geo.country_name || '');
+      emailjs.send('service_2dj253q', '2kjgd7s', {
+        login_time: ts,
+        device: device,
+        browser: browser,
+        location: location.trim() || '不明',
+        result: resultText
+      }).catch(function(e){ console.warn('EmailJS error:', e); });
+    })
+    .catch(function(){
+      // 位置情報取得失敗時も通知は送る
+      emailjs.send('service_2dj253q', '2kjgd7s', {
+        login_time: ts,
+        device: device,
+        browser: browser,
+        location: '取得失敗',
+        result: resultText
+      }).catch(function(e){ console.warn('EmailJS error:', e); });
+    });
 }
 
 function showLoginLog() {
