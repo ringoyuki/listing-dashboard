@@ -19,6 +19,12 @@ function checkAuth() {
 function initApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-main').style.display = 'block';
+  // 更新日時を復元
+  var ua = document.getElementById('csv-updated-at');
+  if (ua) {
+    var saved = localStorage.getItem('csv_updated_at');
+    if (saved) ua.textContent = saved;
+  }
   // データロードなど
   load();
   if(window._SEED_DATA && items.length===0){
@@ -419,6 +425,14 @@ function runImport(){
     }
   });
   localStorage.setItem('item_dict', JSON.stringify(dict));
+  // 更新日時を保存して表示
+  var now = new Date();
+  var ymd = now.getFullYear() + '/' + ('0'+(now.getMonth()+1)).slice(-2) + '/' + ('0'+now.getDate()).slice(-2);
+  var hm  = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+  var updatedStr = ymd + ' ' + hm + ' 更新';
+  localStorage.setItem('csv_updated_at', updatedStr);
+  var ua = document.getElementById('csv-updated-at');
+  if (ua) ua.textContent = updatedStr;
   localStorage.setItem('last_seed','manual');
   save(); updateStats(); closeCsvModal();
   showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
