@@ -50,30 +50,23 @@ function recordLogin(success) {
   if (log.length > 30) log = log.slice(0, 30);
   localStorage.setItem('login_log', JSON.stringify(log));
 
-  // Gmail通知（EmailJS + IP位置情報）
+  // Gmail通知（EmailJS）
   var resultText = success ? '✅ ログイン成功' : '❌ パスワード失敗';
-  fetch('https://ipapi.co/json/')
-    .then(function(r){ return r.json(); })
-    .then(function(geo){
-      var location = (geo.city || '') + ' ' + (geo.region || '') + ' ' + (geo.country_name || '');
-      emailjs.send('service_2dj253q', '2kjgd7s', {
-        login_time: ts,
-        device: device,
-        browser: browser,
-        location: location.trim() || '不明',
-        result: resultText
-      }).catch(function(e){ console.warn('EmailJS error:', e); });
-    })
-    .catch(function(){
-      // 位置情報取得失敗時も通知は送る
-      emailjs.send('service_2dj253q', '2kjgd7s', {
-        login_time: ts,
-        device: device,
-        browser: browser,
-        location: '取得失敗',
-        result: resultText
-      }).catch(function(e){ console.warn('EmailJS error:', e); });
+  if (typeof emailjs !== 'undefined') {
+    emailjs.send('service_2dj253q', '2kjgd7s', {
+      login_time: ts,
+      device: device,
+      browser: browser,
+      location: '—',
+      result: resultText
+    }).then(function() {
+      console.log('Login notification sent');
+    }).catch(function(e) {
+      console.warn('EmailJS error:', JSON.stringify(e));
     });
+  } else {
+    console.warn('EmailJS not loaded');
+  }
 }
 
 function showLoginLog() {
