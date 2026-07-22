@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -34,7 +34,7 @@
           <span class="spill"><b id="stat-total">0</b> 件</span>
           <span class="spill seed" id="seed-info"></span>
         </div>
-        <button class="btn-logout" onclick="logout()" title="ログアウト" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🚪 ログアウト</button><button class="btn-log" onclick="showLoginLog()" title="ログイン履歴" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--tx1,#f1f5f9);border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🔒 ログイン履歴</button><button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button>
+        <button class="btn-logout" onclick="logout()" title="ログアウト" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🚪 ログアウト</button><button class="btn-log" onclick="showLoginLog()" title="ログイン履歴" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--tx1,#f1f5f9);border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🔒 ログイン履歴</button><button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button><button onclick="openShopifyModal()" style="background:rgba(150,90,255,0.15);border:1px solid rgba(150,90,255,0.4);color:#c4b5fd;border-radius:8px;padding:6px 14px;font-size:0.8rem;cursor:pointer;margin-left:8px;font-weight:600;">🛒 Shopify出力</button>
       </div>
       <div id="csv-updated-bar" style="background:rgba(15,15,19,.7);border-bottom:1px solid rgba(255,255,255,0.06);text-align:left;padding:2px 16px;">
       <span id="csv-updated-at" style="font-size:0.7rem;color:#64748b;"></span>
@@ -115,8 +115,34 @@
       </div>
     </div>
   </div>
+  <!-- Shopify CSV出力モーダル -->
+  <div class="backdrop" id="shopify-modal" onclick="if(event.target.id==='shopify-modal')closeShopifyModal()">
+    <div class="modal">
+      <div class="mhead">
+        <div>
+          <h2>🛒 Shopify CSV出力</h2>
+          <p class="msub">Shops CSVを選択すると自動変換してダウンロードします</p>
+        </div>
+        <button class="mclose" onclick="closeShopifyModal()">✕</button>
+      </div>
+      <div class="mbody">
+        <div class="dropzone" onclick="document.getElementById('shopify-file').click()">
+          <div class="dz-icon">🛒</div>
+          <p class="dz-text">クリックしてShops CSVを選択</p>
+          <p class="dz-hint">在庫あり商品を自動でShopify形式に変換・ダウンロードします（画像20枚対応）</p>
+          <input type="file" id="shopify-file" accept=".csv" style="display:none">
+        </div>
+        <div id="shopify-status" style="padding:12px;font-size:0.9rem;text-align:center;"></div>
+        <div class="mfooter">
+          <button class="btn-sec" onclick="closeShopifyModal()">閉じる</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="seed_data.js"></script>
   <script src="app.js?v=14"></script>
+  <script src="shopify.js"></script>
 </body>
 </html>
 
