@@ -126,10 +126,17 @@
         <button class="mclose" onclick="closeShopifyModal()">✕</button>
       </div>
       <div class="mbody">
+        <!-- 画像状態バッジ -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:8px;margin-bottom:12px;">
+          <span id="shopify-img-info" style="font-size:0.82rem;color:#94a3b8;">🗒️ 画像なし（案Aモード）</span>
+          <button onclick="loadImageMap()" style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:6px;padding:4px 10px;font-size:0.75rem;cursor:pointer;">🖼️ 画像Map読込(案B)</button>
+          <input type="file" id="shopify-map-file" accept=".json" style="display:none">
+        </div>
+        <!-- Shops CSV選択 -->
         <div class="dropzone" onclick="document.getElementById('shopify-file').click()">
           <div class="dz-icon">🛒</div>
           <p class="dz-text">クリックしてShops CSVを選択</p>
-          <p class="dz-hint">在庫あり商品を自動でShopify形式に変換・ダウンロードします（画像20枚対応）</p>
+          <p class="dz-hint">在庫あり商品を自動でShopify形式に変換・ダウンロードします</p>
           <input type="file" id="shopify-file" accept=".csv" style="display:none">
         </div>
         <div id="shopify-status" style="padding:12px;font-size:0.9rem;text-align:center;"></div>

@@ -1,6 +1,7 @@
 // ===== Shopify CSV生成 =====
 // Shops CSV -> Shopify インポートCSV 変換ロジック
-// 仕様書: shopify登録変換ロジック仕様書.md
+// 案A: 画像なし（Shopify管理画面で手動追加）
+// 案B: upload_images.py で生成した shopify_image_map.json を読み込むと画像URL自動挿入
 
 (function () {
   'use strict';
@@ -8,9 +9,17 @@
   // Shops CSV 列インデックス (0始まり)
   var SCOL = { ID: 0, NAME: 62, DESC: 63, STOCK: 67, CODE: 70, PRICE: 155, STATUS: 163 };
 
-  // 画像URL列 (col 2, 5, 8 ... 59)
-  var IMG_COLS = [];
-  for (var ii = 2; ii <= 59; ii += 3) IMG_COLS.push(ii);
+  // 案B用: 商品ID → 画像URL配列 のマップ（upload_images.py で生成したJSONをロード）
+  // localStorage キー: 'shopify_image_map'
+  var IMAGE_MAP_KEY = 'shopify_image_map';
+  function getImageMap() {
+    try { return JSON.parse(localStorage.getItem(IMAGE_MAP_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function getImagesForProduct(productId) {
+    var map = getImageMap();
+    return map[productId] || [];
+  }
 
   // #yukiタグ → タイプ マッピング
   var TAG_MAP = [
@@ -155,12 +164,10 @@
       var weight = WEIGHT_MAP[type] || 50;
       var tags   = 'RINGO YUKI, ヴィンテージ, ' + type;
 
-      // 画像URL収集 (最大20枚)
-      var imgs = [];
-      for (var m = 0; m < IMG_COLS.length; m++) {
-        var ci = IMG_COLS[m];
-        if (ci < cols.length && (cols[ci] || '').trim()) imgs.push(cols[ci].trim());
-      }
+      // 画像URL取得
+      // 案A: 画像Mapが空なら 画像なし
+      // 案B: upload_images.py で生成したJSONを読み込んだ場合、画像URL自動挿入
+      var imgs = getImagesForProduct(itemId);
 
       // メイン行
       var row = new Array(HEADERS.length).fill('');
@@ -220,20 +227,61 @@
     document.getElementById('shopify-modal').classList.add('open');
     document.getElementById('shopify-status').innerHTML = '';
     document.getElementById('shopify-file').value = '';
+    // 画像Mapの読み込み状態を表示
+    var map = getImageMap();
+    var mapCount = Object.keys(map).length;
+    var imgInfo = document.getElementById('shopify-img-info');
+    if (imgInfo) {
+      imgInfo.textContent = mapCount > 0
+        ? '🖼️ 画像Map読み込み済み: ' + mapCount + '商品分'
+        : '🗒️ 画像なし（案Aモード）';
+    }
   };
 
   window.closeShopifyModal = function () {
     document.getElementById('shopify-modal').classList.remove('open');
   };
 
+  // 案B用: 画像JSON読み込み
+  window.loadImageMap = function () {
+    document.getElementById('shopify-map-file').click();
+  };
+
   document.addEventListener('DOMContentLoaded', function () {
+    // 画像JSON読み込み (shopify_image_map.json)
+    var mapFile = document.getElementById('shopify-map-file');
+    if (mapFile) {
+      mapFile.addEventListener('change', function (e) {
+        var f = e.target.files[0]; if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+          try {
+            var data = JSON.parse(ev.target.result);
+            localStorage.setItem(IMAGE_MAP_KEY, JSON.stringify(data));
+            var count = Object.keys(data).length;
+            var imgInfo = document.getElementById('shopify-img-info');
+            if (imgInfo) imgInfo.textContent = '🖼️ 画像Map読み込み済み: ' + count + '商品分';
+            var st = document.getElementById('shopify-status');
+            if (st) st.innerHTML = '<span style="color:#4ade80">✅ 画像Mapを読み込みました（' + count + '商品分）</span>';
+          } catch (err) {
+            var st = document.getElementById('shopify-status');
+            if (st) st.innerHTML = '<span style="color:#f87171">❌ JSONの読み込み失敗: ' + err.message + '</span>';
+          }
+        };
+        reader.readAsText(f, 'UTF-8');
+      });
+    }
+
+    // Shops CSV -> Shopify CSV 変換
     var fi = document.getElementById('shopify-file');
     if (!fi) return;
     fi.addEventListener('change', function (e) {
       var f = e.target.files[0];
       if (!f) return;
       var st = document.getElementById('shopify-status');
-      st.innerHTML = '<span style="color:#a78bfa">📂 読み込み・変換中...</span>';
+      var map = getImageMap();
+      var hasImages = Object.keys(map).length > 0;
+      st.innerHTML = '<span style="color:#a78bfa">📂 読み込み・変換中（' + (hasImages ? '画像URL含む' : '画像URLなし') + '）...</span>';
       var reader = new FileReader();
       reader.onload = function (ev) {
         try {
@@ -248,7 +296,7 @@
             ('0' + (now.getMonth() + 1)).slice(-2) + '-' +
             ('0' + now.getDate()).slice(-2);
           dl(csvStr, 'shopify_import_' + ds + '.csv');
-          st.innerHTML = '<span style="color:#4ade80">✅ ' + result.count + '件のShopify CSVをダウンロードしました！</span>';
+          st.innerHTML = '<span style="color:#4ade80">✅ ' + result.count + '商品のShopify CSVをダウンロードしました！</span>';
         } catch (err) {
           st.innerHTML = '<span style="color:#f87171">❌ エラー: ' + err.message + '</span>';
         }
