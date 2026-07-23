@@ -48,11 +48,8 @@
       var item = allItems[i];
       scanned++;
 
-      // 在庫が明示的に0以下のものは除外（未設定は含める）
-      var sv = item.stock;
-      if (sv !== undefined && sv !== null && sv !== '') {
-        if ((parseInt(sv) || 0) <= 0) continue;
-      }
+      // ※在庫フィルターは外す（ローカルデータが古い可能性があるため）
+      // CSV更新をすれば正確な在庫が反映される
 
       // 出品日 (shopsRegDate = 商品登録日時)
       var regDate  = parseDate(item.shopsRegDate) || null;
