@@ -503,7 +503,14 @@ function runImport(){
     if (row.code !== 'CHECK') {
       ex = items.find(function(i){ return i.code === row.code; });
     } else if (row.shopItemId) {
-      ex = items.find(function(i){ return i.shopItemId === row.shopItemId; });
+      ex = items.find(function(i){
+        // ① shopItemIdが一致（新しいエントリー）
+        if (i.shopItemId === row.shopItemId) return true;
+        // ② shopItemIdがなくてもURLにitemIdが含まれる（古いエントリー）
+        var url = i.urls && i.urls['mercari_shops'];
+        if (url && url.endsWith('/' + row.shopItemId)) return true;
+        return false;
+      });
     }
     if(ex){
       ex.title=row.title; ex.price=row.price; ex.stock=row.stock; ex.status=row.status||'';
