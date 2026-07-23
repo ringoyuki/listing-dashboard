@@ -464,7 +464,7 @@ function parseCsv(text){
     // Shops登録日時（列175）・最終更新日時（列176）を取得
     var shopsRegAt = cols.length > COL.REG_DATE ? cols[COL.REG_DATE].trim() : '';
     var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
-    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,stock:stock,status:status,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
   if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">データが見つかりません</p>';return;}
@@ -498,18 +498,25 @@ function runImport(){
   if(!pendingRows.length) return;
   var added=0,updated=0;
   pendingRows.forEach(function(row){
-    var ex=row.code!=='CHECK'?items.find(function(i){return i.code===row.code;}):null;
+    // 管理番号で検索。CHECKの場合はShops商品IDで検索（重複防止）
+    var ex = null;
+    if (row.code !== 'CHECK') {
+      ex = items.find(function(i){ return i.code === row.code; });
+    } else if (row.shopItemId) {
+      ex = items.find(function(i){ return i.shopItemId === row.shopItemId; });
+    }
     if(ex){
       ex.title=row.title; ex.price=row.price; ex.stock=row.stock; ex.status=row.status||'';
       if(row.shopsRegDate)  ex.shopsRegDate  = row.shopsRegDate;
       if(row.shopsUpdatedAt) ex.shopsUpdatedAt = row.shopsUpdatedAt;
+      if(row.shopItemId) ex.shopItemId = row.shopItemId;
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
       added++;
     }
   });
