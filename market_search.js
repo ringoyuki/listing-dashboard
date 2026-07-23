@@ -48,8 +48,11 @@
       var item = allItems[i];
       scanned++;
 
-      // ※在庫フィルターは外す（ローカルデータが古い可能性があるため）
-      // CSV更新をすれば正確な在庫が反映される
+      // CSV更新済み（shopsUpdatedAtあり）の商品で在庫0 → 売り切れとして除外
+      if (item.shopsUpdatedAt) {
+        var sv = parseInt(item.stock) || 0;
+        if (sv <= 0) continue;
+      }
 
       // 出品日 (shopsRegDate = 商品登録日時)
       var regDate  = parseDate(item.shopsRegDate) || null;
@@ -144,10 +147,12 @@
       var fnt  = r.fallback ? '<span title="次回CSV更新後に正確になります" style="color:#334155;font-size:0.7rem;">※</span>' : '';
 
       // Shops URL
-      var hasId   = !!r.itemId;
+      var hasId    = !!r.itemId;
       var adminUrl = hasId ? shopsAdminUrl(r.itemId) : '';
-      var pubUrl   = hasId ? shopsPubUrl(r.itemId) : '';
-      var srchUrl  = shopsSearchUrl(r.code4search || r.title.substring(0, 30));
+      var pubUrl   = hasId ? shopsPubUrl(r.itemId)   : '';
+      // 検索URL: 管理番号が「CHECK」の場合はタイトルで検索
+      var searchKw = (r.code && r.code !== 'CHECK') ? r.code : r.title.substring(0, 25);
+      var srchUrl  = shopsSearchUrl(searchKw);
 
       // ボタン HTML
       var btns = '<a href="' + esc(srchUrl) + '" target="_blank" title="Shops内で検索" '
