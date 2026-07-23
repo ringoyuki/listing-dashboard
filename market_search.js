@@ -54,19 +54,23 @@
         if ((parseInt(sv) || 0) <= 0) continue;
       }
 
-      // 日付（shopsUpdatedAt → createdAt）
-      var baseDate = parseDate(item.shopsUpdatedAt) || null;
-      var usedFallback = false;
+      // 出品日 (shopsRegDate = 商品登録日時)
+      var regDate  = parseDate(item.shopsRegDate) || null;
+
+      // 最終更新日（優先: shopsUpdatedAt → shopsRegDate → createdAt）
+      var updDate  = parseDate(item.shopsUpdatedAt) || null;
+      var baseDate = updDate || regDate || null;
+      var usedFallback = !updDate; // shopsUpdatedAtがなければ推定
       if (!baseDate && item.createdAt) {
         var ts = parseInt(item.createdAt);
-        if (!isNaN(ts)) { baseDate = new Date(ts); usedFallback = true; }
+        if (!isNaN(ts)) { baseDate = new Date(ts); }
       }
       if (!baseDate) { noDate++; continue; }
 
       var days = daysSince(baseDate);
       if (days === null || days < thresholdDays) continue;
 
-      // ShopsのURL情報
+      // ShopsURL
       var shopsUrl = (item.urls && item.urls['mercari_shops']) || '';
       var itemId   = extractItemId(shopsUrl);
 
@@ -74,9 +78,8 @@
         code:     (item.code  || '').trim(),
         title:    (item.title || '').trim(),
         price:    parseInt(item.price) || 0,
-        updDate:  item.shopsUpdatedAt
-                    ? item.shopsUpdatedAt.substring(0, 10).replace(/-/g, '/')
-                    : (baseDate ? baseDate.toISOString().substring(0, 10).replace(/-/g, '/') : ''),
+        regDate:  regDate  ? regDate.toISOString().substring(0,10).replace(/-/g,'/') : '',
+        updDate:  baseDate ? baseDate.toISOString().substring(0,10).replace(/-/g,'/') : '',
         days:     days,
         fallback: usedFallback,
         itemId:   itemId,
@@ -119,11 +122,11 @@
         : '<span style="color:#fbbf24;margin-left:3px;">↓</span>';
     }
     function thSort(label, key, align) {
-      return '<th onclick="marketSort(\'' + key + '\')" style="padding:9px 10px;text-align:'+(align||'left')+';border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;color:#94a3b8;cursor:pointer;user-select:none;">'
+      return '<th onclick="marketSort(\''+key+'\')" style="padding:9px 10px;text-align:'+(align||'left')+';border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;color:#94a3b8;cursor:pointer;user-select:none;">'
         + label + sortIcon(key) + '</th>';
     }
     function thStatic(label, align) {
-      return '<th style="padding:9px 10px;text-align:'+(align||'left')+';border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;color:#94a3b8;">' + label + '</th>';
+      return '<th style="padding:9px 10px;text-align:'+(align||'left')+';border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;color:#94a3b8;">'+label+'</th>';
     }
 
     var html = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">'
@@ -131,6 +134,7 @@
       + thSort('管理番号', 'code')
       + thStatic('商品名')
       + thSort('現在価格', 'price', 'right')
+      + thStatic('出品日', 'center')
       + thStatic('最終更新日', 'center')
       + thSort('更新なし', 'days', 'center')
       + thStatic('Shops', 'center')
@@ -169,15 +173,16 @@
         ? '<a href="' + esc(pubUrl) + '" target="_blank" style="color:#e2e8f0;text-decoration:none;" title="' + esc(r.title) + '">' + esc(shortTitle) + '</a>'
         : '<span title="' + esc(r.title) + '" style="color:#e2e8f0;">' + esc(shortTitle) + '</span>';
 
-      html += '<tr style="background:' + bg + ';border-bottom:1px solid rgba(255,255,255,0.04);">'
-        + '<td style="padding:7px 10px;">' + codeHtml + '</td>'
-        + '<td style="padding:7px 10px;max-width:340px;">' + titleHtml + '</td>'
-        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap;"><span style="font-weight:600;color:#f1f5f9;">¥' + r.price.toLocaleString() + '</span></td>'
-        + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;"><span style="color:#94a3b8;font-size:0.8rem;">' + (r.updDate || '-') + '</span>' + fnt + '</td>'
+      html += '<tr style="background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.04);">'
+        + '<td style="padding:7px 10px;">'+codeHtml+'</td>'
+        + '<td style="padding:7px 10px;max-width:300px;">'+titleHtml+'</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap;"><span style="font-weight:600;color:#f1f5f9;">¥'+r.price.toLocaleString()+'</span></td>'
+        + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;"><span style="color:#64748b;font-size:0.8rem;">'+(r.regDate||'-')+'</span></td>'
+        + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;"><span style="color:#94a3b8;font-size:0.8rem;">'+(r.updDate||'-')+'</span>'+fnt+'</td>'
         + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;">'
-        +   '<span style="font-weight:700;font-size:1.0rem;color:' + dc + ';">' + r.days + '</span>'
+        +   '<span style="font-weight:700;font-size:1.0rem;color:'+dc+';">'+r.days+'</span>'
         +   '<span style="color:#475569;font-size:0.75rem;"> 日</span></td>'
-        + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;">' + btns + '</td>'
+        + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;">'+btns+'</td>'
         + '</tr>';
     }
     html += '</tbody></table>';
