@@ -48,11 +48,8 @@
       var item = allItems[i];
       scanned++;
 
-      // CSV更新済み（shopsUpdatedAtあり）の商品で在庫0 → 売り切れとして除外
-      if (item.shopsUpdatedAt) {
-        var sv = parseInt(item.stock) || 0;
-        if (sv <= 0) continue;
-      }
+      // 在庫0は除外（CSV更新済み商品は正確な値が入っている）
+      if ((parseInt(item.stock) || 0) <= 0) continue;
 
       // 出品日 (shopsRegDate = 商品登録日時)
       var regDate  = parseDate(item.shopsRegDate) || null;
@@ -150,18 +147,19 @@
       var hasId    = !!r.itemId;
       var adminUrl = hasId ? shopsAdminUrl(r.itemId) : '';
       var pubUrl   = hasId ? shopsPubUrl(r.itemId)   : '';
-      // 検索URL: 管理番号が「CHECK」の場合はタイトルで検索
       var searchKw = (r.code && r.code !== 'CHECK') ? r.code : r.title.substring(0, 25);
       var srchUrl  = shopsSearchUrl(searchKw);
 
-      // ボタン HTML
-      var btns = '<a href="' + esc(srchUrl) + '" target="_blank" title="Shops内で検索" '
-        + 'style="display:inline-block;background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;border-radius:4px;padding:2px 7px;font-size:0.73rem;text-decoration:none;white-space:nowrap;margin-right:2px;">検索</a>';
+      // ボタン（window.open で確実に新タブ）
+      function makeBtn(url, label, bg, border, color) {
+        var safeUrl = url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return '<button onclick="window.open(\''+safeUrl+'\',\'_blank\')" '
+          + 'style="background:'+bg+';border:1px solid '+border+';color:'+color+';border-radius:4px;padding:3px 8px;font-size:0.73rem;cursor:pointer;white-space:nowrap;margin-right:2px;">'+label+'</button>';
+      }
+      var btns = makeBtn(srchUrl, '検索', 'rgba(239,68,68,0.25)', 'rgba(239,68,68,0.5)', '#fca5a5');
       if (hasId) {
-        btns += '<a href="' + esc(adminUrl) + '" target="_blank" title="Shops管理画面" '
-          + 'style="display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#cbd5e1;border-radius:4px;padding:2px 7px;font-size:0.73rem;text-decoration:none;white-space:nowrap;margin-right:2px;">管理</a>';
-        btns += '<a href="' + esc(pubUrl) + '" target="_blank" title="公開商品ページ" '
-          + 'style="display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#cbd5e1;border-radius:4px;padding:2px 7px;font-size:0.73rem;text-decoration:none;white-space:nowrap;">商品</a>';
+        btns += makeBtn(adminUrl, '管理', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0.18)', '#cbd5e1');
+        btns += makeBtn(pubUrl,   '商品', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0.18)', '#cbd5e1');
       }
 
       // 管理番号（クリック → 管理画面 or 検索）
@@ -254,10 +252,27 @@
     if (wrap) wrap.scrollTop = 0;
   };
 
+  // ---- ソート切り替え ----
   window.marketSort = function (key) {
     if (_sortKey === key) { _sortAsc = !_sortAsc; }
     else { _sortKey = key; _sortAsc = (key==='code'); }
     _page = 0; sortResults(); renderPage();
+  };
+
+  // ---- 古い順/新しい順ボタン ----
+  window.marketSortByDays = function (asc) {
+    _sortKey = 'days';
+    _sortAsc = asc;
+    _page = 0;
+    sortResults();
+    renderPage();
+    // ボタンの見た目を切り替え
+    var oldBtn = document.getElementById('sort-old-btn');
+    var newBtn = document.getElementById('sort-new-btn');
+    var activeStyle  = ';background:rgba(251,191,36,0.25);border:1px solid rgba(251,191,36,0.5);color:#fde68a;font-weight:600;';
+    var inactiveStyle = ';background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;font-weight:normal;';
+    if (oldBtn) oldBtn.style.cssText = oldBtn.style.cssText.replace(/;background[^;]*;border[^;]*;color[^;]*;font-weight[^;]*/g, '') + (asc ? inactiveStyle : activeStyle);
+    if (newBtn) newBtn.style.cssText = newBtn.style.cssText.replace(/;background[^;]*;border[^;]*;color[^;]*;font-weight[^;]*/g, '') + (asc ? activeStyle : inactiveStyle);
   };
 
   function esc(s) {
