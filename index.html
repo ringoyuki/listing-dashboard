@@ -129,9 +129,9 @@
         <!-- 操作バー -->
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;flex-shrink:0;">
           <label style="font-size:0.85rem;color:#94a3b8;">出品から</label>
-          <input type="number" id="market-days" value="100" min="1" max="9999"
+          <input type="number" id="market-days" value="0" min="0" max="9999"
             style="width:72px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:5px 8px;font-size:0.9rem;text-align:center;">
-          <label style="font-size:0.85rem;color:#94a3b8;">日以上 更新なし</label>
+          <label style="font-size:0.85rem;color:#94a3b8;">日以上</label>
           <button onclick="runMarketSearch()" style="background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:8px;padding:6px 18px;font-size:0.85rem;cursor:pointer;font-weight:600;">🔍 検索</button>
           <div id="market-summary" style="font-size:0.82rem;color:#94a3b8;margin-left:4px;"></div>
           <div style="margin-left:auto;display:flex;gap:8px;">
