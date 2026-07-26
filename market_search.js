@@ -10,6 +10,7 @@
   var _pageSize = 20;
   var _sortKey  = 'days';
   var _sortAsc  = false;
+  var _selected = {};  // _key -> true: 選択中の商品
 
   // ---- Shops URL生成（app.jsと同じロジック） ----
   function shopsSearchUrl(code) {
@@ -75,6 +76,7 @@
       results.push({
         code:     (item.code  || '').trim(),
         title:    (item.title || '').trim(),
+        category: (item.category || '').trim(),
         price:    parseInt(item.price) || 0,
         regDate:  regDate  ? regDate.toISOString().substring(0,10).replace(/-/g,'/') : '',
         updDate:  baseDate ? baseDate.toISOString().substring(0,10).replace(/-/g,'/') : '',
@@ -147,14 +149,22 @@
       return '<th style="padding:9px 10px;text-align:'+(align||'left')+';border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;color:#94a3b8;">'+label+'</th>';
     }
 
+    // 全選択状態の確認
+    var pageKeys = page.map(function(r){ return r._key; });
+    var allPageSelected = pageKeys.length > 0 && pageKeys.every(function(k){ return _selected[k]; });
+
     var html = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">'
       + '<thead><tr style="background:rgba(255,255,255,0.07);position:sticky;top:0;z-index:1;">'
-      + thSort('管理番号', 'code')
-      + thStatic('商品名')
-      + thSort('現在価格', 'price', 'right')
-      + thStatic('出品日', 'center')
-      + thStatic('最終更新日', 'center')
-      + thSort('更新なし', 'days', 'center')
+      + '<th style="padding:9px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);width:36px;">'
+      +   '<input type="checkbox" id="mc-all" onchange="marketSelectAll(this.checked)"'
+      +   (allPageSelected ? ' checked' : '') + ' style="cursor:pointer;width:15px;height:15px;">'
+      + '</th>'
+      + thSort('\u7ba1\u7406\u756a\u53f7', 'code')
+      + thStatic('\u5546\u54c1\u540d')
+      + thSort('\u73fe\u5728\u4fa1\u683c', 'price', 'right')
+      + thStatic('\u51fa\u54c1\u65e5', 'center')
+      + thStatic('\u6700\u7d42\u66f4\u65b0\u65e5', 'center')
+      + thSort('\u66f4\u65b0\u306a\u3057', 'days', 'center')
       + thStatic('Shops', 'center')
       + '</tr></thead><tbody>';
 
@@ -194,15 +204,23 @@
         ? '<a href="' + esc(pubUrl) + '" target="_blank" style="color:#e2e8f0;text-decoration:none;" title="' + esc(r.title) + '">' + esc(shortTitle) + '</a>'
         : '<span title="' + esc(r.title) + '" style="color:#e2e8f0;">' + esc(shortTitle) + '</span>';
 
-      html += '<tr style="background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.04);">'
+      var safeKey = r._key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      var isChecked = !!_selected[r._key];
+      var rowBg = isChecked ? 'rgba(99,102,241,0.15)' : bg;
+
+      html += '<tr style="background:'+rowBg+';border-bottom:1px solid rgba(255,255,255,0.04);">'
+        + '<td style="padding:7px 8px;text-align:center;">'
+        +   '<input type="checkbox" onchange="marketToggle(\''+safeKey+'\')"'
+        +   (isChecked ? ' checked' : '') + ' style="cursor:pointer;width:15px;height:15px;">'
+        + '</td>'
         + '<td style="padding:7px 10px;">'+codeHtml+'</td>'
-        + '<td style="padding:7px 10px;max-width:300px;">'+titleHtml+'</td>'
-        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap;"><span style="font-weight:600;color:#f1f5f9;">¥'+r.price.toLocaleString()+'</span></td>'
+        + '<td style="padding:7px 10px;max-width:280px;">'+titleHtml+'</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap;"><span style="font-weight:600;color:#f1f5f9;">\u00a5'+r.price.toLocaleString()+'</span></td>'
         + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;"><span style="color:#64748b;font-size:0.8rem;">'+(r.regDate||'-')+'</span></td>'
         + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;"><span style="color:#94a3b8;font-size:0.8rem;">'+(r.updDate||'-')+'</span>'+fnt+'</td>'
         + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;">'
         +   '<span style="font-weight:700;font-size:1.0rem;color:'+dc+';">'+r.days+'</span>'
-        +   '<span style="color:#475569;font-size:0.75rem;"> 日</span></td>'
+        +   '<span style="color:#475569;font-size:0.75rem;"> \u65e5</span></td>'
         + '<td style="padding:7px 10px;text-align:center;white-space:nowrap;">'+btns+'</td>'
         + '</tr>';
     }
@@ -235,14 +253,14 @@
   }
 
   // ---- TSVコピー ----
+  // ---- TSVコピー（全件） ----
   window.copyMarketTsv = function () {
     if (!_results.length) return;
-    var lines = [['管理番号','商品名','現在価格','最終更新日','更新なし日数','管理画面URL','商品ページURL'].join('\t')];
+    var lines = [['管理番号','商品名','カテゴリ','現在価格','最終更新日','更新なし日数','管理画面URL'].join('\t')];
     _results.forEach(function (r) {
       lines.push([
-        r.code, r.title, r.price, r.updDate, r.days,
-        r.itemId ? shopsAdminUrl(r.itemId) : '',
-        r.itemId ? shopsPubUrl(r.itemId)   : ''
+        r.code, r.title, r.category||'', r.price, r.updDate, r.days,
+        r.itemId ? shopsAdminUrl(r.itemId) : ''
       ].join('\t'));
     });
     var btn = document.getElementById('market-copy-btn');
@@ -252,6 +270,66 @@
       setTimeout(function () { btn.textContent = '📋 スプレッドシートにコピー'; }, 2500);
     }
     var tsv = lines.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tsv).then(done).catch(function () { fbCopy(tsv); done(); });
+    } else { fbCopy(tsv); done(); }
+  };
+
+  // ---- チェックボックス選択・コピー ----
+  function updateSelCopyBtn() {
+    var count = Object.keys(_selected).length;
+    var btn   = document.getElementById('market-sel-copy-btn');
+    if (!btn) return;
+    btn.style.display = count > 0 ? '' : 'none';
+    btn.textContent   = '📋 選択した ' + count + ' 件をコピー';
+  }
+
+  window.marketToggle = function (key) {
+    if (_selected[key]) { delete _selected[key]; }
+    else { _selected[key] = true; }
+    renderPage();
+    updateSelCopyBtn();
+  };
+
+  window.marketSelectAll = function (checked) {
+    var start = _page * _pageSize;
+    var end   = Math.min(start + _pageSize, _results.length);
+    var page  = _results.slice(start, end);
+    page.forEach(function (r) {
+      if (checked) _selected[r._key] = true;
+      else delete _selected[r._key];
+    });
+    renderPage();
+    updateSelCopyBtn();
+  };
+
+  window.copySelectedTsv = function () {
+    var sel = _results.filter(function (r) { return _selected[r._key]; });
+    if (!sel.length) return;
+    // ヘッダーなし（スプレッドシートの既存ヘッダーに合わせてデータのみ）
+    var lines = sel.map(function (r) {
+      return [
+        r.code,
+        r.title,
+        r.category || '',
+        r.price,
+        r.updDate,
+        r.days,
+        r.itemId ? shopsAdminUrl(r.itemId) : ''
+      ].join('\t');
+    });
+    var tsv = lines.join('\n');
+    var btn = document.getElementById('market-sel-copy-btn');
+    function done() {
+      if (!btn) return;
+      var orig = btn.textContent;
+      btn.textContent = '✅ コピーしました！';
+      btn.style.background = 'rgba(34,197,94,0.25)';
+      setTimeout(function () {
+        btn.textContent   = orig;
+        btn.style.background = 'rgba(99,102,241,0.25)';
+      }, 2500);
+    }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(tsv).then(done).catch(function () { fbCopy(tsv); done(); });
     } else { fbCopy(tsv); done(); }
