@@ -285,8 +285,21 @@
     var count = Object.keys(_selected).length;
     var btn   = document.getElementById('market-sel-copy-btn');
     if (!btn) return;
-    btn.style.display = count > 0 ? '' : 'none';
-    btn.textContent   = '📋 コピー';
+    if (count > 0) {
+      btn.textContent       = '\ud83d\udccb ' + count + '\u4ef6\u30b3\u30d4\u30fc';
+      btn.style.background  = 'rgba(99,102,241,0.28)';
+      btn.style.border      = '1px solid rgba(99,102,241,0.55)';
+      btn.style.color       = '#c7d2fe';
+      btn.style.cursor      = 'pointer';
+      btn.style.opacity     = '1';
+    } else {
+      btn.textContent       = '\ud83d\udccb \u30b3\u30d4\u30fc';
+      btn.style.background  = 'rgba(255,255,255,0.05)';
+      btn.style.border      = '1px solid rgba(255,255,255,0.12)';
+      btn.style.color       = '#475569';
+      btn.style.cursor      = 'default';
+      btn.style.opacity     = '0.45';
+    }
   }
 
   // DOMを直接更新（rerenderなし → 行高さ変化なし）
