@@ -41,9 +41,10 @@
   }
 
   // ---- 検索メイン ----
-  function searchStaleItems(thresholdDays) {
+  function searchStaleItems(thresholdDays, codeFilter) {
     var allItems = window.items || [];
     var results = [], scanned = 0, noDate = 0;
+    var codeUp = codeFilter ? codeFilter.trim().toUpperCase() : '';
 
     for (var i = 0; i < allItems.length; i++) {
       var item = allItems[i];
@@ -66,7 +67,16 @@
       if (!baseDate) { noDate++; continue; }
 
       var days = daysSince(baseDate);
-      if (days === null || days < thresholdDays) continue;
+      if (days === null) continue;
+
+      // 管理番号フィルターがある場合 → 日数不問に管理番号で絞り込み
+      if (codeUp) {
+        var itemCode = (item.code || '').toUpperCase();
+        if (!itemCode.includes(codeUp)) continue;
+      } else {
+        // 通常モード: 日数フィルター
+        if (days < thresholdDays) continue;
+      }
 
       // ShopsURL
       var shopsUrl = (item.urls && item.urls['mercari_shops']) || '';
@@ -398,11 +408,20 @@
     }
 
     try {
-      var res = searchStaleItems(threshold);
+      var codeEl = document.getElementById('market-code');
+      var codeFilter = codeEl ? codeEl.value.trim() : '';
+      var res = searchStaleItems(threshold, codeFilter);
       _results = res.results;
-      _page    = 0; _sortKey = 'days'; _sortAsc = false;
+      _page    = 0;
+      // 管理番号検索時はdays昇順で見やすく表示
+      _sortKey = codeFilter ? 'days' : 'days';
+      _sortAsc = false;
       sortResults();
 
+      // サマリーに管理番号フィルター表示
+      var codeTag = codeFilter
+        ? '<span style="color:#60a5fa;font-size:0.78rem;margin-left:6px;">管理番号: '+esc(codeFilter)+'</span>'
+        : '';
       if (!_results.length) {
         summary.innerHTML = '<span style="color:#64748b;">' + res.scanned + '件スキャン → 該当なし</span>'
           + (res.noDate>0 ? '<span style="color:#475569;font-size:0.78rem;margin-left:6px;">（日付不明 '+res.noDate+'件 除外）</span>' : '');
@@ -416,6 +435,7 @@
         '<span style="color:#fbbf24;font-weight:600;">' + _results.length + '件</span>'
         + '<span style="color:#64748b;"> / ' + res.scanned + '件中</span>'
         + '<span style="color:#475569;font-size:0.78rem;margin-left:6px;">（' + tp + 'ページ・20件ずつ）</span>'
+        + codeTag
         + (res.noDate>0 ? '<span style="color:#475569;font-size:0.78rem;margin-left:6px;">（日付不明 '+res.noDate+'件 除外）</span>' : '');
 
       if (copyBtn) copyBtn.style.display = '';
