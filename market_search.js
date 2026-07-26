@@ -266,10 +266,11 @@
   // ---- TSVコピー（全件） ----
   window.copyMarketTsv = function () {
     if (!_results.length) return;
-    var lines = [['管理番号','商品名','カテゴリ','現在価格','最終更新日','更新なし日数','管理画面URL'].join('\t')];
+    var lines = [['\u7ba1\u7406\u756a\u53f7','\u5546\u54c1\u540d','\u30ab\u30c6\u30b4\u30ea','\u73fe\u5728\u306e\u51fa\u54c1\u4fa1\u683c','\u51fa\u54c1\u65e5\u6642','\u6700\u7d42\u66f4\u65b0\u65e5\u6642','\u7d4c\u904e\u65e5\u6570','\u51fa\u54c1URL'].join('\t')];
     _results.forEach(function (r) {
       lines.push([
-        r.code, r.title, r.category||'', r.price, r.updDate, r.days,
+        r.code, r.title, r.category||'', r.price,
+        r.regDate||'', r.updDate||'', r.days,
         r.itemId ? shopsAdminUrl(r.itemId) : ''
       ].join('\t'));
     });
@@ -323,7 +324,8 @@
         r.title,
         r.category || '',
         r.price,
-        r.updDate,
+        r.regDate || '',
+        r.updDate || '',
         r.days,
         r.itemId ? shopsAdminUrl(r.itemId) : ''
       ].join('\t');
