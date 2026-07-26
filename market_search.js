@@ -71,6 +71,7 @@
       var shopsUrl = (item.urls && item.urls['mercari_shops']) || '';
       var itemId   = extractItemId(shopsUrl);
 
+      var dedupeKey = itemId || (item.code + '|' + (item.title || '').trim().substring(0, 30));
       results.push({
         code:     (item.code  || '').trim(),
         title:    (item.title || '').trim(),
@@ -80,11 +81,31 @@
         days:     days,
         fallback: usedFallback,
         itemId:   itemId,
-        code4search: (item.code || '').trim()
+        code4search: (item.code || '').trim(),
+        _key:     dedupeKey
       });
     }
 
-    return { results: results, scanned: scanned, noDate: noDate };
+    // 重複排除（同じitemId / 同じ商品キー → daysが多い方を残す）
+    var seen = {};
+    var deduped = [];
+    for (var j = 0; j < results.length; j++) {
+      var r = results[j];
+      var k = r._key;
+      if (!seen[k]) {
+        seen[k] = true;
+        deduped.push(r);
+      } else {
+        for (var d = 0; d < deduped.length; d++) {
+          if (deduped[d]._key === k && r.days > deduped[d].days) {
+            deduped[d] = r;
+            break;
+          }
+        }
+      }
+    }
+
+    return { results: deduped, scanned: scanned, noDate: noDate };
   }
 
   // ---- ソート ----
