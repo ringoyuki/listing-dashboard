@@ -159,16 +159,10 @@
       return '<th style="padding:9px 10px;text-align:'+(align||'left')+';border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;color:#94a3b8;">'+label+'</th>';
     }
 
-    // 全選択状態の確認
-    var pageKeys = page.map(function(r){ return r._key; });
-    var allPageSelected = pageKeys.length > 0 && pageKeys.every(function(k){ return _selected[k]; });
-
+    // 1個選択モード：ヘッダーは空欄（全解除はヘッダーチェックなし）
     var html = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">'
       + '<thead><tr style="background:rgba(255,255,255,0.07);position:sticky;top:0;z-index:1;">'
-      + '<th style="padding:9px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);width:36px;">'
-      +   '<input type="checkbox" id="mc-all" onchange="marketSelectAll(this.checked)"'
-      +   (allPageSelected ? ' checked' : '') + ' style="cursor:pointer;width:15px;height:15px;">'
-      + '</th>'
+      + '<th style="padding:9px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);width:36px;color:#475569;font-size:0.7rem;" title="1件を選択してコピー">☑</th>'
       + thSort('\u7ba1\u7406\u756a\u53f7', 'code')
       + thStatic('\u5546\u54c1\u540d')
       + thSort('\u73fe\u5728\u4fa1\u683c', 'price', 'right')
@@ -218,7 +212,7 @@
       var isChecked = !!_selected[r._key];
       var rowBg = isChecked ? 'rgba(99,102,241,0.15)' : bg;
 
-      html += '<tr style="background:'+rowBg+';border-bottom:1px solid rgba(255,255,255,0.04);">'
+      html += '<tr style="background:'+rowBg+';border-bottom:1px solid rgba(255,255,255,0.04);" data-rkey="'+esc(r._key)+'">'
         + '<td style="padding:7px 8px;text-align:center;">'
         +   '<input type="checkbox" onchange="marketToggle(\''+safeKey+'\')"'
         +   (isChecked ? ' checked' : '') + ' style="cursor:pointer;width:15px;height:15px;">'
@@ -292,25 +286,39 @@
     var btn   = document.getElementById('market-sel-copy-btn');
     if (!btn) return;
     btn.style.display = count > 0 ? '' : 'none';
-    btn.textContent   = '📋 選択した ' + count + ' 件をコピー';
+    btn.textContent   = '📋 コピー';
+  }
+
+  // DOMを直接更新（rerenderなし → 行高さ変化なし）
+  function updateSelectionDOM() {
+    var start = _page * _pageSize;
+    var pageItems = _results.slice(start, Math.min(start + _pageSize, _results.length));
+    var tbody = document.querySelector('#market-table-wrap tbody');
+    if (!tbody) return;
+    var rows = tbody.querySelectorAll('tr');
+    for (var i = 0; i < rows.length && i < pageItems.length; i++) {
+      var r = pageItems[i];
+      var isChecked = !!_selected[r._key];
+      var cb = rows[i].querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = isChecked;
+      var bg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+      rows[i].style.background = isChecked ? 'rgba(99,102,241,0.15)' : bg;
+    }
   }
 
   window.marketToggle = function (key) {
-    if (_selected[key]) { delete _selected[key]; }
-    else { _selected[key] = true; }
-    renderPage();
+    // ラジオボタン方式: 常に1件のみ選択
+    var wasSelected = !!_selected[key];
+    _selected = {};                         // 全解除
+    if (!wasSelected) _selected[key] = true; // 元々未選択なら選択
+    updateSelectionDOM();
     updateSelCopyBtn();
   };
 
   window.marketSelectAll = function (checked) {
-    var start = _page * _pageSize;
-    var end   = Math.min(start + _pageSize, _results.length);
-    var page  = _results.slice(start, end);
-    page.forEach(function (r) {
-      if (checked) _selected[r._key] = true;
-      else delete _selected[r._key];
-    });
-    renderPage();
+    // ヘッダーチェックは全解除のみ（ラジオモード）
+    _selected = {};
+    updateSelectionDOM();
     updateSelCopyBtn();
   };
 
