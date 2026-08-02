@@ -1,0 +1,161 @@
+﻿// ==========================================
+// Google Apps Script - セール管理 + CSV自動取得
+// ==========================================
+//
+// 【設定手順】
+// 1. https://script.google.com/ を開く
+// 2. 「新しいプロジェクト」をクリック
+// 3. このファイルの内容を全てコピーして貼り付け
+// 4. 「デプロイ」→「新しいデプロイ」をクリック
+// 5. 種類：「ウェブアプリ」を選択
+// 6. 実行ユーザー：「自分」
+//    アクセスできるユーザー：「全員」
+// 7. 「デプロイ」→表示されたURLをコピー
+// 8. アプリの「設定」パネルにURLを貼り付けて「保存」
+//
+// ★ 更新時は「デプロイを管理」→「新しいバージョン」で更新すること ★
+// ==========================================
+
+// ★ ここを変更してください ★
+var FOLDER_ID = '1D0E0xazH8_QBpcy0OiCoHNGO4C373HrG';
+var SALE_FILE_NAME = 'sale_data.json';
+
+// ==========================================
+// GETリクエスト
+// ==========================================
+function doGet(e) {
+  var action = (e && e.parameter && e.parameter.action) || 'load';
+
+  if (action === 'load') {
+    return loadSaleData();
+  }
+  if (action === 'csv') {
+    return getLatestCsv();
+  }
+
+  return jsonResponse({error: 'unknown action: ' + action});
+}
+
+// ==========================================
+// POSTリクエスト
+// ==========================================
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents);
+    var action = body.action || 'save';
+    if (action === 'save') {
+      return saveSaleItem(body.key, body.value);
+    }
+    return jsonResponse({error: 'unknown action'});
+  } catch(err) {
+    return jsonResponse({error: err.toString()});
+  }
+}
+
+// ==========================================
+// セールデータ：全件読み込み
+// ==========================================
+function loadSaleData() {
+  try {
+    var folder = DriveApp.getFolderById(FOLDER_ID);
+    var files = folder.getFilesByName(SALE_FILE_NAME);
+    if (files.hasNext()) {
+      var content = files.next().getBlob().getDataAsString('UTF-8');
+      return ContentService.createTextOutput(content)
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput('{}')
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return jsonResponse({error: err.toString()});
+  }
+}
+
+// ==========================================
+// セールデータ：1件保存（マージ方式）
+// ==========================================
+function saveSaleItem(key, value) {
+  try {
+    var folder = DriveApp.getFolderById(FOLDER_ID);
+    var files = folder.getFilesByName(SALE_FILE_NAME);
+
+    var data = {};
+    var file = null;
+
+    if (files.hasNext()) {
+      file = files.next();
+      try {
+        data = JSON.parse(file.getBlob().getDataAsString('UTF-8'));
+      } catch(e) {
+        data = {};
+      }
+    }
+
+    // このキーだけ更新（他のPCの変更は保持される）
+    data[key] = value;
+
+    var json = JSON.stringify(data);
+    if (file) {
+      file.setContent(json);
+    } else {
+      folder.createFile(SALE_FILE_NAME, json, MimeType.PLAIN_TEXT);
+    }
+
+    return jsonResponse({ok: true, key: key});
+  } catch(err) {
+    return jsonResponse({error: err.toString()});
+  }
+}
+
+// ==========================================
+// CSV自動取得：フォルダ内の最新CSVを返す
+// ==========================================
+function getLatestCsv() {
+  try {
+    var folder = DriveApp.getFolderById(FOLDER_ID);
+    var files = folder.getFiles();
+
+    var latest = null;
+    var latestDate = null;
+
+    while (files.hasNext()) {
+      var f = files.next();
+      var name = f.getName();
+      // CSVファイルのみ対象（product_data で始まる .csv）
+      if (name.indexOf('.csv') === -1) continue;
+      if (name.indexOf('product_data') === -1) continue;
+
+      var created = f.getDateCreated();
+      if (!latestDate || created > latestDate) {
+        latestDate = created;
+        latest = f;
+      }
+    }
+
+    if (!latest) {
+      return jsonResponse({error: 'CSVファイルが見つかりません', folder: FOLDER_ID});
+    }
+
+    // Shift-JIS → UTF-8 変換
+    var blob = latest.getBlob();
+    var csvText = blob.getDataAsString('Shift_JIS');
+
+    return jsonResponse({
+      ok: true,
+      fileName: latest.getName(),
+      fileDate: latestDate.toISOString(),
+      csv: csvText
+    });
+
+  } catch(err) {
+    return jsonResponse({error: err.toString()});
+  }
+}
+
+// ==========================================
+// ユーティリティ
+// ==========================================
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}

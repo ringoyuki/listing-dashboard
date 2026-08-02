@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=32">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>emailjs.init("v4_FoQtSLS1iANLLK");</script>
 </head>
@@ -20,7 +20,6 @@
       <h2>PRIVATE ACCESS</h2>
       <input type="password" id="inp-pass" class="pass-input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')checkAuth()">
       <button class="btn-login" onclick="checkAuth()">開く</button>
-      
       <p id="login-err" class="login-err"></p>
     </div>
   </div>
@@ -34,26 +33,30 @@
           <span class="spill"><b id="stat-total">0</b> 件</span>
           <span class="spill seed" id="seed-info"></span>
         </div>
-        <button class="btn-logout" onclick="logout()" title="ログアウト" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🚪 ログアウト</button><button class="btn-log" onclick="showLoginLog()" title="ログイン履歴" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--tx1,#f1f5f9);border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;margin-right:8px;">🔒 ログイン履歴</button><button class="btn-csv" onclick="openCsvModal()">📥 CSV更新</button><button onclick="openMarketModal()" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);color:#86efac;border-radius:8px;padding:6px 14px;font-size:0.8rem;cursor:pointer;margin-left:8px;font-weight:600;">📊 相場検索</button>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:auto;">
+          <button onclick="logout()" title="ログアウト" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:8px;padding:5px 10px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">🚪 ログアウト</button>
+          <button onclick="showLoginLog()" title="ログイン履歴" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--tx1,#f1f5f9);border-radius:8px;padding:5px 10px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">🔒 履歴</button>
+          <button onclick="openCsvModal()" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:8px;padding:5px 10px;font-size:0.78rem;cursor:pointer;font-weight:600;white-space:nowrap;">📥 CSV更新</button>
+          <button onclick="openMarketModal()" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);color:#86efac;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;white-space:nowrap;">📊 相場検索</button>
+          <button onclick="openSaleModal()" style="background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.45);color:#fca5a5;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:700;white-space:nowrap;">📋 商品管理</button>
+        </div>
       </div>
       <div id="csv-updated-bar" style="background:rgba(15,15,19,.7);border-bottom:1px solid rgba(255,255,255,0.06);text-align:left;padding:2px 16px;">
-      <span id="csv-updated-at" style="font-size:0.7rem;color:#64748b;"></span>
-    </div>
-  </header>
+        <span id="csv-updated-at" style="font-size:0.7rem;color:#64748b;"></span>
+      </div>
+    </header>
 
     <!-- 検索 -->
     <div class="search-panel">
       <div class="search-row">
         <div class="sinput-wrap">
           <label>管理番号</label>
-          <input id="inp-code" type="text" class="sinput" placeholder="D790　B1016　C124…"
-                 onkeydown="if(event.key==='Enter')doSearch()">
+          <input id="inp-code" type="text" class="sinput" placeholder="D790　B1016　C124…" onkeydown="if(event.key==='Enter')doSearch()">
         </div>
         <div class="sor">または</div>
         <div class="sinput-wrap">
           <label>商品名</label>
-          <input id="inp-title" type="text" class="sinput" placeholder="セイコー　バカラ　ウェッジウッド…"
-                 onkeydown="if(event.key==='Enter')doSearch()">
+          <input id="inp-title" type="text" class="sinput" placeholder="セイコー　バカラ　ウェッジウッド…" onkeydown="if(event.key==='Enter')doSearch()">
         </div>
         <button class="btn-search" onclick="doSearch()">🔍&nbsp;検索</button>
       </div>
@@ -83,7 +86,7 @@
         <div class="dropzone" onclick="document.getElementById('csvfile').click()">
           <div class="dz-icon">📂</div>
           <p class="dz-text">クリックしてCSVを選択</p>
-          <p class="dz-hint">Shops管理 → 商品管理 → CSV一括機能 → CSVダウンロード（公開・非公開それぞれ）</p>
+          <p class="dz-hint">Shops管理 → 商品管理 → CSV一括機能 → CSVダウンロード</p>
           <input type="file" id="csvfile" accept=".csv" style="display:none">
         </div>
         <div id="prev-area"></div>
@@ -103,6 +106,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
   <!-- ログイン履歴モーダル -->
   <div class="backdrop" id="login-log-modal" onclick="if(event.target.id==='login-log-modal')closeLoginLog()">
     <div class="modal" style="max-width:520px;">
@@ -115,6 +119,7 @@
       </div>
     </div>
   </div>
+
   <!-- 相場検索パネル -->
   <div class="backdrop" id="market-modal" onclick="if(event.target.id==='market-modal')closeMarketModal()" style="align-items:flex-start;padding-top:0;">
     <div class="modal" style="max-width:98vw;width:1100px;margin:0 auto;height:100vh;border-radius:0;display:flex;flex-direction:column;">
@@ -126,31 +131,71 @@
         <button class="mclose" onclick="closeMarketModal()">✕</button>
       </div>
       <div class="mbody" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:12px 16px;">
-        <!-- 操作バー -->
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;flex-shrink:0;">
           <label style="font-size:0.85rem;color:#94a3b8;">出品から</label>
-          <input type="number" id="market-days" value="0" min="0" max="9999"
-            style="width:72px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:5px 8px;font-size:0.9rem;text-align:center;">
+          <input type="number" id="market-days" value="0" min="0" max="9999" style="width:72px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:5px 8px;font-size:0.9rem;text-align:center;">
           <label style="font-size:0.85rem;color:#94a3b8;">日以上</label>
           <span style="color:rgba(255,255,255,0.15);font-size:1.2rem;">|</span>
           <label style="font-size:0.85rem;color:#94a3b8;">管理番号</label>
-          <input type="text" id="market-code" placeholder="例: C4291181" autocomplete="off"
-            style="width:130px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:5px 8px;font-size:0.85rem;" onkeydown="if(event.key==='Enter')runMarketSearch()">
+          <input type="text" id="market-code" placeholder="例: C4291181" autocomplete="off" style="width:130px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:5px 8px;font-size:0.85rem;" onkeydown="if(event.key==='Enter')runMarketSearch()">
           <button onclick="runMarketSearch()" style="background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:8px;padding:6px 18px;font-size:0.85rem;cursor:pointer;font-weight:600;">🔍 検索</button>
-          <!-- ソートボタン -->
-          <button id="sort-old-btn" onclick="marketSortByDays(false)"
-            style="background:rgba(251,191,36,0.25);border:1px solid rgba(251,191,36,0.5);color:#fde68a;border-radius:8px;padding:5px 12px;font-size:0.82rem;cursor:pointer;font-weight:600;">古い順 ↓</button>
-          <button id="sort-new-btn" onclick="marketSortByDays(true)"
-            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;border-radius:8px;padding:5px 12px;font-size:0.82rem;cursor:pointer;">新しい順 ↑</button>
+          <button id="sort-old-btn" onclick="marketSortByDays(false)" style="background:rgba(251,191,36,0.25);border:1px solid rgba(251,191,36,0.5);color:#fde68a;border-radius:8px;padding:5px 12px;font-size:0.82rem;cursor:pointer;font-weight:600;">古い順 ↓</button>
+          <button id="sort-new-btn" onclick="marketSortByDays(true)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;border-radius:8px;padding:5px 12px;font-size:0.82rem;cursor:pointer;">新しい順 ↑</button>
           <div id="market-summary" style="font-size:0.82rem;color:#94a3b8;margin-left:4px;"></div>
           <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-            <button onclick="copySelectedTsv()" id="market-sel-copy-btn"
-              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#475569;border-radius:8px;padding:6px 16px;font-size:0.84rem;cursor:default;font-weight:600;transition:all 0.25s;opacity:0.45;">📋 コピー</button>
+            <button onclick="copySelectedTsv()" id="market-sel-copy-btn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#475569;border-radius:8px;padding:6px 16px;font-size:0.84rem;cursor:default;font-weight:600;transition:all 0.25s;opacity:0.45;">📋 コピー</button>
             <button onclick="copyMarketTsv()" id="market-copy-btn" style="display:none;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;">📋 全件コピー</button>
           </div>
         </div>
-        <!-- テーブル -->
         <div id="market-table-wrap" style="flex:1;overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 商品管理モーダル ===== -->
+  <div class="backdrop" id="sale-modal" onclick="if(event.target.id==='sale-modal')closeSaleModal()" style="align-items:flex-start;padding-top:0;">
+    <div class="modal" style="max-width:100vw;width:100%;margin:0;height:100vh;border-radius:0;display:flex;flex-direction:column;">
+      <div class="mhead" style="flex-shrink:0;">
+        <div>
+          <h2>📋 商品管理</h2>
+          <p class="msub">最終更新から15日以上経過した商品のセール・記号変更・タスク管理</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="sm-drive-csv-btn" onclick="smLoadCsvFromDrive()" style="background:rgba(34,197,94,0.18);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">☁ Driveから最新CSV取り込み</button>
+          <button id="sm-sync-btn" onclick="smSyncFromDrive()" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">☁ Drive同期</button>
+          <button onclick="document.getElementById('sm-settings').style.display=document.getElementById('sm-settings').style.display==='none'?'block':'none'" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">⚙ 設定</button>
+          <button class="mclose" onclick="closeSaleModal()">✕</button>
+        </div>
+      </div>
+      <div id="sm-settings" style="display:none;flex-shrink:0;padding:10px 16px;background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px;">☁ Google Drive 同期設定（GAS WebアプリのURL）</div>
+        <div style="display:flex;gap:8px;">
+          <input id="sm-gas-url" type="text" placeholder="https://script.google.com/macros/s/..." value="" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#f1f5f9;border-radius:6px;padding:5px 10px;font-size:0.82rem;">
+          <button onclick="smSaveGasUrl()" style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;border-radius:6px;padding:5px 14px;font-size:0.82rem;cursor:pointer;font-weight:600;">保存</button>
+        </div>
+        <div style="font-size:0.7rem;color:#475569;margin-top:4px;">設定方法は同梱の <code>sale_gas.txt</code> を参照してください</div>
+      </div>
+      <div style="flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div onclick="var b=document.getElementById('sm-task-body');b.style.display=b.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;background:rgba(251,191,36,0.05);">
+          <span style="font-size:0.8rem;font-weight:700;color:#fbbf24;">⏰ 今日のタスク</span>
+          <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;"></span>
+          <span style="margin-left:auto;font-size:0.7rem;color:#475569;">▼ クリックで開閉</span>
+        </div>
+        <div id="sm-task-body" style="max-height:180px;overflow-y:auto;">
+          <div id="sm-task-list"></div>
+        </div>
+      </div>
+      <div style="flex:1;overflow:hidden;display:flex;">
+        <div style="width:320px;min-width:260px;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;">
+          <div style="padding:7px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.75rem;color:#64748b;">📋 15日以上経過した商品</div>
+          <div id="sm-item-list" style="flex:1;overflow-y:auto;"></div>
+        </div>
+        <div id="sm-action-panel" style="flex:1;overflow-y:auto;display:none;">
+          <div style="padding:32px;text-align:center;color:#475569;">
+            <div style="font-size:2rem;margin-bottom:8px;">👈</div>
+            <div>商品を選択してください</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -158,19 +203,6 @@
   <script src="seed_data.js"></script>
   <script src="app.js?v=14"></script>
   <script src="market_search.js"></script>
+  <script src="sale_manager.js"></script>
 </body>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</html>
