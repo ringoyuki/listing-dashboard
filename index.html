@@ -1,4 +1,4 @@
-﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=32">
+  <link rel="stylesheet" href="style.css?v=33">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>emailjs.init("v4_FoQtSLS1iANLLK");</script>
 </head>
@@ -161,6 +161,7 @@
           <p class="msub">最終更新から15日以上経過した商品のセール・記号変更・タスク管理</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="smUndo()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#e2e8f0;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">↩ 元に戻す</button>
           <button id="sm-drive-csv-btn" onclick="smLoadCsvFromDrive()" style="background:rgba(34,197,94,0.18);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">☁ Driveから最新CSV取り込み</button>
           <button id="sm-sync-btn" onclick="smSyncFromDrive()" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">☁ Drive同期</button>
           <button onclick="document.getElementById('sm-settings').style.display=document.getElementById('sm-settings').style.display==='none'?'block':'none'" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">⚙ 設定</button>

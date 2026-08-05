@@ -1,4 +1,4 @@
-// ===== パスワード認証 =====
+﻿// ===== パスワード認証 =====
 var PASS = '132';
 function toHalfWidth(str) {
   return str.replace(/[０-９]/g, function(s) {
@@ -354,7 +354,7 @@ function renderCard(item, searchCode, searchTitle) {
     + '<span class="rcode">'+esc(item.code)+'</span>'
     + '<span class="rtitle">'+esc(item.title)+'</span>'
     + (item.price?'<span class="rprice">¥'+Number(item.price).toLocaleString()+'</span>':'')
-    + (item.stock >= 1 ? '' : (item.status === '1' ? '<span class="rbadge rbadge-private">🔒 非公開保存</span>' : '<span class="rbadge rbadge-sold">📦 売り切れ</span>'))
+    + (item.stock >= 1 ? (item.status === '1' ? '<span class="rbadge" style="background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3);color:#c7d2fe;">🔒 非公開（在庫あり）</span>' : '') : (item.status === '1' ? '<span class="rbadge rbadge-private">🔒 非公開保存</span>' : '<span class="rbadge rbadge-sold">📦 売り切れ</span>'))
     + '</div>'
     + '<div class="plat-rows">'+rows+'</div>'
     + '<div class="plat-footer">'+openAllBtn+'</div>'
@@ -476,6 +476,7 @@ function parseCsv(text){
     +(skip?'<span class="prev-skip">スキップ: '+skip+'件</span>':'')
     +(noCode?'<span class="prev-warn">⚠ 管理番号不明: '+noCode+'件</span>':'')
     +'</div>'
+    +(noCode?'<div style="font-size:0.78rem;color:#fbbf24;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);border-radius:8px;margin-bottom:10px;"><div style="font-weight:600;margin-bottom:6px;">⚠ 管理番号不明の商品:</div>'+pendingRows.filter(function(r){return r.code==="CHECK";}).map(function(r){return '<div style="font-size:0.75rem;color:#e2e8f0;padding:2px 0;">・'+esc(r.title.slice(0,50))+(r.title.length>50?'…':'')+'</div>';}).join('')+'</div>':'')
     +'<div class="prev-wrap"><table class="prev-tbl">'
     +'<thead><tr><th>管理番号</th><th>商品名</th><th>価格</th><th>Shops</th></tr></thead><tbody>'
         +pendingRows.slice(0,100).map(function(r){

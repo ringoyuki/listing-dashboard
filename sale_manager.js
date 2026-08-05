@@ -1,4 +1,4 @@
-﻿// ==========================================
+﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -132,8 +132,8 @@ function smSetItem(code, itemData){
 function smSyncItem(code, data){
   if(!SALE_GAS_URL) return;
   fetch(SALE_GAS_URL, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
     body:JSON.stringify({action:'save', key:code, value:data})
   }).catch(function(e){ console.warn('GAS sync:', e); });
 }
@@ -145,8 +145,14 @@ function smSyncFromDrive(){
   }
   var btn = document.getElementById('sm-sync-btn');
   if(btn){ btn.textContent='🔄 同期中...'; btn.disabled=true; }
-  fetch(SALE_GAS_URL+'?action=load')
-    .then(function(r){ return r.json(); })
+  fetch(SALE_GAS_URL+'?action=load', {redirect:'follow'})
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    })
+    .then(function(txt){
+      try{ return JSON.parse(txt); }catch(e){ throw new Error('JSON parse error'); }
+    })
     .then(function(remote){
       var local = smGetAll();
       Object.keys(remote).forEach(function(k){ local[k]=remote[k]; });
@@ -265,7 +271,7 @@ function smRenderTasks(){
   var tasks = smGetAllTasks();
 
   if(!tasks.length){
-    el.innerHTML = '<div style="padding:10px 16px;color:#475569;font-size:0.82rem;">✅ 期限のタスクはありません</div>';
+    el.innerHTML = '<div style="padding:10px 16px;color:#cbd5e1;font-size:0.82rem;">✅ 期限のタスクはありません</div>';
     return;
   }
 
@@ -277,10 +283,10 @@ function smRenderTasks(){
       ? '<span style="font-size:0.68rem;font-weight:700;color:#f87171;background:rgba(239,68,68,0.15);padding:2px 7px;border-radius:4px;">🔴 '+t.overdueDays+'日超過</span>'
       : today
         ? '<span style="font-size:0.68rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);padding:2px 7px;border-radius:4px;">🟡 今日</span>'
-        : '<span style="font-size:0.68rem;color:#475569;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:4px;">'+smFmtDate(t.dueDate)+'</span>';
+        : '<span style="font-size:0.68rem;color:#cbd5e1;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:4px;">'+smFmtDate(t.dueDate)+'</span>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="smSelectItem(\''+esc(t.code)+'\')">'
       +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:0.72rem;color:#475569;">'+esc(t.code)+'</div>'
+      +'<div style="font-size:0.72rem;color:#cbd5e1;">'+esc(t.code)+'</div>'
       +'<div style="font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.desc)+'</div>'
       +'</div>'
       +badge
@@ -296,7 +302,7 @@ function smRenderList(){
   var targets = smGetTargets();
 
   if(!targets.length){
-    el.innerHTML='<div style="padding:32px;text-align:center;color:#475569;"><div style="font-size:2rem;margin-bottom:8px;">✅</div><div>15日以上経過した商品はありません</div></div>';
+    el.innerHTML='<div style="padding:32px;text-align:center;color:#cbd5e1;"><div style="font-size:2rem;margin-bottom:8px;">✅</div><div>15日以上経過した商品はありません</div></div>';
     return;
   }
 
@@ -314,9 +320,9 @@ function smRenderList(){
       +'border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:all 0.15s;">'
       +'<span style="font-size:1.1rem;min-width:22px;text-align:center;color:'+sc+';">'+sym+'</span>'
       +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:0.7rem;color:#475569;">'+esc(item.code)+(pendingTasks?' <span style="color:#fb923c;font-weight:700;">⏰'+pendingTasks+'</span>':'')+'</div>'
+      +'<div style="font-size:0.7rem;color:#cbd5e1;">'+esc(item.code)+(pendingTasks?' <span style="color:#fb923c;font-weight:700;">⏰'+pendingTasks+'</span>':'')+'</div>'
       +'<div style="font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(item.title.slice(0,36))+'</div>'
-      +'<div style="font-size:0.7rem;color:#475569;margin-top:1px;">¥'+Number(item.price||0).toLocaleString()+' ／ 更新:'+smFmtDate(item.shopsUpdatedAt)+'</div>'
+      +'<div style="font-size:0.7rem;color:#cbd5e1;margin-top:1px;">¥'+Number(item.price||0).toLocaleString()+' ／ 更新:'+smFmtDate(item.shopsUpdatedAt)+'</div>'
       +'</div>'
       +'<div style="font-weight:700;color:'+dc+';font-size:0.95rem;white-space:nowrap;">'+days+'<span style="font-size:0.65rem;margin-left:1px;">日</span></div>'
       +'</div>';
@@ -344,7 +350,8 @@ function smRenderPanel(item){
   var sc   = {'●':'#c7d2fe','■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[sym]||'#c7d2fe';
 
   var shopsUrl  = (item.urls&&item.urls['mercari_shops'])||'';
-  var shopAdmin = item.shopItemId ? 'https://mercari-shops.com/seller/shops/products/'+item.shopItemId+'/edit' : '';
+  var shopsPub  = item.shopItemId ? 'https://jp.mercari.com/shops/product/'+item.shopItemId : '';
+  var shopAdmin = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?keyword=' + encodeURIComponent(item.code);
   var yaUrl  = makeUrl('yahoo_auction','title',item.code,item.title)||'';
   var rkUrl  = makeUrl('rakuma','title',item.code,item.title)||'';
   var yfUrl  = makeUrl('yahoo_flea','title',item.code,item.title)||'';
@@ -357,35 +364,35 @@ function smRenderPanel(item){
 
   var html = '<div style="padding:16px;">'
     // タイトル
-    +'<div style="font-size:0.72rem;color:#475569;margin-bottom:2px;">'+esc(item.code)+'</div>'
+    +'<div style="font-size:0.72rem;color:#cbd5e1;margin-bottom:2px;">'+esc(item.code)+'</div>'
     +'<div style="font-size:0.88rem;font-weight:600;color:#e2e8f0;margin-bottom:14px;line-height:1.4;">'+esc(item.title.slice(0,70))+'</div>'
 
     // 現在ステータス
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'
     +'<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 14px;text-align:center;">'
     +'<div style="font-size:1.5rem;color:'+sc+';">'+sym+'</div>'
-    +'<div style="font-size:0.65rem;color:#475569;">現在の記号</div>'
+    +'<div style="font-size:0.65rem;color:#cbd5e1;">現在の記号</div>'
     +'</div>'
     +'<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 14px;text-align:center;">'
     +'<div style="font-size:1rem;font-weight:700;color:#f1f5f9;">¥'+price.toLocaleString()+'</div>'
-    +'<div style="font-size:0.65rem;color:#475569;">現在価格</div>'
+    +'<div style="font-size:0.65rem;color:#cbd5e1;">現在価格</div>'
     +'</div>'
     +'<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 14px;text-align:center;">'
     +'<div style="font-size:1rem;font-weight:700;color:'+(days>=30?'#fb923c':'#fbbf24')+';">'+days+'日</div>'
-    +'<div style="font-size:0.65rem;color:#475569;">更新から</div>'
+    +'<div style="font-size:0.65rem;color:#cbd5e1;">更新から</div>'
     +'</div>'
     +'</div>'
 
     // プラットフォームリンク
     +'<div style="margin-bottom:16px;">'
-    +'<div style="font-size:0.75rem;color:#475569;margin-bottom:6px;">📱 商品確認</div>'
+    +'<div style="font-size:0.75rem;color:#cbd5e1;margin-bottom:6px;">📱 商品確認</div>'
     +'<div>'
-    +platBtn(shopsUrl,'🛍','Shops商品','rgba(239,68,68,0.12)','rgba(239,68,68,0.3)','#fca5a5')
+    +platBtn(shopsPub,'🛍','Shops商品','rgba(239,68,68,0.12)','rgba(239,68,68,0.3)','#fca5a5')
     +platBtn(shopAdmin,'⚙','Shops管理','rgba(239,68,68,0.08)','rgba(239,68,68,0.2)','#fca5a5')
+    +platBtn(mcUrl,'🔴','メルカリ','rgba(239,68,68,0.12)','rgba(239,68,68,0.3)','#fca5a5')
     +platBtn(yaUrl,'🟠','ヤフオク','rgba(249,115,22,0.12)','rgba(249,115,22,0.3)','#fdba74')
     +platBtn(rkUrl,'🟣','ラクマ','rgba(139,92,246,0.12)','rgba(139,92,246,0.3)','#c4b5fd')
-    +platBtn(yfUrl,'🟡','Yフリマ','rgba(234,179,8,0.12)','rgba(234,179,8,0.3)','#fde047')
-    +platBtn(mcUrl,'🔴','メルカリ','rgba(255,255,255,0.05)','rgba(255,255,255,0.12)','#94a3b8')
+    +platBtn(yfUrl,'🟡','ヤフーフリマ','rgba(234,179,8,0.12)','rgba(234,179,8,0.3)','#fde047')
     +'</div>'
     +'</div>'
 
@@ -394,7 +401,7 @@ function smRenderPanel(item){
     +'<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;">① 商品ページでいいね数を確認して入力</div>'
     +'<div style="display:flex;align-items:center;gap:8px;">'
     +'<input type="number" id="sm-likes-'+esc(item.code)+'" min="0" value="0" style="width:70px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:6px 8px;font-size:0.95rem;text-align:center;">'
-    +'<span style="color:#64748b;font-size:0.82rem;">いいね</span>'
+    +'<span style="color:#d1d5db;font-size:0.82rem;">いいね</span>'
     +'<button onclick="smOnLikes(\''+esc(item.code)+'\')" style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;border-radius:7px;padding:7px 16px;font-size:0.83rem;cursor:pointer;font-weight:600;">アクション確認 →</button>'
     +'</div>'
     +'</div>'
@@ -404,12 +411,12 @@ function smRenderPanel(item){
 
     // 手動記号変更
     +'<details style="margin-top:16px;">'
-    +'<summary style="font-size:0.75rem;color:#475569;cursor:pointer;padding:4px;">⚙ 記号を直接変更する</summary>'
+    +'<summary style="font-size:0.75rem;color:#cbd5e1;cursor:pointer;padding:4px;">⚙ 記号を直接変更する</summary>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'
     +SALE_SYMBOLS.map(function(s){
       var active = s===sym;
       return '<button onclick="smManualChange(\''+esc(item.code)+'\',\''+s+'\')" style="padding:6px 14px;border-radius:6px;font-size:0.9rem;cursor:pointer;'
-        +(active?'background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.6);color:#c7d2fe;':'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#64748b;')+'">'+s+'</button>';
+        +(active?'background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.6);color:#c7d2fe;':'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#d1d5db;')+'">'+s+'</button>';
     }).join('')
     +'</div>'
     +'</details>'
@@ -436,7 +443,7 @@ function smOnLikes(code){
   if(!result) return;
 
   if(!nextSym){
-    result.innerHTML='<div style="background:rgba(100,116,139,0.12);border-radius:8px;padding:12px;color:#64748b;font-size:0.83rem;">すべてのステップが完了しています</div>';
+    result.innerHTML='<div style="background:rgba(100,116,139,0.12);border-radius:8px;padding:12px;color:#d1d5db;font-size:0.83rem;">すべてのステップが完了しています</div>';
     return;
   }
 
@@ -457,19 +464,19 @@ function smOnLikes(code){
 
       // Shops手順
       +'<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin-bottom:10px;">'
-      +'<div style="font-size:0.72rem;color:#64748b;margin-bottom:4px;">① Shopsでタイムセール予約</div>'
+      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">① Shopsでタイムセール予約</div>'
       +'<div style="font-size:0.85rem;color:#e2e8f0;">セール価格: <b style="color:#f87171;font-size:1rem;">¥'+nextPrice.toLocaleString()+'</b>&nbsp;&nbsp;時間: <b>'+saleTime+'</b></div>'
-      +'<div style="font-size:0.72rem;color:#475569;margin-top:4px;">📌 翌日にShopsが自動で価格を戻します</div>'
+      +'<div style="font-size:0.72rem;color:#cbd5e1;margin-top:4px;">📌 翌日にShopsが自動で価格を戻します</div>'
       +'</div>'
 
       // セール文
-      +'<div style="font-size:0.72rem;color:#64748b;margin-bottom:4px;">② コメント欄にセール文をコピペ</div>'
+      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">② コメント欄にセール文をコピペ</div>'
       +'<textarea id="sm-stext-'+esc(code)+'" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;border-radius:6px;padding:8px;font-size:0.78rem;resize:vertical;min-height:110px;">'+saleText+'</textarea>'
       +'<button onclick="smCopyText(\'sm-stext-'+esc(code)+'\')" style="width:100%;margin-top:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">📋 セール文をコピー</button>'
 
       // セール実施完了ボタン
       +'<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
-      +'<div style="font-size:0.72rem;color:#64748b;margin-bottom:6px;">③ セール設定が完了したら押す</div>'
+      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:6px;">③ セール設定が完了したら押す</div>'
       +'<button onclick="smAfterSale(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ セール設定完了（翌日タスクを自動追加）</button>'
       +'</div>'
       +'</div>';
@@ -478,7 +485,7 @@ function smOnLikes(code){
   // --- セールなし ---
   if(!hasSale){
     html += '<div style="background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;">'
-      +'<div style="font-size:0.8rem;color:#64748b;">💡 いいね'+likes+'件 → セールなし（記号変更のみ）</div>'
+      +'<div style="font-size:0.8rem;color:#d1d5db;">💡 いいね'+likes+'件 → セールなし（記号変更のみ）</div>'
       +'</div>';
   }
 
@@ -502,11 +509,11 @@ function smOnLikes(code){
       html += '<div style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.22);border-radius:10px;padding:14px;">'
         +'<div style="font-size:0.82rem;font-weight:700;color:#a5b4fc;margin-bottom:10px;">📋 □ステップでコピーするテキスト</div>'
 
-        +'<div style="font-size:0.72rem;color:#64748b;margin-bottom:4px;">① 全プラットフォームの説明文の一番上に追加</div>'
+        +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">① 全プラットフォームの説明文の一番上に追加</div>'
         +'<textarea id="sm-tdesc-'+esc(code)+'" readonly style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;border-radius:6px;padding:8px;font-size:0.78rem;resize:vertical;min-height:80px;">'+esc(TEICHI_DESC)+'</textarea>'
         +'<button onclick="smCopyText(\'sm-tdesc-'+esc(code)+'\')" style="width:100%;margin-top:5px;margin-bottom:10px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">📋 説明文テキストをコピー</button>'
 
-        +'<div style="font-size:0.72rem;color:#64748b;margin-bottom:4px;">② メルカリのコメント欄に投稿</div>'
+        +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">② メルカリのコメント欄に投稿</div>'
         +'<textarea id="sm-tcomm-'+esc(code)+'" readonly style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;border-radius:6px;padding:8px;font-size:0.78rem;resize:vertical;min-height:80px;">'+esc(TEICHI_COMMENT)+'</textarea>'
         +'<button onclick="smCopyText(\'sm-tcomm-'+esc(code)+'\')" style="width:100%;margin-top:5px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">📋 コメントテキストをコピー</button>'
         +'</div>';
@@ -518,6 +525,8 @@ function smOnLikes(code){
 
 // セール完了 → 翌日・変更タスク追加
 function smAfterSale(code, nextSym, nextPrice){
+  var sdUndo = smGetItem(code);
+  localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sdUndo)), action:'afterSale'}));
   var today = smTodayStr();
 
   // 翌日：価格戻し確認
@@ -545,6 +554,7 @@ function smAfterSale(code, nextSym, nextPrice){
 // 記号変更実行
 function smDoChange(code, newSym, newPrice){
   var sd = smGetItem(code);
+  localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sd)), action:'doChange'}));
   sd.symbol = newSym;
   sd.symbolChangedAt = smTodayStr();
 
@@ -565,6 +575,7 @@ function smDoChange(code, newSym, newPrice){
 // 手動記号変更
 function smManualChange(code, sym){
   var sd = smGetItem(code);
+  localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sd)), action:'manualChange'}));
   sd.symbol = sym;
   sd.symbolChangedAt = smTodayStr();
   smSetItem(code, sd);
@@ -586,6 +597,18 @@ function smCopyText(id){
 }
 
 // GAS URL設定
+// 直前の操作を元に戻す
+function smUndo(){
+  var raw = localStorage.getItem('sm_undo');
+  if(!raw){ showToast('⚠️ 元に戻せる操作がありません', 2000); return; }
+  var undo = JSON.parse(raw);
+  smSetItem(undo.code, undo.data);
+  localStorage.removeItem('sm_undo');
+  _smSelected = undo.code;
+  smRenderAll();
+  showToast('↩ 直前の操作を元に戻しました', 2000);
+}
+
 function smSaveGasUrl(){
   var inp = document.getElementById('sm-gas-url');
   var url = inp ? inp.value.trim() : '';
