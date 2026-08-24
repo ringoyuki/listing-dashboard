@@ -1,4 +1,4 @@
-﻿// ===== パスワード認証 =====
+// ===== パスワード認証 =====
 var PASS = '132';
 function toHalfWidth(str) {
   return str.replace(/[０-９]/g, function(s) {
@@ -349,6 +349,15 @@ function renderCard(item, searchCode, searchTitle) {
   var sUrl = (item.urls && item.urls['mercari_shops']) ? item.urls['mercari_shops'] : '';
    var openAllBtn = '<button class="btn-openall" onclick="openAllByData(\'' + esc(code) + '\', \'' + esc(title) + '\', \'' + esc(sUrl) + '\')">🔗 全プラット一気に開く</button>';
 
+  // 日時情報
+  var dateInfo = '';
+  if (item.shopsRegDate || item.shopsUpdatedAt) {
+    dateInfo = '<div class="rcard-dates">'
+      + (item.shopsRegDate ? '<span class="rdate">📅 出品: ' + esc(item.shopsRegDate) + '</span>' : '')
+      + (item.shopsUpdatedAt ? '<span class="rdate">🔄 更新: ' + esc(item.shopsUpdatedAt) + '</span>' : '')
+      + '</div>';
+  }
+
   return '<div class="rcard">'
     + '<div class="rcard-info">'
     + '<span class="rcode">'+esc(item.code)+'</span>'
@@ -356,6 +365,7 @@ function renderCard(item, searchCode, searchTitle) {
     + (item.price?'<span class="rprice">¥'+Number(item.price).toLocaleString()+'</span>':'')
     + (item.stock >= 1 ? (item.status === '1' ? '<span class="rbadge" style="background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3);color:#c7d2fe;">🔒 非公開（在庫あり）</span>' : '') : (item.status === '1' ? '<span class="rbadge rbadge-private">🔒 非公開保存</span>' : '<span class="rbadge rbadge-sold">📦 売り切れ</span>'))
     + '</div>'
+    + dateInfo
     + '<div class="plat-rows">'+rows+'</div>'
     + '<div class="plat-footer">'+openAllBtn+'</div>'
     + '</div>';
