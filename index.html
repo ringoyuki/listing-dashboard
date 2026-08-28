@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -61,6 +61,12 @@
         <button class="btn-search" onclick="doSearch()">🔍&nbsp;検索</button>
       </div>
       <p class="shint">管理番号は上4文字でもOK　　どちらか一方だけでも検索できます</p>
+      <div style="display:flex; gap:15px; margin-top:10px; font-size:0.85rem; color:#cbd5e1; flex-wrap:wrap;">
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="filter-public" checked onchange="doSearch()"> 出品中</label>
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="filter-private-stock" checked onchange="doSearch()"> 🔒 非公開（在庫あり）</label>
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="filter-private" checked onchange="doSearch()"> 🔒 非公開保存</label>
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;"><input type="checkbox" id="filter-sold" checked onchange="doSearch()"> 📦 売り切れ</label>
+      </div>
     </div>
 
     <!-- 結果 -->

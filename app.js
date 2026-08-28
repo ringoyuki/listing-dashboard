@@ -1,4 +1,4 @@
-// ===== パスワード認証 =====
+﻿// ===== パスワード認証 =====
 var PASS = '132';
 function toHalfWidth(str) {
   return str.replace(/[０-９]/g, function(s) {
@@ -220,6 +220,24 @@ function doSearch(){
     var aE = (code && a.code && a.code.toLowerCase()===lc) ? 0 : 1;
     var bE = (code && b.code && b.code.toLowerCase()===lc) ? 0 : 1;
     return aE - bE;
+  });
+
+  var fPub = document.getElementById('filter-public') ? document.getElementById('filter-public').checked : true;
+  var fPrivStock = document.getElementById('filter-private-stock') ? document.getElementById('filter-private-stock').checked : true;
+  var fPriv = document.getElementById('filter-private') ? document.getElementById('filter-private').checked : true;
+  var fSold = document.getElementById('filter-sold') ? document.getElementById('filter-sold').checked : true;
+
+  matched = matched.filter(function(item){
+    var isPrivStock = (item.stock >= 1 && item.status === '1');
+    var isPub = (item.stock >= 1 && item.status !== '1');
+    var isPriv = (item.stock < 1 && item.status === '1');
+    var isSold = (item.stock < 1 && item.status !== '1');
+    
+    if (isPub && !fPub) return false;
+    if (isPrivStock && !fPrivStock) return false;
+    if (isPriv && !fPriv) return false;
+    if (isSold && !fSold) return false;
+    return true;
   });
 
   var el = document.getElementById('results');
