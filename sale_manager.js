@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿// ==========================================
+﻿﻿﻿﻿﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -455,6 +455,7 @@ function smOnLikes(code){
   var nextColor = {'■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[nextSym]||'#86efac';
 
   var html = '';
+  function cbtn(v){ return '<button title="コピー" onclick="navigator.clipboard.writeText(\''+v+'\');showToast(\'✅ '+v+' をコピーしました\', 1500);event.stopPropagation();" style="margin-left:5px;padding:2px 6px;font-size:0.7rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#e2e8f0;border-radius:4px;cursor:pointer;vertical-align:middle;">📋</button>'; }
 
   // --- セールあり ---
   if(hasSale){
