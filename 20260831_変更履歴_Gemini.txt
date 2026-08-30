@@ -1,0 +1,29 @@
+﻿=========================================
+2026年8月28日〜8月31日 変更履歴（Gemini AIによる実装）
+=========================================
+
+■ 1. 検索フィルター機能の追加 (2026-08-28)
+対象ファイル: index.html, app.js
+概要:
+検索バーの下に4つのステータス絞り込みチェックボックスを追加しました。
+- 出品中 (在庫1以上、ステータス非公開以外)
+- 🔒 非公開（在庫あり） (在庫1以上、ステータス非公開)
+- 🔒 非公開保存 (在庫0、ステータス非公開)
+- 📦 売り切れ (在庫0、ステータス非公開以外)
+
+変更箇所:
+- index.html: 検索バーの下に <div style="display:flex;..."> でチェックボックス4つを配置。onchange="doSearch()" を設定。
+- app.js: doSearch() 内で matched 配列を slice する直前に、チェックボックスのON/OFF状態（item.stock と item.status）に応じて ilter する処理を挿入。
+
+■ 2. メルカリ専用価格（+1,000円）の併記 (2026-08-31)
+対象ファイル: sale_manager.js
+概要:
+「商品管理」画面のアクション実行時、Shopsの変更後価格の横に、メルカリ用に+1,000円した価格を小さくグレーで併記するようにしました。必要最低限の表示追加のみ行っています。
+
+変更箇所:
+1. 通常の記号変更（● → ■ など）
+   - 対象箇所: smOnLikes 内のオーナー変更用HTML（L495付近）、通常変更用HTML（L502付近）
+   - 変更内容: ¥'+nextPrice.toLocaleString()+' の後ろに <span style="color:#cbd5e1;font-size:0.75rem;margin-left:8px;">（メルカリ ¥'+(nextPrice+1000).toLocaleString()+'）</span> を追加。
+2. タイムセール実施時
+   - 対象箇所: smOnLikes 内のセール予約HTML（L468付近）
+   - 変更内容: ¥'+nextPrice.toLocaleString()+' の後ろに <span style="color:#d1d5db;font-size:0.75rem;margin-left:8px;">（メルカリ セール価格 ¥'+(nextPrice+1000).toLocaleString()+'）</span> を追加。
