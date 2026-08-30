@@ -1,4 +1,4 @@
-﻿﻿﻿﻿// ==========================================
+﻿﻿﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -465,7 +465,7 @@ function smOnLikes(code){
       // Shops手順
       +'<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin-bottom:10px;">'
       +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">① Shopsでタイムセール予約</div>'
-      +'<div style="font-size:0.85rem;color:#e2e8f0;">セール価格: <b style="color:#f87171;font-size:1rem;">¥'+nextPrice.toLocaleString()+'</b>&nbsp;&nbsp;時間: <b>'+saleTime+'</b></div>'
+      +'<div style="font-size:0.85rem;color:#e2e8f0;">セール価格: <b style="color:#f87171;font-size:1rem;">¥'+nextPrice.toLocaleString()+'</b> <span style="color:#d1d5db;font-size:0.75rem;margin-left:8px;">（メルカリ セール価格 ¥'+(nextPrice+1000).toLocaleString()+'）</span>&nbsp;&nbsp;時間: <b>'+saleTime+'</b></div>'
       +'<div style="font-size:0.72rem;color:#cbd5e1;margin-top:4px;">📌 翌日にShopsが自動で価格を戻します</div>'
       +'</div>'
 
