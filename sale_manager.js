@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -466,7 +466,7 @@ function smOnLikes(code){
       // Shops手順
       +'<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin-bottom:10px;">'
       +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">① Shopsでタイムセール予約</div>'
-      +'<div style="font-size:0.85rem;color:#e2e8f0;">セール価格: <b style="color:#f87171;font-size:1rem;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+' <span style="color:#d1d5db;font-size:0.75rem;margin-left:8px;">（メルカリ セール価格 ¥'+(nextPrice+1000).toLocaleString()+cbtn(nextPrice+1000)+'）</span>&nbsp;&nbsp;時間: <b>'+saleTime+'</b></div>'
+      +'<div style="font-size:0.85rem;color:#e2e8f0;">セール価格: <b style="color:#f87171;font-size:1rem;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+' <span style="color:#d1d5db;font-size:0.75rem;margin-left:8px;">（メルカリ セール価格 ¥'+(nextPrice+1000).toLocaleString()+cbtn(nextPrice+1000)+' / Yフリマ セール価格 ¥'+(Math.floor(nextPrice/1000)*1000).toLocaleString()+cbtn(Math.floor(nextPrice/1000)*1000)+'）</span>&nbsp;&nbsp;時間: <b>'+saleTime+'</b></div>'
       +'<div style="font-size:0.72rem;color:#cbd5e1;margin-top:4px;">📌 翌日にShopsが自動で価格を戻します</div>'
       +'</div>'
 
@@ -494,14 +494,14 @@ function smOnLikes(code){
   if(isOwner){
     html += '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:#f87171;margin-bottom:6px;">⚠️ オーナー確認が必要な変更</div>'
-      +'<div style="font-size:0.85rem;color:#e2e8f0;margin-bottom:10px;">'+sym+' → <b style="color:'+nextColor+';">'+nextSym+'</b>&nbsp;&nbsp;¥'+price.toLocaleString()+' → <b style="color:'+nextColor+';">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+' <span style="color:#cbd5e1;font-size:0.75rem;margin-left:8px;">（メルカリ ¥'+(nextPrice+1000).toLocaleString()+cbtn(nextPrice+1000)+'）</span></div>'
+      +'<div style="font-size:0.85rem;color:#e2e8f0;margin-bottom:10px;">'+sym+' → <b style="color:'+nextColor+';">'+nextSym+'</b>&nbsp;&nbsp;¥'+price.toLocaleString()+' → <b style="color:'+nextColor+';">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+' <span style="color:#cbd5e1;font-size:0.75rem;margin-left:8px;">（メルカリ ¥'+(nextPrice+1000).toLocaleString()+cbtn(nextPrice+1000)+' / Yフリマ ¥'+(Math.floor(nextPrice/1000)*1000).toLocaleString()+cbtn(Math.floor(nextPrice/1000)*1000)+'）</span></div>'
       +'<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
       +'</div>';
   } else {
     var isBox = nextSym==='□';
     html += '<div style="background:'+(isBox?'rgba(239,68,68,0.07)':'rgba(34,197,94,0.07)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.25)':'rgba(34,197,94,0.25)')+';border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:'+(isBox?'#f87171':'#86efac')+';margin-bottom:6px;">'+(isBox?'🏁 最終フェーズ（底値）':'📋 記号変更')+'</div>'
-      +'<div style="font-size:0.85rem;color:#e2e8f0;margin-bottom:10px;">'+sym+' → <b style="color:'+nextColor+';">'+nextSym+'</b>&nbsp;&nbsp;¥'+price.toLocaleString()+' → <b style="color:'+nextColor+';">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+' <span style="color:#cbd5e1;font-size:0.75rem;margin-left:8px;">（メルカリ ¥'+(nextPrice+1000).toLocaleString()+cbtn(nextPrice+1000)+'）</span></div>'
+      +'<div style="font-size:0.85rem;color:#e2e8f0;margin-bottom:10px;">'+sym+' → <b style="color:'+nextColor+';">'+nextSym+'</b>&nbsp;&nbsp;¥'+price.toLocaleString()+' → <b style="color:'+nextColor+';">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+' <span style="color:#cbd5e1;font-size:0.75rem;margin-left:8px;">（メルカリ ¥'+(nextPrice+1000).toLocaleString()+cbtn(nextPrice+1000)+' / Yフリマ ¥'+(Math.floor(nextPrice/1000)*1000).toLocaleString()+cbtn(Math.floor(nextPrice/1000)*1000)+'）</span></div>'
       +'<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
       +'</div>';
 
