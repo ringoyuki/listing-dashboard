@@ -684,7 +684,7 @@ function smLoadCsvFromDrive(){
       if(btn){ btn.textContent='☁ Driveから最新CSV取り込み'; btn.disabled=false; btn.style.opacity='1'; }
     });
 }
-// ===== 外注スタッフ同期用（エクスポート・インポート） =====
+// ===== スタッフ同期用（エクスポート・インポート） =====
 window.smExportData = function() {
   var keys = ['listing_mgr_v5', 'item_dict', 'csv_filename', 'csv_updated_at', 'sale_data_v1', 'saleGasUrl', 'last_seed'];
   var data = {};
