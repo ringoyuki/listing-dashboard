@@ -684,3 +684,49 @@ function smLoadCsvFromDrive(){
       if(btn){ btn.textContent='☁ Driveから最新CSV取り込み'; btn.disabled=false; btn.style.opacity='1'; }
     });
 }
+// ===== 外注スタッフ同期用（エクスポート・インポート） =====
+window.smExportData = function() {
+  var keys = ['listing_mgr_v5', 'item_dict', 'csv_filename', 'csv_updated_at', 'sale_data_v1', 'saleGasUrl', 'last_seed'];
+  var data = {};
+  keys.forEach(function(k) {
+    var val = localStorage.getItem(k);
+    if (val !== null) data[k] = val;
+  });
+  var jsonStr = JSON.stringify(data, null, 2);
+  var blob = new Blob([jsonStr], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  var d = new Date();
+  var dStr = d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2) + '_' + ('0'+d.getHours()).slice(-2) + ('0'+d.getMinutes()).slice(-2);
+  a.download = 'shuppin_data_' + dStr + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ データを保存（エクスポート）しました', 3000);
+};
+
+window.smImportData = function(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if(confirm('現在のデータを上書きして、選択したバックアップデータを取り込みますか？\n（取り込み後、画面は自動的にリロードされます）')) {
+        Object.keys(data).forEach(function(k) {
+          if (data[k] !== null) {
+            localStorage.setItem(k, data[k]);
+          }
+        });
+        alert('データの取り込みが完了しました。画面を更新します。');
+        location.reload();
+      }
+    } catch(err) {
+      alert('エラー: 有効なデータファイル(.json)ではありません。');
+    }
+    event.target.value = ''; // リセット
+  };
+  reader.readAsText(file);
+};
