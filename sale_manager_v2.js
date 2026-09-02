@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -628,6 +628,16 @@ function smSaveGasUrl(){
   var inp = document.getElementById('sm-gas-url');
   var url = inp ? inp.value.trim() : '';
   if(!url){ showToast('URLを入力してください', 2000); return; }
+  
+  if(url.indexOf('drive.google.com') !== -1) {
+    alert('【エラー】\n入力されたのはGoogleドライブのフォルダURLです。\n\nここは「Google Apps Script (GAS) のWebアプリURL」を入力する欄です。\nsale_gas.txt の手順に従ってGASをデプロイし、\nhttps://script.google.com/macros/s/... から始まるURLを入力してください。');
+    return;
+  }
+  
+  if(url.indexOf('script.google.com') === -1) {
+    alert('【警告】\n入力されたURLはGoogle Apps Scriptのもの（script.google.com）ではないようです。正しく動作しない可能性があります。');
+  }
+
   SALE_GAS_URL = url;
   localStorage.setItem('saleGasUrl', url);
   showToast('✅ GAS URLを保存しました。同期を開始します...', 2000);
