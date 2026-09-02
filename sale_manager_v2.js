@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
+﻿﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -708,7 +708,7 @@ window.smExportData = function() {
   var a = document.createElement('a');
   a.href = url;
   var d = new Date();
-  var dStr = d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2) + '_' + ('0'+d.getHours()).slice(-2) + ('0'+d.getMinutes()).slice(-2);
+  var dStr = d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2) + '_' + ('0'+d.getHours()).slice(-2) + ('0'+d.getMinutes()).slice(-2);
   a.download = 'shuppin_data_' + dStr + '.json';
   document.body.appendChild(a);
   a.click();
