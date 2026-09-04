@@ -1002,11 +1002,13 @@ document.addEventListener('click', function(e) {
 
 
 
+
 function smBatchCopyTasks() {
   var all = smGetAll();
   var today = smTodayStr();
   var doneTasks = [];
   var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 2;
+  var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
   var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
 
   Object.keys(all).forEach(function(code){
@@ -1014,49 +1016,41 @@ function smBatchCopyTasks() {
     var pd = items.find(function(i){ return i.code===code; });
     if(!pd) return;
     
-    if(sd.tasks) {
-      sd.tasks.forEach(function(t) {
-        if(t.status === 'done') {
-          doneTasks.push({task: t, code: code, title: pd.title, price: pd.price});
-        }
-      });
-    }
-    
+    // 1. 至急報告
     if(sd.symbol === finalSym) {
        var passedDays = smDaysDiff(pd.shopsUpdatedAt);
        if(passedDays >= REPORT_OVER_DAYS) {
-          doneTasks.push({task: {type: 'report', title: code}, code: code, title: pd.title, price: pd.price});
+          doneTasks.push({type: 'report', code: code, title: pd.title});
+          return;
        }
+    }
+    
+    // 2. 本日の記号変更
+    if(sd.symbolChangedAt === today) {
+       var base = smBasePrice(sd.symbol, pd.price || 0);
+       var isHigh = (base >= HIGH_PRICE_ALERT);
+       doneTasks.push({type: 'sym_change', code: code, title: pd.title, isHigh: isHigh, sym: sd.symbol});
     }
   });
 
   if (doneTasks.length === 0) {
-    alert('コピーするタスクがありません。');
+    alert('コピーする報告対象（至急報告、または本日の記号変更）がありません。');
     return;
   }
 
-  var copyText = '【本日の作業報告：計' + doneTasks.length + '件】\\n\\n';
+  var copyText = '【本日の作業報告：計' + doneTasks.length + '件】\n\n';
   var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
 
   doneTasks.forEach(function(d, index) {
-    var t = d.task;
     var num = (index < 20) ? circleNums[index] : '(' + (index+1) + ')';
-    
-    if (t.type === 'report') {
-      copyText += num + ' 管理番号: ' + d.code + '（🚨オーナー至急報告）\\n';
-      copyText += d.title + '\\n\\n';
-    } else if (t.desc && t.desc.indexOf('記号') !== -1) {
-      copyText += num + ' 管理番号: ' + d.code + '（記号変更）\\n';
-      copyText += t.desc + ' 価格 ' + d.price + '円\\n';
-      copyText += d.title + '\\n\\n';
-    } else if (t.type === 'price_discount') {
-      copyText += num + ' 管理番号: ' + d.code + '（500円値下げ）\\n';
-      copyText += t.desc + '\\n';
-      copyText += d.title + '\\n\\n';
-    } else {
-      copyText += num + ' 管理番号: ' + d.code + '\\n';
-      copyText += (t.desc || '') + '\\n';
-      copyText += d.title + '\\n\\n';
+    if (d.type === 'report') {
+      copyText += num + ' 管理番号: ' + d.code + '（🚨オーナー至急報告）\n';
+      copyText += d.title + '\n\n';
+    } else if (d.type === 'sym_change') {
+      var alertText = d.isHigh ? '（🚨高額商品・記号変更報告）' : '（記号変更）';
+      copyText += num + ' 管理番号: ' + d.code + alertText + '\n';
+      copyText += '記号を ' + d.sym + ' に変更\n';
+      copyText += d.title + '\n\n';
     }
   });
 
@@ -1070,9 +1064,9 @@ function smBatchCopyTasks() {
 function smExecMercariComment(code, price) {
   var nextPrice = price - (typeof CONFIG !== 'undefined' ? CONFIG.SALE_DISC_AMT : 500);
   if (nextPrice < 0) nextPrice = 0;
-  var comment = "本日限定！" + nextPrice.toLocaleString() + "円にお値下げいたします！\\n購入希望の方は「購入希望」とコメントをお願いします！";
+  var comment = "本日限定！" + nextPrice.toLocaleString() + "円にお値下げいたします！\n購入希望の方は「購入希望」とコメントをお願いします！";
   navigator.clipboard.writeText(comment).then(function() {
-    alert('【コピー完了】\\n' + comment + '\\n\\n商品ページを開きます！');
+    alert('【コピー完了】\n' + comment + '\n\n商品ページを開きます！');
     window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(code), '_blank');
   });
 }
