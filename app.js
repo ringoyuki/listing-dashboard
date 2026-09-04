@@ -442,7 +442,7 @@ function extractCode(desc){
   }
   return '';
 }
-var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,STATUS:163,REG_DATE:175,UPD_DATE:176};
+var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,SHIPPING_METHOD:158,SHIPPING_ORIGIN:159,SHIPPING_DAYS:160,STATUS:163,REG_DATE:175,UPD_DATE:176};
 
 document.addEventListener('DOMContentLoaded',function(){
   var fi=document.getElementById('csvfile');
@@ -494,7 +494,10 @@ function parseCsv(text){
     var catM = desc.match(/#[^\s\u3000\r\n,、。！？#]+/);
     var category = catM ? catM[0] : '';
     var shopsRegAt = cols.length > COL.REG_DATE ? cols[COL.REG_DATE].trim() : '';
-    var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
+var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
+var sMethod = cols.length > COL.SHIPPING_METHOD ? cols[COL.SHIPPING_METHOD].trim() : '';
+var sOrigin = cols.length > COL.SHIPPING_ORIGIN ? cols[COL.SHIPPING_ORIGIN].trim() : '';
+var sDays = cols.length > COL.SHIPPING_DAYS ? cols[COL.SHIPPING_DAYS].trim() : '';
     pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
@@ -655,4 +658,43 @@ updateStats();
 
 
 
+
+
+function checkErrors() {
+  var container = document.getElementById('error-alert-container');
+  if(!container) return;
+  var errorItems = [];
+  items.forEach(function(item) {
+    if ((item.stock || 0) <= 0) return; // Ignore sold out
+    var errs = [];
+    if (!item.code || item.code === 'CHECK') errs.push('管理コード未入力');
+    if (item.shippingMethod !== '3') errs.push('配送方法が「3(らくらく等)」以外 (' + (item.shippingMethod||'空') + ')');
+    if (item.shippingOrigin !== 'jp27') errs.push('発送元が「大阪(jp27)」以外 (' + (item.shippingOrigin||'空') + ')');
+    if (item.shippingDays !== '1') errs.push('発送日数が「1〜2日(1)」以外 (' + (item.shippingDays||'空') + ')');
+    
+    if (errs.length > 0) {
+      errorItems.push({ item: item, errs: errs });
+    }
+  });
+  
+  if (errorItems.length > 0) {
+    var html = '<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:8px; padding:16px; max-width:800px; margin:0 auto; text-align:left;">';
+    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; display:flex; align-items:center;">⚠️ 外注スタッフの設定エラー（' + errorItems.length + '件）</h3>';
+    html += '<div style="max-height:200px; overflow-y:auto; font-size:0.85rem; color:#f87171;">';
+    errorItems.forEach(function(e) {
+      var name = e.item.title || '(商品名不明)';
+      var code = e.item.code && e.item.code !== 'CHECK' ? e.item.code : 'コード無し';
+      html += '<div style="margin-bottom:8px; border-bottom:1px solid rgba(239,68,68,0.2); padding-bottom:4px;">';
+      html += '<b>[' + code + ']</b> ' + name + '<br>';
+      html += '❌ ' + e.errs.join(' / ');
+      html += '</div>';
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+    container.style.display = 'block';
+  } else {
+    container.innerHTML = '';
+    container.style.display = 'none';
+  }
+}
 
