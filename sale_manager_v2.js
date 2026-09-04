@@ -206,14 +206,14 @@ function smGetAllTasks(){
       var dCode = '';
       var dDesc = '';
       if(diff > 0) {
-        dCode = '🚨 ' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日はセール日です';
-        dDesc = 'あと' + diff + '日でセール日です。下準備をお願いします。';
+        dDesc = '🚨 ' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日はセール日です';
+        dCode = '🚨 あと' + diff + '日でセール日です。下準備をお願いします。';
       } else if(diff === 0) {
-        dCode = '🚨 本日はセール当日です！';
-        dDesc = 'タイムセール、コメントセール漏れがないようにお願いします。';
+        dDesc = '🚨 本日はセール当日です！';
+        dCode = '🚨 タイムセール、コメントセール漏れがないようにお願いします。';
       } else if(diff === -1) {
-        dCode = '🚨 セール翌日の処理';
-        dDesc = 'コメントセールの削除（コメ消し）をお願いします。';
+        dDesc = '🚨 セール翌日の処理';
+        dCode = '🚨 コメントセールの削除（コメ消し）をお願いします。';
       }
       tasks.push({
         taskId: 'SALE_PREP_' + targetDate.getTime() + '_' + diff,
