@@ -666,12 +666,22 @@ function checkErrors() {
   if(!container) return;
   var errorItems = [];
   items.forEach(function(item) {
-    if ((item.stock || 0) <= 0) return; // Ignore sold out
+    var stock = parseInt(item.stock) || 0;
+    var status = item.status ? item.status.toString() : '';
+    
+    // 無視する条件：過去の売り切れ商品（ステータス2 かつ 在庫0）
+    if (status === '2' && stock <= 0) return;
+    
     var errs = [];
     if (!item.code || item.code === 'CHECK') errs.push('管理コード未入力');
-    if (item.shippingMethod !== '3') errs.push('配送方法が「3(らくらく等)」以外 (' + (item.shippingMethod||'空') + ')');
-    if (item.shippingOrigin !== 'jp27') errs.push('発送元が「大阪(jp27)」以外 (' + (item.shippingOrigin||'空') + ')');
-    if (item.shippingDays !== '1') errs.push('発送日数が「1〜2日(1)」以外 (' + (item.shippingDays||'空') + ')');
+    if (item.shippingMethod !== '3') errs.push('配送方法が「3(らくらく等)」以外');
+    if (item.shippingOrigin !== 'jp27') errs.push('発送元が「大阪(jp27)」以外');
+    if (item.shippingDays !== '1') errs.push('発送日数が「1〜2日(1)」以外');
+    
+    var cat = item.category || '';
+    if (cat.indexOf('時計') === -1 && !item.brandId) {
+      errs.push('ブランド未入力（カテゴリー: ' + (cat||'不明') + '）');
+    }
     
     if (errs.length > 0) {
       errorItems.push({ item: item, errs: errs });
@@ -679,14 +689,15 @@ function checkErrors() {
   });
   
   if (errorItems.length > 0) {
-    var html = '<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:8px; padding:16px; max-width:800px; margin:0 auto; text-align:left;">';
-    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; display:flex; align-items:center;">⚠️ 外注スタッフの設定エラー（' + errorItems.length + '件）</h3>';
-    html += '<div style="max-height:200px; overflow-y:auto; font-size:0.85rem; color:#f87171;">';
+    var html = '<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:8px; padding:16px; max-width:1000px; margin:0 auto 20px auto; text-align:left;">';
+    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; font-size:1.1rem;">⚠️ 外注スタッフの設定エラー（' + errorItems.length + '件）</h3>';
+    html += '<p style="color:#f87171; font-size:0.85rem; margin-top:0; margin-bottom:12px;">※メルカリShopsだけでなく、メルカリ、ヤフオク、ラクマ、ヤフーフリマ等も確認・修正してください。</p>';
+    html += '<div style="max-height:250px; overflow-y:auto; font-size:0.85rem; color:#f87171; padding-right:10px;">';
     errorItems.forEach(function(e) {
       var name = e.item.title || '(商品名不明)';
       var code = e.item.code && e.item.code !== 'CHECK' ? e.item.code : 'コード無し';
-      html += '<div style="margin-bottom:8px; border-bottom:1px solid rgba(239,68,68,0.2); padding-bottom:4px;">';
-      html += '<b>[' + code + ']</b> ' + name + '<br>';
+      html += '<div style="margin-bottom:8px; border-bottom:1px solid rgba(239,68,68,0.2); padding-bottom:6px;">';
+      html += '<b style="color:#fca5a5;">[' + code + ']</b> ' + name + '<br>';
       html += '❌ ' + e.errs.join(' / ');
       html += '</div>';
     });
@@ -698,6 +709,7 @@ function checkErrors() {
     container.style.display = 'none';
   }
 }
+
 
 
 
