@@ -703,7 +703,7 @@ function checkErrors() {
   
   if (errorItems.length > 0) {
     var html = '<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:8px; padding:16px; max-width:1000px; margin:0 auto 20px auto; text-align:left;">';
-    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; font-size:1.1rem;">⚠️ スタッフの設定エラー（' + errorItems.length + '件）</h3>';
+    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; font-size:1.1rem;">⚠️ 設定エラー（' + errorItems.length + '件）</h3>';
     html += '<p style="color:#f87171; font-size:0.85rem; margin-top:0; margin-bottom:12px;">※メルカリShopsだけでなく、メルカリ、ヤフオク、ラクマ、ヤフーフリマ等も確認・修正してください。</p>';
     html += '<div style="max-height:250px; overflow-y:auto; font-size:0.85rem; color:#f87171; padding-right:10px;">';
     errorItems.forEach(function(e) {
@@ -722,6 +722,7 @@ function checkErrors() {
     container.style.display = 'none';
   }
 }
+
 
 
 
