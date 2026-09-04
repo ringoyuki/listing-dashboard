@@ -283,6 +283,32 @@ function closeSaleModal(){
 
 var _smSelected = null;
 
+function shiftDateToSaleDay(dStr) {
+    if (!dStr) return dStr;
+    var d = new Date(dStr);
+    if (isNaN(d.getTime())) return dStr;
+    var day = d.getDate();
+    // 28〜4日は1日へ
+    if (day >= 28 || day <= 4) {
+        if (day >= 28) d.setMonth(d.getMonth() + 1);
+        d.setDate(1);
+        return smFmtDateOnly(d);
+    }
+    // 5〜12日は8日へ
+    if (day >= 5 && day <= 12) {
+        d.setDate(8);
+        return smFmtDateOnly(d);
+    }
+    return dStr; // そのまま
+}
+function smFmtDateOnly(d) {
+    var y = d.getFullYear();
+    var m = ('0'+(d.getMonth()+1)).slice(-2);
+    var day = ('0'+d.getDate()).slice(-2);
+    return y + '-' + m + '-' + day;
+}
+
+
 function smRenderAll(){
   smRenderTasks();
   smRenderList();
@@ -562,14 +588,14 @@ function smOnLikes(code){
     html += '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:#f87171;margin-bottom:6px;">⚠️ オーナー確認が必要な変更</div>'
       +gridHtml
-      +'<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
+      + mercariBtn + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
       +'</div>';
   } else {
     var isBox = nextSym==='□';
     html += '<div style="background:'+(isBox?'rgba(239,68,68,0.07)':'rgba(34,197,94,0.07)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.25)':'rgba(34,197,94,0.25)')+';border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:'+(isBox?'#f87171':'#86efac')+';margin-bottom:6px;">'+(isBox?'🏁 最終フェーズ（底値）':'📋 記号変更')+'</div>'
       +gridHtml
-      +'<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
+      + mercariBtn + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
       +'</div>';
 
     // □の底値テキスト
@@ -627,7 +653,7 @@ function smDoChange(code, newSym, newPrice){
   if(!sd.tasks) sd.tasks=[];
   sd.tasks.push({
     id:smGenId(), type:'price_discount', status:'pending',
-    dueDate:smAddDays(smTodayStr(), SALE_HALF_DAYS),
+    dueDate:shiftDateToSaleDay(smAddDays(smTodayStr(), SALE_HALF_DAYS)),
     desc:'500円値下げ → ¥'+(newPrice-SALE_DISC_AMT).toLocaleString()+'に変更'
   });
 
@@ -966,66 +992,64 @@ document.addEventListener('click', function(e) {
   }
 });
 
+
+
+
 function smBatchCopyTasks() {
-  var tlist = document.getElementById('task-list');
-  var tasks = smGetAllTasks();
+  var all = smGetAll();
+  var today = smTodayStr();
   var doneTasks = [];
-  
-  // 画面上のチェックボックス状態を見て、チェックが入っているものを取得
-  var items = tlist.querySelectorAll('.task-item');
-  items.forEach(function(itemDiv) {
-    var cb = itemDiv.querySelector('input[type="checkbox"]');
-    var isDone = cb ? cb.checked : false;
-    var taskCode = itemDiv.querySelector('.task-title').innerText;
-    var taskDesc = itemDiv.querySelector('.task-desc').innerText;
+  var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 2;
+  var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
+
+  Object.keys(all).forEach(function(code){
+    var sd = all[code];
+    var pd = items.find(function(i){ return i.code===code; });
+    if(!pd) return;
     
-    // 至急報告タスクの場合は、チェックがなくても拾う？ いいえ、シンプルに
-    // "至急報告" か "完了したもの" を対象とする。
-    if (isDone || taskDesc.indexOf('至急報告') !== -1) {
-       // タスク情報を探す
-       var t = tasks.find(function(x){ return x.title === taskCode; });
-       if(t) {
-         doneTasks.push({task: t, isDone: isDone, element: itemDiv});
+    if(sd.tasks) {
+      sd.tasks.forEach(function(t) {
+        if(t.status === 'done') {
+          doneTasks.push({task: t, code: code, title: pd.title, price: pd.price});
+        }
+      });
+    }
+    
+    if(sd.symbol === finalSym) {
+       var passedDays = smDaysDiff(pd.shopsUpdatedAt);
+       if(passedDays >= REPORT_OVER_DAYS) {
+          doneTasks.push({task: {type: 'report', title: code}, code: code, title: pd.title, price: pd.price});
        }
     }
   });
 
   if (doneTasks.length === 0) {
-    alert('コピーするタスク（完了済み、または至急報告）がありません。');
+    alert('コピーするタスクがありません。');
     return;
   }
 
-  var copyText = '【本日の作業報告：計' + doneTasks.length + '件】\n\n';
-  
-  var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','十六','⑰','⑱','⑲','⑳'];
+  var copyText = '【本日の作業報告：計' + doneTasks.length + '件】\\n\\n';
+  var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
 
   doneTasks.forEach(function(d, index) {
     var t = d.task;
     var num = (index < 20) ? circleNums[index] : '(' + (index+1) + ')';
     
-    // 該当商品のデータを取得
-    var pd = window.item_dict ? window.item_dict[t.title] : null;
-    var title = pd ? pd.title : '不明な商品';
-    var curPrice = pd ? pd.price : 0;
-    
     if (t.type === 'report') {
-      copyText += num + ' 管理番号: ' + t.title + '（🚨オーナー至急報告）\n';
-      copyText += title + '\n\n';
-    } else if (t.type === 'sym') {
-      copyText += num + ' 管理番号: ' + t.title + '（記号変更）\n';
-      // symタスクのdescから推移を抽出 (例: ●→■ に変更してください)
-      var symChange = t.desc.split(' に')[0]; 
-      copyText += symChange + ' 価格 ' + curPrice + '円\n';
-      copyText += title + '\n\n';
-    } else if (t.type === 'disc') {
-      copyText += num + ' 管理番号: ' + t.title + '（500円値下げ）\n';
-      var nextPrice = curPrice > 500 ? curPrice - 500 : curPrice;
-      copyText += '価格 ' + curPrice + '円 ⇒ ' + nextPrice + '円\n';
-      copyText += title + '\n\n';
+      copyText += num + ' 管理番号: ' + d.code + '（🚨オーナー至急報告）\\n';
+      copyText += d.title + '\\n\\n';
+    } else if (t.desc && t.desc.indexOf('記号') !== -1) {
+      copyText += num + ' 管理番号: ' + d.code + '（記号変更）\\n';
+      copyText += t.desc + ' 価格 ' + d.price + '円\\n';
+      copyText += d.title + '\\n\\n';
+    } else if (t.type === 'price_discount') {
+      copyText += num + ' 管理番号: ' + d.code + '（500円値下げ）\\n';
+      copyText += t.desc + '\\n';
+      copyText += d.title + '\\n\\n';
     } else {
-      copyText += num + ' 管理番号: ' + t.title + '\n';
-      copyText += t.desc + '\n';
-      copyText += title + '\n\n';
+      copyText += num + ' 管理番号: ' + d.code + '\\n';
+      copyText += (t.desc || '') + '\\n';
+      copyText += d.title + '\\n\\n';
     }
   });
 
@@ -1033,5 +1057,15 @@ function smBatchCopyTasks() {
     alert('報告用テキストをコピーしました！');
   }).catch(function() {
     alert('コピーに失敗しました。');
+  });
+}
+
+function smExecMercariComment(code, price) {
+  var nextPrice = price - (typeof CONFIG !== 'undefined' ? CONFIG.SALE_DISC_AMT : 500);
+  if (nextPrice < 0) nextPrice = 0;
+  var comment = "本日限定！" + nextPrice.toLocaleString() + "円にお値下げいたします！\\n購入希望の方は「購入希望」とコメントをお願いします！";
+  navigator.clipboard.writeText(comment).then(function() {
+    alert('【コピー完了】\\n' + comment + '\\n\\n商品ページを開きます！');
+    window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(code), '_blank');
   });
 }
