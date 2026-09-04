@@ -556,7 +556,7 @@ function runImport(){
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      // items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
       added++;
     }
   });
@@ -633,7 +633,6 @@ if(window._SEED_FILE){
 }
 
 updateStats();
-
 
 
 
