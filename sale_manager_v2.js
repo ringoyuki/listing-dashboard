@@ -1079,7 +1079,11 @@ function smBatchCopyTasks() {
       copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\n';
       blockOverdue.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '
+' + d.title + '
+https://jp.mercari.com/search?keyword=' + encodeURIComponent(d.code) + '
+
+';
           replyTemplateOverdue.push(n.num + ' ⇒ ');
       });
   }
@@ -1089,7 +1093,12 @@ function smBatchCopyTasks() {
       copyText += '（※利益への影響が大きいためご報告します）\n';
       blockHighPrice.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '
+記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）
+' + d.title + '
+https://jp.mercari.com/search?keyword=' + encodeURIComponent(d.code) + '
+
+';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
@@ -1099,7 +1108,12 @@ function smBatchCopyTasks() {
       copyText += '（※底値圏に入った商品です）\n';
       blockMaru.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '
+記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）
+' + d.title + '
+https://jp.mercari.com/search?keyword=' + encodeURIComponent(d.code) + '
+
+';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
@@ -1109,7 +1123,12 @@ function smBatchCopyTasks() {
       copyText += '（※最終価格に到達した商品です）\n';
       blockShikaku.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '
+記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）
+' + d.title + '
+https://jp.mercari.com/search?keyword=' + encodeURIComponent(d.code) + '
+
+';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
