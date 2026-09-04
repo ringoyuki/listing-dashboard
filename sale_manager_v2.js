@@ -200,7 +200,7 @@ function smGetAllTasks(){
     new Date(year, month, 8),
     new Date(year, month+1, 1)
   ];
-    targets.forEach(function(targetDate) {
+  targets.forEach(function(targetDate) {
     var diff = Math.floor((targetDate - d)/(1000*60*60*24));
     if(diff >= -1 && diff <= 5) {
       var dCode = '';
@@ -227,27 +227,24 @@ function smGetAllTasks(){
       });
     }
   });
-    }
-  });
 
   Object.keys(all).forEach(function(code){
     var sd = all[code];
     if(!sd.tasks) return;
     var item = items.find(function(i){ return i.code===code; });
     if(!item) return;
-    // 無視する条件2：私物（アルファベットが含まれていない管理番号）
     if(!item.code || item.code==='CHECK' || !/[a-zA-Z]/.test(item.code)) return;
-    if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
+    if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; 
 
-    // □から10日経過で報告タスク
     var REPORT_OVER_DAYS = 10;
-    if(sd.symbol === '□') {
+    var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
+    if(sd.symbol === finalSym) {
        var passedDays = smDaysDiff(item.shopsUpdatedAt);
        if(passedDays >= REPORT_OVER_DAYS) {
            tasks.push({
              taskId: 'REPORT_' + code,
              code: code,
-             title: '🚨 オーナー最終報告！ (' + (item.title||'') + ')',
+             title: code,
              type: 'report',
              desc: '🚨 最終価格から' + passedDays + '日経過。オーナーに報告してください！',
              dueDate: today,

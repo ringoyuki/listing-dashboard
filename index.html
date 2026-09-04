@@ -193,20 +193,23 @@
           <div style="font-size:0.7rem;color:#475569;margin-top:6px;">※スタッフが「保存」したファイル（.json）をChatwork等で受け取り、「取り込む」から選択すると状態が同期されます。</div>
         </div>
       </div>
-      <div style="flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08);">
-        <div onclick="var b=document.getElementById('sm-task-body');b.style.display=b.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;background:rgba(251,191,36,0.05);">
-          <span style="font-size:0.8rem;font-weight:700;color:#fbbf24;">⏰ 今日のタスク</span>
-          <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;"></span>
-          <span style="margin-left:auto;font-size:0.7rem;color:#475569;">▼ クリックで開閉</span>
-        </div>
-        <div id="sm-task-body" style="max-height:180px;overflow-y:auto;">
-          <div id="sm-task-list"></div>
-        </div>
-      </div>
+      
       <div style="flex:1;overflow:hidden;display:flex;">
-        <div style="width:320px;min-width:260px;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;">
-          <div style="padding:7px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.75rem;color:#64748b;">📋 10日以上経過した商品</div>
-          <div id="sm-item-list" style="flex:1;overflow-y:auto;"></div>
+        <div style="width:360px;min-width:320px;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;">
+          
+          <div style="flex:1;display:flex;flex-direction:column;border-bottom:2px solid rgba(255,255,255,0.1);">
+            <div style="padding:7px 12px;background:rgba(251,191,36,0.05);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.8rem;font-weight:700;color:#fbbf24;">
+              ⏰ 今日のタスク <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;margin-left:8px;"></span>
+            </div>
+            <div id="sm-task-body" style="flex:1;overflow-y:auto;">
+              <div id="sm-task-list"></div>
+            </div>
+          </div>
+
+          <div style="flex:1;display:flex;flex-direction:column;">
+            <div style="padding:7px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.75rem;color:#64748b;">📋 10日以上経過した商品</div>
+            <div id="sm-item-list" style="flex:1;overflow-y:auto;"></div>
+          </div>
         </div>
         <div id="sm-action-panel" style="flex:1;overflow-y:auto;display:none;">
           <div style="padding:32px;text-align:center;color:#475569;">
@@ -219,11 +222,12 @@
   </div>
 
   <!-- <script src="seed_data.js"></script> -->
-  <script src="app.js?v=31"></script>
+  <script src="app.js?v=31"></script>`n  <script src="config.js?v=1"></script>
   <script src="market_search.js?v=2"></script>
-  <script src="sale_manager_v2.js?v=101"></script>
+  <script src="sale_manager_v2.js?v=102"></script>
 </body>
 </html>
+
 
 
 
