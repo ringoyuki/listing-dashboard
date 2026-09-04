@@ -496,19 +496,19 @@ function smOnLikes(code){
   if(!nextSym){
         var d = smDaysDiff(item.shopsUpdatedAt);
     var html = '';
-    if(d < 30) {
+    if(d < 10) {
       html = '<div style="background:rgba(100,116,139,0.12);border-radius:8px;padding:12px;color:#d1d5db;font-size:0.83rem;">'
         + '✅ すべてのステップが完了しています。<br><br>'
-        + '💡 オーナーへの最終報告まであと <b style="color:#fbbf24;font-size:1rem;">' + (30 - d) + '</b> 日です。'
+        + '💡 オーナーへの最終報告まであと <b style="color:#fbbf24;font-size:1rem;">' + (10 - d) + '</b> 日です。'
         + '</div>';
-    } else if(d === 30) {
+    } else if(d === 10) {
       html = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;color:#fca5a5;font-size:0.83rem;">'
-        + '🚨 <b>本日がオーナーへの最終報告日です！</b>（更新から30日経過）'
+        + '🚨 <b>本日がオーナーへの最終報告日です！</b>（更新から10日経過）'
         + '</div>';
     } else {
       html = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;color:#fca5a5;font-size:0.83rem;">'
         + '🚨 <b>オーナーに最終報告をしてください！</b><br>'
-        + '（報告期日から <b style="color:#f87171;font-size:1rem;">' + (d - 30) + '</b> 日過ぎています）'
+        + '（報告期日から <b style="color:#f87171;font-size:1rem;">' + (d - 10) + '</b> 日過ぎています）'
         + '</div>';
     }
     result.innerHTML = html;
@@ -522,7 +522,14 @@ function smOnLikes(code){
   var saleTime  = SALE_TIMES_BY_DOW[new Date().getDay()];
   var nextColor = {'■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[nextSym]||'#86efac';
 
+  
   var html = '';
+  var HIGH_PRICE_ALERT = 30000;
+  if(base >= HIGH_PRICE_ALERT) {
+    html += '<div style="background:rgba(239,68,68,0.15);border:2px solid #ef4444;border-radius:10px;padding:12px;margin-bottom:12px;color:#fca5a5;font-weight:bold;font-size:0.9rem;text-align:center;">'
+      + '🚨 原価が3万円以上の高額商品です。<br>記号を変更する前にオーナーに報告して許可をもらってください！'
+      + '</div>';
+  }
   function cbtn(v){ return '<button title="コピー" onclick="navigator.clipboard.writeText(\''+v+'\');showToast(\'✅ '+v+' をコピーしました\', 1500);event.stopPropagation();" style="margin-left:5px;padding:2px 6px;font-size:0.7rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#e2e8f0;border-radius:4px;cursor:pointer;vertical-align:middle;">📋</button>'; }
 
   // --- セールあり ---
