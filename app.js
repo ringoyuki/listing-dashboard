@@ -442,7 +442,7 @@ function extractCode(desc){
   }
   return '';
 }
-var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,SHIPPING_METHOD:158,SHIPPING_ORIGIN:159,SHIPPING_DAYS:160,STATUS:163,REG_DATE:175,UPD_DATE:176};
+var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,BRAND:154,SHIPPING_METHOD:158,SHIPPING_ORIGIN:159,SHIPPING_DAYS:160,STATUS:163,REG_DATE:175,UPD_DATE:176};
 
 document.addEventListener('DOMContentLoaded',function(){
   var fi=document.getElementById('csvfile');
@@ -495,6 +495,7 @@ function parseCsv(text){
     var category = catM ? catM[0] : '';
     var shopsRegAt = cols.length > COL.REG_DATE ? cols[COL.REG_DATE].trim() : '';
 var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
+var brandId = cols.length > COL.BRAND ? cols[COL.BRAND].trim() : '';
 var sMethod = cols.length > COL.SHIPPING_METHOD ? cols[COL.SHIPPING_METHOD].trim() : '';
 var sOrigin = cols.length > COL.SHIPPING_ORIGIN ? cols[COL.SHIPPING_ORIGIN].trim() : '';
 var sDays = cols.length > COL.SHIPPING_DAYS ? cols[COL.SHIPPING_DAYS].trim() : '';
@@ -697,4 +698,5 @@ function checkErrors() {
     container.style.display = 'none';
   }
 }
+
 
