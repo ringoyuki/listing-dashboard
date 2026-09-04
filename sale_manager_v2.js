@@ -1007,6 +1007,7 @@ document.addEventListener('click', function(e) {
 
 
 
+
 function smBatchCopyTasks() {
   var all = smGetAll();
   var today = smTodayStr();
@@ -1030,22 +1031,25 @@ function smBatchCopyTasks() {
     if(sd.symbol === finalSym) {
        var passedDays = smDaysDiff(pd.shopsUpdatedAt);
        if(passedDays >= REPORT_OVER_DAYS) {
-          blockOverdue.push({code: code, title: pd.title});
-          return; // 重複を避ける
+          blockOverdue.push({code: code, title: pd.title, price: pd.price});
+          return;
        }
     }
     
     // 2. 本日の記号変更
     if(sd.symbolChangedAt === today) {
        var base = smBasePrice(sd.symbol, pd.price || 0);
+       var newPrice = smSymPrice(base, sd.symbol);
        var isHigh = (base >= HIGH_PRICE_ALERT);
        
+       var itemData = {code: code, title: pd.title, sym: sd.symbol, oldPrice: pd.price, newPrice: newPrice};
+
        if (isHigh) {
-           blockHighPrice.push({code: code, title: pd.title, sym: sd.symbol});
+           blockHighPrice.push(itemData);
        } else if (sd.symbol === sym80) {
-           blockMaru.push({code: code, title: pd.title, sym: sd.symbol});
+           blockMaru.push(itemData);
        } else if (sd.symbol === finalSym) {
-           blockShikaku.push({code: code, title: pd.title, sym: sd.symbol});
+           blockShikaku.push(itemData);
        }
     }
   });
@@ -1064,14 +1068,19 @@ function smBatchCopyTasks() {
   function getNum() {
       var num = (counter <= 20) ? circleNums[counter-1] : '(' + counter + ')';
       counter++;
-      return num;
+      return { num: num, index: counter - 1 };
   }
+
+  var replyTemplateOverdue = [];
+  var replyTemplateSym = [];
 
   if (blockOverdue.length > 0) {
       copyText += '■■ 最終価格から規定日数超過の商品 ■■\n';
       copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\n';
       blockOverdue.forEach(function(d) {
-          copyText += getNum() + ' 管理番号: ' + d.code + '\n' + d.title + '\n\n';
+          var n = getNum();
+          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n\n';
+          replyTemplateOverdue.push(n.num + ' ⇒ ');
       });
   }
 
@@ -1079,7 +1088,9 @@ function smBatchCopyTasks() {
       copyText += '■■ 高額商品の記号変更 ■■\n';
       copyText += '（※利益への影響が大きいためご報告します）\n';
       blockHighPrice.forEach(function(d) {
-          copyText += getNum() + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更\n' + d.title + '\n\n';
+          var n = getNum();
+          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n\n';
+          replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
 
@@ -1087,7 +1098,9 @@ function smBatchCopyTasks() {
       copyText += '■■ 『〇』への記号変更商品 ■■\n';
       copyText += '（※底値圏に入った商品です）\n';
       blockMaru.forEach(function(d) {
-          copyText += getNum() + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更\n' + d.title + '\n\n';
+          var n = getNum();
+          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n\n';
+          replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
 
@@ -1095,8 +1108,29 @@ function smBatchCopyTasks() {
       copyText += '■■ 『□』への記号変更商品 ■■\n';
       copyText += '（※最終価格に到達した商品です）\n';
       blockShikaku.forEach(function(d) {
-          copyText += getNum() + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更\n' + d.title + '\n\n';
+          var n = getNum();
+          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n\n';
+          replyTemplateSym.push(n.num + ' ⇒ ');
       });
+  }
+
+  // -------------------------
+  // オーナー返信用テンプレートの生成
+  // -------------------------
+  copyText += '---------------------------------\n';
+  copyText += '【オーナー返信用テンプレート】\n';
+  copyText += '※指示がないものはそのまま放置してください\n\n';
+  
+  if (replyTemplateOverdue.length > 0) {
+      copyText += '■ 至急報告（デッドストック）への指示\n';
+      replyTemplateOverdue.forEach(function(line) { copyText += line + '\n'; });
+      copyText += '\n';
+  }
+  
+  if (replyTemplateSym.length > 0) {
+      copyText += '■ 記号変更への追加指示（※あれば）\n';
+      replyTemplateSym.forEach(function(line) { copyText += line + '\n'; });
+      copyText += '\n';
   }
 
   navigator.clipboard.writeText(copyText).then(function() {
