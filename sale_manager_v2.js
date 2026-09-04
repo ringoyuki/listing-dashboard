@@ -195,39 +195,6 @@ function smGetAllTasks(){
   d.setHours(0,0,0,0);
   var year = d.getFullYear();
   var month = d.getMonth();
-  var targets = [
-    new Date(year, month, 1),
-    new Date(year, month, 8),
-    new Date(year, month+1, 1)
-  ];
-  targets.forEach(function(targetDate) {
-    var diff = Math.floor((targetDate - d)/(1000*60*60*24));
-    if(diff >= -1 && diff <= 5) {
-      var dCode = '';
-      var dDesc = '';
-      if(diff > 0) {
-        dDesc = '🚨 ' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日はセール日です';
-        dCode = '🚨 あと' + diff + '日でセール日です。下準備をお願いします。';
-      } else if(diff === 0) {
-        dDesc = '🚨 本日はセール当日です！';
-        dCode = '🚨 タイムセール、コメントセール漏れがないようにお願いします。';
-      } else if(diff === -1) {
-        dDesc = '🚨 セール翌日の処理';
-        dCode = '🚨 コメントセールの削除（コメ消し）をお願いします。';
-      }
-      tasks.push({
-        taskId: 'SALE_PREP_' + targetDate.getTime() + '_' + diff,
-        code: dCode,
-        title: dCode,
-        type: 'alert',
-        desc: dDesc,
-        dueDate: today,
-        overdueDays: 0,
-        priority: -2
-      });
-    }
-  });
-
   Object.keys(all).forEach(function(code){
     var sd = all[code];
     if(!sd.tasks) return;
@@ -327,6 +294,7 @@ function smRenderAll(){
 
 // ---------- タスク一覧 ----------
 function smRenderTasks(){
+  smUpdateSaleBanner();
   var el = document.getElementById('sm-task-list');
   if(!el) return;
   var tasks = smGetAllTasks();
@@ -827,3 +795,43 @@ window.smImportData = function(event) {
 };
 
 
+
+
+function smUpdateSaleBanner() {
+  var el = document.getElementById('global-sale-banner');
+  if(!el) return;
+
+  var d = new Date();
+  d.setHours(0,0,0,0);
+  var year = d.getFullYear();
+  var month = d.getMonth();
+  
+  var targets = [
+    new Date(year, month, 1),
+    new Date(year, month, 8),
+    new Date(year, month+1, 1)
+  ];
+
+  var html = '';
+  
+  for (var i=0; i<targets.length; i++) {
+    var targetDate = targets[i];
+    var diff = Math.floor((targetDate - d)/(1000*60*60*24));
+    
+    if (diff >= -1 && diff <= 5) {
+      if (diff > 0) {
+        html = '<div style="font-size:1.1rem; font-weight:bold; color:#f87171;">🚨 あと' + diff + '日でセール日です。下準備をお願いします</div>' +
+               '<div style="font-size:0.85rem; color:#cbd5e1; margin-top:2px;">（次回のセール：' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日）</div>';
+      } else if (diff === 0) {
+        html = '<div style="font-size:1.1rem; font-weight:bold; color:#f87171;">🚨 本日はセール当日です！</div>' +
+               '<div style="font-size:0.85rem; color:#cbd5e1; margin-top:2px;">タイムセール・コメントセールの漏れがないようお願いします</div>';
+      } else if (diff === -1) {
+        html = '<div style="font-size:1.1rem; font-weight:bold; color:#f87171;">🚨 本日はセール翌日です。</div>' +
+               '<div style="font-size:0.85rem; color:#cbd5e1; margin-top:2px;">コメントセールの削除（コメ消し）をお願いします</div>';
+      }
+      break;
+    }
+  }
+  
+  el.innerHTML = html;
+}
