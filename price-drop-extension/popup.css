@@ -1,0 +1,220 @@
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-color: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-sub: #64748b;
+  --border-color: #e2e8f0;
+  --danger-color: #ef4444;
+  --danger-bg: #fee2e2;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-color);
+  width: 340px;
+  color: var(--text-main);
+}
+
+.container {
+  padding: 24px;
+  background: var(--card-bg);
+  box-sizing: border-box;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+
+input[type="number"], select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: all 0.2s;
+  background-color: #fff;
+  color: var(--text-main);
+}
+
+input[type="number"]:focus, select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.discount-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+#discountSelect {
+  flex: 1;
+}
+
+#addDiscountBtn {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 48px;
+  font-size: 20px;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#addDiscountBtn:hover {
+  background: #e2e8f0;
+  color: var(--text-main);
+}
+
+#addCustomDiv {
+  display: flex;
+  gap: 8px;
+  margin-top: -8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+#addCustomDiv input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+#addCustomDiv button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+#saveCustomBtn {
+  background: var(--text-main);
+  color: white;
+}
+#saveCustomBtn:hover {
+  background: #334155;
+}
+
+#cancelCustomBtn {
+  background: #e2e8f0;
+  color: var(--text-sub);
+  padding: 8px 12px !important;
+}
+
+.result-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+  margin-top: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.result-label {
+  font-size: 14px;
+  color: #1e40af;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+#nextPriceDisplay {
+  font-size: 42px;
+  font-weight: 800;
+  color: #1e3a8a;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+#warningMessage {
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--danger-bg);
+  color: var(--danger-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.copy-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+}
+
+.copy-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.4);
+}
+
+.copy-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px -1px rgba(37, 99, 235, 0.3);
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1e293b;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.hidden {
+  display: none !important;
+}

@@ -1,0 +1,14 @@
+﻿{
+  "manifest_version": 3,
+  "name": "値下げコピペツール",
+  "version": "1.0.0",
+  "description": "フリマアプリ用の値下げ価格を素早く計算し、クリップボードにコピーします。",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "値下げを計算"
+  },
+  "permissions": [
+    "storage",
+    "clipboardWrite"
+  ]
+}

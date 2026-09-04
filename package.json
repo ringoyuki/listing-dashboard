@@ -1,0 +1,21 @@
+{
+  "name": "empty-universe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ringoyuki/listing-dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ringoyuki/listing-dashboard/issues"
+  },
+  "homepage": "https://github.com/ringoyuki/listing-dashboard#readme"
+}

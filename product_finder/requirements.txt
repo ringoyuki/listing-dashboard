@@ -1,0 +1,9 @@
+# requirements.txt
+playwright
+playwright-stealth
+pandas
+Pillow
+imagehash
+opencv-python
+python-dotenv
+aiohttp

@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h2>値下げコピペツール</h2>
+    
+    <div class="input-group">
+      <label>現在価格 (円)</label>
+      <input type="number" id="currentPrice" placeholder="価格をペースト">
+    </div>
+
+    <div class="input-group">
+      <label>値下げ幅 (円)</label>
+      <div class="discount-wrapper">
+        <select id="discountSelect">
+          <!-- JSで動的に追加 -->
+        </select>
+        <button id="addDiscountBtn" title="新しい値下げ幅を追加">+</button>
+      </div>
+    </div>
+
+    <div id="addCustomDiv" class="hidden">
+      <input type="number" id="customDiscountInput" placeholder="金額(円)">
+      <button id="saveCustomBtn">追加</button>
+      <button id="cancelCustomBtn">×</button>
+    </div>
+
+    <div class="result-box">
+      <div class="result-label">次回価格</div>
+      <div id="nextPriceDisplay">-</div>
+      <div id="warningMessage" class="hidden">⚠️ 現在価格の半額以下です</div>
+    </div>
+
+    <button id="copyBtn" class="copy-btn">コピーして完了</button>
+    <div id="toastMessage" class="toast hidden">コピーしました！</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
