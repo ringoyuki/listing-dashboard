@@ -190,6 +190,33 @@ function smGetAllTasks(){
   var all = smGetAll();
   var tasks = [];
   var today = smTodayStr();
+
+  var d = new Date();
+  d.setHours(0,0,0,0);
+  var year = d.getFullYear();
+  var month = d.getMonth();
+  var targets = [
+    new Date(year, month, 1),
+    new Date(year, month, 8),
+    new Date(year, month+1, 1)
+  ];
+  targets.forEach(function(targetDate) {
+    var diff = Math.floor((targetDate - d)/(1000*60*60*24));
+    if(diff >= 0 && diff <= 5) {
+      var titleText = diff === 0 ? '🚨 本日は「' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日」のセール当日です！' : '🚨 あと' + diff + '日で「' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日」のセールです！';
+      tasks.push({
+        taskId: 'SALE_PREP_' + targetDate.getTime(),
+        code: 'SALE_PREP',
+        title: titleText,
+        type: 'alert',
+        desc: 'セールの下準備をお願いします。',
+        dueDate: today,
+        overdueDays: 0,
+        priority: -2
+      });
+    }
+  });
+
   Object.keys(all).forEach(function(code){
     var sd = all[code];
     if(!sd.tasks) return;
@@ -198,7 +225,25 @@ function smGetAllTasks(){
     // 無視する条件2：私物（アルファベットが含まれていない管理番号）
     if(!item.code || item.code==='CHECK' || !/[a-zA-Z]/.test(item.code)) return;
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
-    if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
+
+    // □から10日経過で報告タスク
+    var REPORT_OVER_DAYS = 10;
+    if(sd.symbol === '□') {
+       var passedDays = smDaysDiff(item.shopsUpdatedAt);
+       if(passedDays >= REPORT_OVER_DAYS) {
+           tasks.push({
+             taskId: 'REPORT_' + code,
+             code: code,
+             title: '🚨 オーナー最終報告！ (' + (item.title||'') + ')',
+             type: 'report',
+             desc: '最終価格から' + passedDays + '日経過。オーナーに報告してください。',
+             dueDate: today,
+             overdueDays: passedDays - REPORT_OVER_DAYS,
+             priority: -1
+           });
+       }
+    }
+
     sd.tasks.forEach(function(t){
       if(t.status==='done') return;
       var over = smDaysDiff(t.dueDate);
