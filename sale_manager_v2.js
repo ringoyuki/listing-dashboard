@@ -1006,61 +1006,98 @@ document.addEventListener('click', function(e) {
 
 
 
+
 function smBatchCopyTasks() {
   var all = smGetAll();
   var today = smTodayStr();
-  var doneTasks = [];
   var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 2;
   var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
+  
   var sym80 = SALE_SYMBOLS.length > 3 ? SALE_SYMBOLS[3] : '〇';
   var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
+
+  var blockOverdue = [];
+  var blockHighPrice = [];
+  var blockMaru = [];
+  var blockShikaku = [];
 
   Object.keys(all).forEach(function(code){
     var sd = all[code];
     var pd = items.find(function(i){ return i.code===code; });
     if(!pd) return;
     
-    // 1. 至急報告 (最終記号で規定日数経過)
+    // 1. 規定日数超過 (最終記号で放置)
     if(sd.symbol === finalSym) {
        var passedDays = smDaysDiff(pd.shopsUpdatedAt);
        if(passedDays >= REPORT_OVER_DAYS) {
-          doneTasks.push({type: 'report', code: code, title: pd.title});
-          return;
+          blockOverdue.push({code: code, title: pd.title});
+          return; // 重複を避ける
        }
     }
     
-    // 2. 本日の重要な記号変更 (高額商品、または最終フェーズへの変更)
+    // 2. 本日の記号変更
     if(sd.symbolChangedAt === today) {
        var base = smBasePrice(sd.symbol, pd.price || 0);
        var isHigh = (base >= HIGH_PRICE_ALERT);
-       var isFinalPhase = (sd.symbol === sym80 || sd.symbol === finalSym);
        
-       if (isHigh || isFinalPhase) {
-           doneTasks.push({type: 'sym_change', code: code, title: pd.title, isHigh: isHigh, sym: sd.symbol});
+       if (isHigh) {
+           blockHighPrice.push({code: code, title: pd.title, sym: sd.symbol});
+       } else if (sd.symbol === sym80) {
+           blockMaru.push({code: code, title: pd.title, sym: sd.symbol});
+       } else if (sd.symbol === finalSym) {
+           blockShikaku.push({code: code, title: pd.title, sym: sd.symbol});
        }
     }
   });
 
-  if (doneTasks.length === 0) {
-    alert('コピーする報告対象（至急報告、または重要な記号変更）がありません。');
+  var totalCount = blockOverdue.length + blockHighPrice.length + blockMaru.length + blockShikaku.length;
+
+  if (totalCount === 0) {
+    alert('コピーする報告対象がありません。');
     return;
   }
 
-  var copyText = '【本日の作業報告：計' + doneTasks.length + '件】\n\n';
+  var copyText = '【本日の作業報告：計' + totalCount + '件】\n\n';
+  var counter = 1;
   var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
 
-  doneTasks.forEach(function(d, index) {
-    var num = (index < 20) ? circleNums[index] : '(' + (index+1) + ')';
-    if (d.type === 'report') {
-      copyText += num + ' 管理番号: ' + d.code + '（🚨オーナー至急報告）\n';
-      copyText += d.title + '\n\n';
-    } else if (d.type === 'sym_change') {
-      var alertText = d.isHigh ? '（🚨高額商品・記号変更報告）' : '（🚨オーナー報告）';
-      copyText += num + ' 管理番号: ' + d.code + alertText + '\n';
-      copyText += '記号を ' + d.sym + ' に変更\n';
-      copyText += d.title + '\n\n';
-    }
-  });
+  function getNum() {
+      var num = (counter <= 20) ? circleNums[counter-1] : '(' + counter + ')';
+      counter++;
+      return num;
+  }
+
+  if (blockOverdue.length > 0) {
+      copyText += '■■ 最終価格から規定日数超過の商品 ■■\n';
+      copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\n';
+      blockOverdue.forEach(function(d) {
+          copyText += getNum() + ' 管理番号: ' + d.code + '\n' + d.title + '\n\n';
+      });
+  }
+
+  if (blockHighPrice.length > 0) {
+      copyText += '■■ 高額商品の記号変更 ■■\n';
+      copyText += '（※利益への影響が大きいためご報告します）\n';
+      blockHighPrice.forEach(function(d) {
+          copyText += getNum() + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更\n' + d.title + '\n\n';
+      });
+  }
+
+  if (blockMaru.length > 0) {
+      copyText += '■■ 『〇』への記号変更商品 ■■\n';
+      copyText += '（※底値圏に入った商品です）\n';
+      blockMaru.forEach(function(d) {
+          copyText += getNum() + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更\n' + d.title + '\n\n';
+      });
+  }
+
+  if (blockShikaku.length > 0) {
+      copyText += '■■ 『□』への記号変更商品 ■■\n';
+      copyText += '（※最終価格に到達した商品です）\n';
+      blockShikaku.forEach(function(d) {
+          copyText += getNum() + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更\n' + d.title + '\n\n';
+      });
+  }
 
   navigator.clipboard.writeText(copyText).then(function() {
     alert('報告用テキストをコピーしました！');
