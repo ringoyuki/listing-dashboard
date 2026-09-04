@@ -529,6 +529,15 @@ function parseCsv(text){
 function runImport(){
   if(!pendingRows.length) return;
   var added=0,updated=0;
+  
+  // Create a Set of valid codes from the current CSV import
+  var validCodes = {};
+  pendingRows.forEach(function(r) { if(r.code !== 'CHECK') validCodes[r.code] = true; });
+  
+  // Filter existing items to KEEP ONLY items that exist in the CSV
+  // (This wipes out seed_data ghosts forever)
+  items = items.filter(function(i) { return validCodes[i.code]; });
+  
   pendingRows.forEach(function(row){
     // 管理番号で検索。CHECKの場合はShops商品IDで検索（重複防止）
     var ex = null;
@@ -633,6 +642,7 @@ if(window._SEED_FILE){
 }
 
 updateStats();
+
 
 
 

@@ -445,7 +445,24 @@ function smOnLikes(code){
   if(!result) return;
 
   if(!nextSym){
-    result.innerHTML='<div style="background:rgba(100,116,139,0.12);border-radius:8px;padding:12px;color:#d1d5db;font-size:0.83rem;">すべてのステップが完了しています</div>';
+        var d = smDaysDiff(item.shopsUpdatedAt);
+    var html = '';
+    if(d < 30) {
+      html = '<div style="background:rgba(100,116,139,0.12);border-radius:8px;padding:12px;color:#d1d5db;font-size:0.83rem;">'
+        + '✅ すべてのステップが完了しています。<br><br>'
+        + '💡 オーナーへの最終報告まであと <b style="color:#fbbf24;font-size:1rem;">' + (30 - d) + '</b> 日です。'
+        + '</div>';
+    } else if(d === 30) {
+      html = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;color:#fca5a5;font-size:0.83rem;">'
+        + '🚨 <b>本日がオーナーへの最終報告日です！</b>（更新から30日経過）'
+        + '</div>';
+    } else {
+      html = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;color:#fca5a5;font-size:0.83rem;">'
+        + '🚨 <b>オーナーに最終報告をしてください！</b><br>'
+        + '（報告期日から <b style="color:#f87171;font-size:1rem;">' + (d - 30) + '</b> 日過ぎています）'
+        + '</div>';
+    }
+    result.innerHTML = html;
     return;
   }
 
@@ -742,4 +759,5 @@ window.smImportData = function(event) {
   };
   reader.readAsText(file);
 };
+
 
