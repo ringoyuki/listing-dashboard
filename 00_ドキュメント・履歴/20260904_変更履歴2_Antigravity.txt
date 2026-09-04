@@ -1,0 +1,4 @@
+﻿2026/09/04 Antigravity作業ログ:
+1. index.html にて、pp.js と sale_manager_v2.js のキャッシュクリア用パラメーターを更新（?v=17, ?v=3）。これでブラウザキャッシュによる反映漏れを防止。
+2. index.html にて、亡霊データの原因となっていた <script src="seed_data.js"></script> をコメントアウト。これでCSVに存在しない古いテストデータが表示されるバグを修正。
+3. 最新のCSV（product_data_2026-09-04.csv）をチェックし、まだ「いいね数」の列が存在しないことを確認。
