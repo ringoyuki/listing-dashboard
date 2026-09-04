@@ -174,6 +174,8 @@ function smGetTargets(){
   if(!window.items || !items.length) return [];
   return items.filter(function(item){
     if(!item.code || item.code==='CHECK') return false;
+    // 無視する条件2：私物（アルファベットが含まれていない管理番号）
+    if(!/[a-zA-Z]/.test(item.code)) return false;
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
     return smDaysDiff(item.shopsUpdatedAt) >= SALE_INTERVAL;
   }).sort(function(a,b){
@@ -193,6 +195,8 @@ function smGetAllTasks(){
     if(!sd.tasks) return;
     var item = items.find(function(i){ return i.code===code; });
     if(!item) return;
+    // 無視する条件2：私物（アルファベットが含まれていない管理番号）
+    if(!item.code || item.code==='CHECK' || !/[a-zA-Z]/.test(item.code)) return;
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
     sd.tasks.forEach(function(t){
