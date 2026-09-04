@@ -193,6 +193,8 @@ function smGetAllTasks(){
     if(!sd.tasks) return;
     var item = items.find(function(i){ return i.code===code; });
     if(!item) return;
+    if((item.stock||0) <= 0) return; // 数量0を除外
+    if((item.stock||0) <= 0) return; // 数量0を除外
     sd.tasks.forEach(function(t){
       if(t.status==='done') return;
       var over = smDaysDiff(t.dueDate);
