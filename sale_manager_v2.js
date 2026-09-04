@@ -957,3 +957,81 @@ function runSimulation() {
   document.getElementById('sim-res-2b').innerHTML = calcRoute(price2, true);
 }
 
+
+
+
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'btn-batch-copy-tasks') {
+    smBatchCopyTasks();
+  }
+});
+
+function smBatchCopyTasks() {
+  var tlist = document.getElementById('task-list');
+  var tasks = smGetAllTasks();
+  var doneTasks = [];
+  
+  // 画面上のチェックボックス状態を見て、チェックが入っているものを取得
+  var items = tlist.querySelectorAll('.task-item');
+  items.forEach(function(itemDiv) {
+    var cb = itemDiv.querySelector('input[type="checkbox"]');
+    var isDone = cb ? cb.checked : false;
+    var taskCode = itemDiv.querySelector('.task-title').innerText;
+    var taskDesc = itemDiv.querySelector('.task-desc').innerText;
+    
+    // 至急報告タスクの場合は、チェックがなくても拾う？ いいえ、シンプルに
+    // "至急報告" か "完了したもの" を対象とする。
+    if (isDone || taskDesc.indexOf('至急報告') !== -1) {
+       // タスク情報を探す
+       var t = tasks.find(function(x){ return x.title === taskCode; });
+       if(t) {
+         doneTasks.push({task: t, isDone: isDone, element: itemDiv});
+       }
+    }
+  });
+
+  if (doneTasks.length === 0) {
+    alert('コピーするタスク（完了済み、または至急報告）がありません。');
+    return;
+  }
+
+  var copyText = '【本日の作業報告：計' + doneTasks.length + '件】\n\n';
+  
+  var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','十六','⑰','⑱','⑲','⑳'];
+
+  doneTasks.forEach(function(d, index) {
+    var t = d.task;
+    var num = (index < 20) ? circleNums[index] : '(' + (index+1) + ')';
+    
+    // 該当商品のデータを取得
+    var pd = window.item_dict ? window.item_dict[t.title] : null;
+    var title = pd ? pd.title : '不明な商品';
+    var curPrice = pd ? pd.price : 0;
+    
+    if (t.type === 'report') {
+      copyText += num + ' 管理番号: ' + t.title + '（🚨オーナー至急報告）\n';
+      copyText += title + '\n\n';
+    } else if (t.type === 'sym') {
+      copyText += num + ' 管理番号: ' + t.title + '（記号変更）\n';
+      // symタスクのdescから推移を抽出 (例: ●→■ に変更してください)
+      var symChange = t.desc.split(' に')[0]; 
+      copyText += symChange + ' 価格 ' + curPrice + '円\n';
+      copyText += title + '\n\n';
+    } else if (t.type === 'disc') {
+      copyText += num + ' 管理番号: ' + t.title + '（500円値下げ）\n';
+      var nextPrice = curPrice > 500 ? curPrice - 500 : curPrice;
+      copyText += '価格 ' + curPrice + '円 ⇒ ' + nextPrice + '円\n';
+      copyText += title + '\n\n';
+    } else {
+      copyText += num + ' 管理番号: ' + t.title + '\n';
+      copyText += t.desc + '\n';
+      copyText += title + '\n\n';
+    }
+  });
+
+  navigator.clipboard.writeText(copyText).then(function() {
+    alert('報告用テキストをコピーしました！');
+  }).catch(function() {
+    alert('コピーに失敗しました。');
+  });
+}

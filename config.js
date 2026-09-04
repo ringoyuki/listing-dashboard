@@ -38,7 +38,7 @@ var CONFIG = {
   HIGH_PRICE_ALERT: 30000,
 
   // 最終報告までの猶予日数
-  REPORT_OVER_DAYS: 10,
+  REPORT_OVER_DAYS: 2,
 
   // 使用する記号
   SALE_SYMBOLS: ['●','■','▲','〇','□']
