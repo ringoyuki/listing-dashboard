@@ -1030,7 +1030,6 @@ function smBatchCopyTasks() {
     // Extract direct URL if available
     var directUrl = '';
     if (pd.urls && pd.urls.mercari_shops) {
-        // Ensure it uses the preferred jp.mercari.com format if requested, though mercari-shops.com redirects
         directUrl = pd.urls.mercari_shops.replace('mercari-shops.com/products/', 'jp.mercari.com/shops/product/');
     } else {
         directUrl = 'https://jp.mercari.com/search?keyword=' + encodeURIComponent(code);
@@ -1070,9 +1069,7 @@ function smBatchCopyTasks() {
     return;
   }
 
-  var copyText = '【本日の作業報告：計' + totalCount + '件】
-
-';
+  var copyText = '【本日の作業報告：計' + totalCount + '件】\\n\\n';
   var counter = 1;
   var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳','㉑','㉒','㉓','㉔','㉕','㉖','㉗','㉘','㉙','㉚','㉛','㉜','㉝','㉞','㉟','㊱','㊲','㊳','㊴','㊵','㊶','㊷','㊸','㊹','㊺','㊻','㊼','㊽','㊾','㊿'];
 
@@ -1086,68 +1083,41 @@ function smBatchCopyTasks() {
   var replyTemplateSym = [];
 
   if (blockOverdue.length > 0) {
-      copyText += '■■ 最終価格から規定日数超過の商品 ■■
-';
-      copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）
-';
+      copyText += '■■ 最終価格から規定日数超過の商品 ■■\\n';
+      copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\\n';
       blockOverdue.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '
-' + d.title + '
-' + d.url + '
-
-';
+          copyText += n.num + ' 管理番号: ' + d.code + '\\n' + d.title + '\\n' + d.url + '\\n\\n';
           replyTemplateOverdue.push(n.num + ' ⇒ ');
       });
   }
 
   if (blockHighPrice.length > 0) {
-      copyText += '■■ 高額商品の記号変更 ■■
-';
-      copyText += '（※利益への影響が大きいためご報告します）
-';
+      copyText += '■■ 高額商品の記号変更 ■■\\n';
+      copyText += '（※利益への影響が大きいためご報告します）\\n';
       blockHighPrice.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '
-記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）
-' + d.title + '
-' + d.url + '
-
-';
+          copyText += n.num + ' 管理番号: ' + d.code + '\\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\\n' + d.title + '\\n' + d.url + '\\n\\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
 
   if (blockMaru.length > 0) {
-      copyText += '■■ 『〇』への記号変更商品 ■■
-';
-      copyText += '（※底値圏に入った商品です）
-';
+      copyText += '■■ 『〇』への記号変更商品 ■■\\n';
+      copyText += '（※底値圏に入った商品です）\\n';
       blockMaru.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '
-記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）
-' + d.title + '
-' + d.url + '
-
-';
+          copyText += n.num + ' 管理番号: ' + d.code + '\\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\\n' + d.title + '\\n' + d.url + '\\n\\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
 
   if (blockShikaku.length > 0) {
-      copyText += '■■ 『□』への記号変更商品 ■■
-';
-      copyText += '（※最終価格に到達した商品です）
-';
+      copyText += '■■ 『□』への記号変更商品 ■■\\n';
+      copyText += '（※最終価格に到達した商品です）\\n';
       blockShikaku.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '
-記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）
-' + d.title + '
-' + d.url + '
-
-';
+          copyText += n.num + ' 管理番号: ' + d.code + '\\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\\n' + d.title + '\\n' + d.url + '\\n\\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
@@ -1155,28 +1125,19 @@ function smBatchCopyTasks() {
   // -------------------------
   // オーナー返信用テンプレートの生成
   // -------------------------
-  copyText += '---------------------------------
-';
-  copyText += '【オーナー返信用テンプレート】
-
-';
+  copyText += '---------------------------------\\n';
+  copyText += '【オーナー返信用テンプレート】\\n\\n';
   
   if (replyTemplateOverdue.length > 0) {
-      copyText += '■ 至急報告（デッドストック）への指示
-';
-      replyTemplateOverdue.forEach(function(line) { copyText += line + '
-'; });
-      copyText += '
-';
+      copyText += '■ 至急報告（デッドストック）への指示\\n';
+      replyTemplateOverdue.forEach(function(line) { copyText += line + '\\n'; });
+      copyText += '\\n';
   }
   
   if (replyTemplateSym.length > 0) {
-      copyText += '■ 記号変更への追加指示（※あれば）
-';
-      replyTemplateSym.forEach(function(line) { copyText += line + '
-'; });
-      copyText += '
-';
+      copyText += '■ 記号変更への追加指示（※あれば）\\n';
+      replyTemplateSym.forEach(function(line) { copyText += line + '\\n'; });
+      copyText += '\\n';
   }
 
   navigator.clipboard.writeText(copyText).then(function() {
