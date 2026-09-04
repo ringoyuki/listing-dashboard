@@ -1119,7 +1119,8 @@ function smBatchCopyTasks() {
   // -------------------------
   copyText += '---------------------------------\n';
   copyText += '【オーナー返信用テンプレート】\n';
-  copyText += '※指示がないものはそのまま放置してください\n\n';
+  copyText += '
+';
   
   if (replyTemplateOverdue.length > 0) {
       copyText += '■ 至急報告（デッドストック）への指示\n';
