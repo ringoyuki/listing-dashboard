@@ -174,7 +174,7 @@ function smGetTargets(){
   if(!window.items || !items.length) return [];
   return items.filter(function(item){
     if(!item.code || item.code==='CHECK') return false;
-    if((item.stock||0) <= 0) return false;
+    if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
     return smDaysDiff(item.shopsUpdatedAt) >= SALE_INTERVAL;
   }).sort(function(a,b){
     return smDaysDiff(b.shopsUpdatedAt) - smDaysDiff(a.shopsUpdatedAt);
@@ -193,8 +193,8 @@ function smGetAllTasks(){
     if(!sd.tasks) return;
     var item = items.find(function(i){ return i.code===code; });
     if(!item) return;
-    if((item.stock||0) <= 0) return; // 数量0を除外
-    if((item.stock||0) <= 0) return; // 数量0を除外
+    if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
+    if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
     sd.tasks.forEach(function(t){
       if(t.status==='done') return;
       var over = smDaysDiff(t.dueDate);
@@ -742,3 +742,4 @@ window.smImportData = function(event) {
   };
   reader.readAsText(file);
 };
+
