@@ -170,6 +170,7 @@
         <div id="global-sale-banner" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); text-align:center; font-size:0.9rem; font-weight:700; color:#fbbf24; white-space:nowrap; line-height:1.2;"></div>
         
         <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="openSimulatorModal()" style="background:rgba(217,119,6,0.2);border:1px solid rgba(217,119,6,0.5);color:#fcd34d;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:700;white-space:nowrap;margin-left:8px;">⚙️ 設定ロードマップ</button>
           <button onclick="smUndo()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#e2e8f0;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">↩ 元に戻す</button>
           <button id="sm-drive-csv-btn" onclick="smLoadCsvFromDrive()" style="background:rgba(34,197,94,0.18);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">☁ Driveから最新CSV取り込み</button>
           <button id="sm-sync-btn" onclick="smSyncFromDrive()" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">☁ Drive同期</button>
@@ -224,9 +225,80 @@
   </div>
 
   <!-- <script src="seed_data.js"></script> -->
-  <script src="app.js?v=31"></script>`n  <script src="config.js?v=1"></script>
+  <script src="app.js?v=32"></script>`n  <script src="config.js?v=2"></script>
   <script src="market_search.js?v=2"></script>
-  <script src="sale_manager_v2.js?v=110"></script>
+  <script src="sale_manager_v2.js?v=116"></script>
+
+  <!-- ===== 設定ロードマップモーダル ===== -->
+  <div class="backdrop" id="sim-modal" onclick="if(event.target.id==='sim-modal')closeSimulatorModal()" style="display:none; align-items:center; justify-content:center;">
+    <div class="modal" style="max-width:900px; width:95%; max-height:90vh; display:flex; flex-direction:column;">
+      <div class="mhead" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="color:#fbbf24;">⚙️ 設定ロードマップ (シミュレーション)</h2>
+          <p class="msub">config.js の設定に基づく値下げスケジュールの確認</p>
+        </div>
+        <button onclick="closeSimulatorModal()" style="background:transparent;border:none;color:#94a3b8;font-size:1.5rem;cursor:pointer;">×</button>
+      </div>
+      
+      <div class="mbody" style="flex:1; overflow-y:auto; padding:16px;">
+        <!-- Settings Overview -->
+        <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; margin-bottom:16px; font-size:0.85rem;">
+          <h3 style="margin-top:0; color:#cbd5e1; font-size:0.95rem;">現在の config.js 設定</h3>
+          <div id="sim-config-display" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; color:#94a3b8;"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div style="display:flex; gap:16px; align-items:flex-end; margin-bottom:20px;">
+          <div>
+            <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px;">出品日（基準）</label>
+            <input type="date" id="sim-start-date" class="input-dark" style="width:140px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px;">金額1 (安い商品)</label>
+            <input type="number" id="sim-price-1" class="input-dark" value="16800" style="width:120px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px;">金額2 (高い商品)</label>
+            <input type="number" id="sim-price-2" class="input-dark" value="50000" style="width:120px;">
+          </div>
+          <button onclick="runSimulation()" style="background:#3b82f6; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:bold; height:34px;">▶ 計算開始</button>
+        </div>
+
+        <!-- Results Area -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <!-- Price 1 -->
+          <div style="background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:8px; padding:12px;">
+            <h3 id="sim-title-1" style="margin-top:0; color:#60a5fa; text-align:center; font-size:1.1rem;">金額1</h3>
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <h4 style="color:#fbbf24; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンA (いいね2以下)</h4>
+                <div id="sim-res-1a" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
+              </div>
+              <div style="flex:1;">
+                <h4 style="color:#f87171; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンB (いいね3以上)</h4>
+                <div id="sim-res-1b" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Price 2 -->
+          <div style="background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:8px; padding:12px;">
+            <h3 id="sim-title-2" style="margin-top:0; color:#a78bfa; text-align:center; font-size:1.1rem;">金額2</h3>
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <h4 style="color:#fbbf24; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンA (いいね2以下)</h4>
+                <div id="sim-res-2a" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
+              </div>
+              <div style="flex:1;">
+                <h4 style="color:#f87171; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンB (いいね3以上)</h4>
+                <div id="sim-res-2b" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 

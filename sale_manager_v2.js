@@ -9,7 +9,7 @@ var SALE_GAS_URL = localStorage.getItem('saleGasUrl') || '';
 var SALE_SYMBOLS   = typeof CONFIG !== 'undefined' && CONFIG.SALE_SYMBOLS ? CONFIG.SALE_SYMBOLS : ['●','■','▲','〇','□'];
 var SALE_INTERVAL  = typeof CONFIG !== 'undefined' ? CONFIG.SALE_INTERVAL : 10;   // 日
 var SALE_HALF_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.SALE_HALF_DAYS : 7;    // 中間値下げ日
-var SALE_DISC_AMT  = 500;  // 値下げ額
+var SALE_DISC_AMT = typeof CONFIG !== "undefined" && CONFIG.SALE_DISC_AMT ? CONFIG.SALE_DISC_AMT : 500;  // 値下げ額
 var SALE_MIN_LIKES = 3;    // セール条件
 
 // 底値テキスト
@@ -32,7 +32,7 @@ var SALE_BODIES = [
 ];
 
 // セール時間（曜日別）
-var SALE_TIMES_BY_DOW = ['20:00〜22:00','20:00〜22:00','20:00〜22:00','19:00〜21:00','21:00〜23:00','20:00〜22:00','20:00〜22:00'];
+var SALE_TIMES_BY_DOW = typeof CONFIG !== "undefined" && CONFIG.SALE_TIMES_BY_DOW ? CONFIG.SALE_TIMES_BY_DOW : ["20:00〜22:00","20:00〜22:00","20:00〜22:00","19:00〜21:00","21:00〜23:00","20:00〜22:00","20:00〜22:00"];
 
 // ==========================================
 // ユーティリティ
@@ -82,16 +82,16 @@ function smBasePrice(symbol, price){
 }
 
 function smSymPrice(base, sym){
-  if(sym==='●') return Math.floor(base/100)*100;
-  if(sym==='■') return Math.floor(base*0.95/100)*100;
-  if(sym==='▲') return Math.floor(base*0.90/100)*100;
-  if(sym==='〇') return Math.floor(base*0.80/100)*100;
-  return Math.floor(base/100)*100;
+  var rates = typeof CONFIG !== "undefined" && CONFIG.SYMBOL_RATES ? CONFIG.SYMBOL_RATES : {'●':1.0, '■':0.95, '▲':0.90, '〇':0.80, '□':0.72};
+  var rate = rates[sym] || 1.0;
+  return Math.floor((base * rate) / 100) * 100;
 }
 
 function smBoxPrice(maruPrice){
-  // □ = 〇の価格 × 90%（切捨100円）
-  return Math.floor(maruPrice*0.90/100)*100;
+  // Calculate base from maruPrice (which is 80%), then multiply by 72%
+  var base = maruPrice / 0.80;
+  var rates = typeof CONFIG !== "undefined" && CONFIG.SYMBOL_RATES ? CONFIG.SYMBOL_RATES : {'□':0.72};
+  return Math.floor((base * rates['□']) / 100) * 100;
 }
 
 function smNextSym(sym){
@@ -597,25 +597,22 @@ function smAfterSale(code, nextSym, nextPrice){
   localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sdUndo)), action:'afterSale'}));
   var today = smTodayStr();
 
-  // 翌日：価格戻し確認
+  // Reset the base update date to today (Plan 2: Restart the cycle)
+  var itemIndex = items.findIndex(function(i){ return i.code === code; });
+  if(itemIndex !== -1) {
+    items[itemIndex].shopsUpdatedAt = new Date().toISOString();
+  }
+
+  // 翌日戻すタスクのみ追加
   smAddTask(code,{
     type:'revert_check', dueDate:smAddDays(today,1),
-    desc:'Shopsタイムセール終了確認（自動で元値に戻っているか確認）'
+    desc:'Shopsタイムセール確認（元値に戻っているか確認）'
   });
 
-  // 4日後：記号変更
-  smAddTask(code,{
-    type:'symbol_change', dueDate:smAddDays(today,4),
-    desc:'記号を'+nextSym+'に変更（Shopsで¥'+nextPrice.toLocaleString()+'に設定）'
-  });
+  var sd = smGetItem(code);
+  smSetItem(code, sd);
 
-  // 11日後：500円値下げ（記号変更から7日後）
-  smAddTask(code,{
-    type:'price_discount', dueDate:smAddDays(today,11),
-    desc:'500円値下げ → ¥'+(nextPrice-SALE_DISC_AMT).toLocaleString()+'に変更'
-  });
-
-  showToast('✅ タスクを3件追加しました', 2000);
+  showToast('✔ ゲリラセール実施（スケジュールリセット）', 3000);
   smRenderAll();
 }
 
@@ -834,4 +831,105 @@ function smUpdateSaleBanner() {
   }
   
   el.innerHTML = html;
+}
+
+
+// ==========================================
+// Simulator UI Logic
+// ==========================================
+function openSimulatorModal() {
+  document.getElementById('sim-modal').style.display = 'flex';
+  
+  // Set default date to 1st of current month
+  var d = new Date();
+  var startStr = d.getFullYear() + '-' + smPad2(d.getMonth()+1) + '-01';
+  document.getElementById('sim-start-date').value = startStr;
+  
+  // Show current config
+  var html = '';
+  html += '<div><b>サイクル:</b> ' + (CONFIG.SALE_INTERVAL||10) + '日 / ' + (CONFIG.SALE_HALF_DAYS||5) + '日 (半値引き)</div>';
+  html += '<div><b>値引額:</b> ' + (CONFIG.SALE_DISC_AMT||500) + '円</div>';
+  html += '<div><b>記号:</b> ' + (CONFIG.SALE_SYMBOLS||[]).join('→') + '</div>';
+  var rates = CONFIG.SYMBOL_RATES || {};
+  var rateStrs = [];
+  Object.keys(rates).forEach(function(k){ rateStrs.push(k+':'+(rates[k]*100)+'%'); });
+  html += '<div><b>割引率:</b> ' + rateStrs.join(', ') + '</div>';
+  document.getElementById('sim-config-display').innerHTML = html;
+}
+
+function closeSimulatorModal() {
+  document.getElementById('sim-modal').style.display = 'none';
+}
+
+function runSimulation() {
+  var startStr = document.getElementById('sim-start-date').value;
+  var price1 = parseInt(document.getElementById('sim-price-1').value) || 16800;
+  var price2 = parseInt(document.getElementById('sim-price-2').value) || 50000;
+  
+  if(!startStr) return;
+  var dParts = startStr.split('-');
+  var startD = new Date(parseInt(dParts[0]), parseInt(dParts[1])-1, parseInt(dParts[2]));
+  
+  document.getElementById('sim-title-1').innerText = price1.toLocaleString() + ' 円';
+  document.getElementById('sim-title-2').innerText = price2.toLocaleString() + ' 円';
+  
+  function fmtD(dateObj) { return (dateObj.getMonth()+1)+'/'+dateObj.getDate(); }
+  function addD(dObj, days) { var nd = new Date(dObj.getTime()); nd.setDate(nd.getDate()+days); return nd; }
+  
+  function calcRoute(basePrice, isRouteB) {
+    var html = '<div style="margin-bottom:8px;"><b>' + fmtD(startD) + '</b>: ' + basePrice.toLocaleString() + ' (' + CONFIG.SALE_SYMBOLS[0] + ')で出品</div>';
+    
+    var curPrice = basePrice;
+    var curDate = startD;
+    var interval = CONFIG.SALE_INTERVAL || 10;
+    var half = CONFIG.SALE_HALF_DAYS || 5;
+    var disc = CONFIG.SALE_DISC_AMT || 500;
+    var syms = CONFIG.SALE_SYMBOLS || ['●','■','▲','〇'];
+    
+    // Day 5
+    var day5 = addD(curDate, half);
+    curPrice -= disc;
+    html += '<div><b>' + fmtD(day5) + '</b>: '+disc+'円値下げ → ' + curPrice.toLocaleString() + '</div>';
+    
+    var nextSymIndex = 1;
+    
+    // Route B triggers on Day 8
+    if(isRouteB) {
+      var day8 = addD(curDate, 8);
+      var salePrice = smSymPrice(basePrice, syms[nextSymIndex]);
+      html += '<div style="color:#fca5a5; margin-top:4px; padding-left:8px; border-left:2px solid #f87171;">';
+      html += '<b>' + fmtD(day8) + '</b>: ゲリラセール! ('+salePrice.toLocaleString()+')<br>';
+      html += '<b>' + fmtD(addD(day8,1)) + '</b>: 元値に戻す ('+curPrice.toLocaleString()+')<br>';
+      html += '<span style="color:#fbbf24">※ここからサイクルリセット</span>';
+      html += '</div>';
+      curDate = day8; // Reset origin
+    }
+    
+    // Cycle through remaining symbols
+    while(nextSymIndex < syms.length) {
+      var sym = syms[nextSymIndex];
+      // Next half
+      var hDate = addD(curDate, interval);
+      curPrice = smSymPrice(basePrice, sym);
+      html += '<div style="margin-top:4px;"><b>' + fmtD(hDate) + '</b>: 記号変更 ('+sym+') → ' + curPrice.toLocaleString() + '</div>';
+      
+      // Discount
+      var dDate = addD(hDate, half);
+      curPrice -= disc;
+      html += '<div><b>' + fmtD(dDate) + '</b>: '+disc+'円値下げ → ' + curPrice.toLocaleString() + '</div>';
+      
+      curDate = hDate; // The symbol change date becomes the new origin for the next interval
+      nextSymIndex++;
+    }
+    
+    var finalReport = addD(curDate, (CONFIG.REPORT_OVER_DAYS||10));
+    html += '<div style="margin-top:8px; color:#fbbf24;"><b>' + fmtD(finalReport) + '</b>: ⚠️最終報告タスク</div>';
+    
+    return html;
+  }
+  
+  document.getElementById('sim-res-1a').innerHTML = calcRoute(price1, false);
+  document.getElementById('sim-res-1b').innerHTML = calcRoute(price1, true);
+  document.getElementById('sim-res-2a').innerHTML = calcRoute(price2, false);
+  document.getElementById('sim-res-2b').innerHTML = calcRoute(price2, true);
 }
