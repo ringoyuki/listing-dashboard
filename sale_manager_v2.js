@@ -1063,10 +1063,10 @@ function smBatchCopyTasks() {
 
   var copyText = '【本日の作業報告：計' + totalCount + '件】\n\n';
   var counter = 1;
-  var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+  var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳','㉑','㉒','㉓','㉔','㉕','㉖','㉗','㉘','㉙','㉚','㉛','㉜','㉝','㉞','㉟','㊱','㊲','㊳','㊴','㊵','㊶','㊷','㊸','㊹','㊺','㊻','㊼','㊽','㊾','㊿'];
 
   function getNum() {
-      var num = (counter <= 20) ? circleNums[counter-1] : '(' + counter + ')';
+      var num = (counter <= 50) ? circleNums[counter-1] : '(' + counter + ')';
       counter++;
       return { num: num, index: counter - 1 };
   }
