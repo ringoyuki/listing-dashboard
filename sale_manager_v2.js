@@ -943,7 +943,8 @@ function runSimulation() {
         var hDate = addD(curDate, half);
         curPrice = smSymPrice(basePrice, sym);
         html += '<div style="margin-top:4px;"><b>' + fmtD(hDate) + '</b>: 記号変更 ('+sym+') → ' + curPrice.toLocaleString();
-        if(sym === '〇' || sym === '□') {
+        var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
+        if(sym === '〇' || sym === '□' || basePrice >= HIGH_PRICE_ALERT) {
           html += ' <span style="color:#f87171; font-weight:bold;">(🚨オーナー報告)</span>';
         }
         html += '</div>';
@@ -966,7 +967,8 @@ function runSimulation() {
         var hDate = addD(curDate, interval);
         curPrice = smSymPrice(basePrice, sym);
         html += '<div style="margin-top:4px;"><b>' + fmtD(hDate) + '</b>: 記号変更 ('+sym+') → ' + curPrice.toLocaleString();
-        if(sym === '〇' || sym === '□') {
+        var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
+        if(sym === '〇' || sym === '□' || basePrice >= HIGH_PRICE_ALERT) {
           html += ' <span style="color:#f87171; font-weight:bold;">(🚨オーナー報告)</span>';
         }
         html += '</div>';
@@ -1003,12 +1005,14 @@ document.addEventListener('click', function(e) {
 
 
 
+
 function smBatchCopyTasks() {
   var all = smGetAll();
   var today = smTodayStr();
   var doneTasks = [];
   var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 2;
   var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
+  var sym80 = SALE_SYMBOLS.length > 3 ? SALE_SYMBOLS[3] : '〇';
   var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
 
   Object.keys(all).forEach(function(code){
@@ -1016,7 +1020,7 @@ function smBatchCopyTasks() {
     var pd = items.find(function(i){ return i.code===code; });
     if(!pd) return;
     
-    // 1. 至急報告
+    // 1. 至急報告 (最終記号で規定日数経過)
     if(sd.symbol === finalSym) {
        var passedDays = smDaysDiff(pd.shopsUpdatedAt);
        if(passedDays >= REPORT_OVER_DAYS) {
@@ -1025,16 +1029,20 @@ function smBatchCopyTasks() {
        }
     }
     
-    // 2. 本日の記号変更
+    // 2. 本日の重要な記号変更 (高額商品、または最終フェーズへの変更)
     if(sd.symbolChangedAt === today) {
        var base = smBasePrice(sd.symbol, pd.price || 0);
        var isHigh = (base >= HIGH_PRICE_ALERT);
-       doneTasks.push({type: 'sym_change', code: code, title: pd.title, isHigh: isHigh, sym: sd.symbol});
+       var isFinalPhase = (sd.symbol === sym80 || sd.symbol === finalSym);
+       
+       if (isHigh || isFinalPhase) {
+           doneTasks.push({type: 'sym_change', code: code, title: pd.title, isHigh: isHigh, sym: sd.symbol});
+       }
     }
   });
 
   if (doneTasks.length === 0) {
-    alert('コピーする報告対象（至急報告、または本日の記号変更）がありません。');
+    alert('コピーする報告対象（至急報告、または重要な記号変更）がありません。');
     return;
   }
 
@@ -1047,7 +1055,7 @@ function smBatchCopyTasks() {
       copyText += num + ' 管理番号: ' + d.code + '（🚨オーナー至急報告）\n';
       copyText += d.title + '\n\n';
     } else if (d.type === 'sym_change') {
-      var alertText = d.isHigh ? '（🚨高額商品・記号変更報告）' : '（記号変更）';
+      var alertText = d.isHigh ? '（🚨高額商品・記号変更報告）' : '（🚨オーナー報告）';
       copyText += num + ' 管理番号: ' + d.code + alertText + '\n';
       copyText += '記号を ' + d.sym + ' に変更\n';
       copyText += d.title + '\n\n';
