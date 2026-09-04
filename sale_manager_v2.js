@@ -213,7 +213,7 @@ function smGetAllTasks(){
              code: code,
              title: code,
              type: 'report',
-             desc: '🚨 最終価格から' + passedDays + '日経過。オーナーに報告してください！',
+             desc: '🚨 オーナーへ至急報告',
              dueDate: today,
              overdueDays: passedDays - REPORT_OVER_DAYS,
              priority: -1
@@ -330,7 +330,8 @@ function smRenderTasks(){
     return;
   }
 
-  el.innerHTML = tasks.map(function(t){
+  var copyBtnHTML = '<div style="padding: 10px;"><button id="btn-batch-copy-tasks" style="width:100%; padding: 12px; background:#e74c3c; color:white; font-weight:bold; border:none; border-radius:5px; cursor:pointer; font-size:14px;">🚨 今日のタスクを一括コピー</button></div>';
+  el.innerHTML = copyBtnHTML + tasks.map(function(t){
     var over = t.overdueDays>0;
     var today = t.dueDate===smTodayStr();
     var bg   = over ? 'rgba(239,68,68,0.10)' : today ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
