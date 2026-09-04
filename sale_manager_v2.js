@@ -7,7 +7,7 @@ var SALE_GAS_URL = localStorage.getItem('saleGasUrl') || '';
 
 // === 定数 ===
 var SALE_SYMBOLS   = ['●','■','▲','〇','□'];
-var SALE_INTERVAL  = 15;   // 日
+var SALE_INTERVAL  = 10;   // 日
 var SALE_HALF_DAYS = 7;    // 中間値下げ日
 var SALE_DISC_AMT  = 500;  // 値下げ額
 var SALE_MIN_LIKES = 3;    // セール条件
