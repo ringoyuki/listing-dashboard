@@ -652,7 +652,13 @@ function smDoChange(code, newSym, newPrice){
   // 7日後：500円値下げ
   if(!sd.tasks) sd.tasks=[];
   sd.tasks.push({
-    id:smGenId(), type:'price_discount', status:'pending',
+    id:smGenId(), type:'sym', status:'done',
+    dueDate:smTodayStr(),
+    desc: newSym + ' に記号変更'
+  });
+  sd.tasks.push({
+    id:smGenId(), type:'price_discount'
+, status:'pending',
     dueDate:shiftDateToSaleDay(smAddDays(smTodayStr(), SALE_HALF_DAYS)),
     desc:'500円値下げ → ¥'+(newPrice-SALE_DISC_AMT).toLocaleString()+'に変更'
   });
