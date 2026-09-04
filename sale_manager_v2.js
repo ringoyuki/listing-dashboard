@@ -200,20 +200,33 @@ function smGetAllTasks(){
     new Date(year, month, 8),
     new Date(year, month+1, 1)
   ];
-  targets.forEach(function(targetDate) {
+    targets.forEach(function(targetDate) {
     var diff = Math.floor((targetDate - d)/(1000*60*60*24));
-    if(diff >= 0 && diff <= 5) {
-      var titleText = diff === 0 ? '🚨 本日は「' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日」のセール当日です！' : '🚨 あと' + diff + '日で「' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日」のセールです！';
+    if(diff >= -1 && diff <= 5) {
+      var dCode = '';
+      var dDesc = '';
+      if(diff > 0) {
+        dCode = '🚨 ' + (targetDate.getMonth()+1) + '月' + targetDate.getDate() + '日はセール日です';
+        dDesc = 'あと' + diff + '日でセール日です。下準備をお願いします。';
+      } else if(diff === 0) {
+        dCode = '🚨 本日はセール当日です！';
+        dDesc = 'タイムセール、コメントセール漏れがないようにお願いします。';
+      } else if(diff === -1) {
+        dCode = '🚨 セール翌日の処理';
+        dDesc = 'コメントセールの削除（コメ消し）をお願いします。';
+      }
       tasks.push({
-        taskId: 'SALE_PREP_' + targetDate.getTime(),
-        code: 'SALE_PREP',
-        title: titleText,
+        taskId: 'SALE_PREP_' + targetDate.getTime() + '_' + diff,
+        code: dCode,
+        title: dCode,
         type: 'alert',
-        desc: 'セールの下準備をお願いします。',
+        desc: dDesc,
         dueDate: today,
         overdueDays: 0,
         priority: -2
       });
+    }
+  });
     }
   });
 
@@ -236,7 +249,7 @@ function smGetAllTasks(){
              code: code,
              title: '🚨 オーナー最終報告！ (' + (item.title||'') + ')',
              type: 'report',
-             desc: '最終価格から' + passedDays + '日経過。オーナーに報告してください。',
+             desc: '🚨 最終価格から' + passedDays + '日経過。オーナーに報告してください！',
              dueDate: today,
              overdueDays: passedDays - REPORT_OVER_DAYS,
              priority: -1
