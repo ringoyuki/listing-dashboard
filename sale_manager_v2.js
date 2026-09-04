@@ -6,9 +6,9 @@
 var SALE_GAS_URL = localStorage.getItem('saleGasUrl') || '';
 
 // === 定数 ===
-var SALE_SYMBOLS   = ['●','■','▲','〇','□'];
-var SALE_INTERVAL  = 10;   // 日
-var SALE_HALF_DAYS = 7;    // 中間値下げ日
+var SALE_SYMBOLS   = typeof CONFIG !== 'undefined' && CONFIG.SALE_SYMBOLS ? CONFIG.SALE_SYMBOLS : ['●','■','▲','〇','□'];
+var SALE_INTERVAL  = typeof CONFIG !== 'undefined' ? CONFIG.SALE_INTERVAL : 10;   // 日
+var SALE_HALF_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.SALE_HALF_DAYS : 7;    // 中間値下げ日
 var SALE_DISC_AMT  = 500;  // 値下げ額
 var SALE_MIN_LIKES = 3;    // セール条件
 
@@ -236,7 +236,7 @@ function smGetAllTasks(){
     if(!item.code || item.code==='CHECK' || !/[a-zA-Z]/.test(item.code)) return;
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; 
 
-    var REPORT_OVER_DAYS = 10;
+    var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 10;
     var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
     if(sd.symbol === finalSym) {
        var passedDays = smDaysDiff(item.shopsUpdatedAt);
@@ -534,7 +534,7 @@ function smOnLikes(code){
 
   
   var html = '';
-  var HIGH_PRICE_ALERT = 30000;
+  var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
   if(base >= HIGH_PRICE_ALERT) {
     html += '<div style="background:rgba(239,68,68,0.15);border:2px solid #ef4444;border-radius:10px;padding:12px;margin-bottom:12px;color:#fca5a5;font-weight:bold;font-size:0.9rem;text-align:center;">'
       + '🚨 原価が3万円以上の高額商品です。<br>記号を変更する前にオーナーに報告して許可をもらってください！'
