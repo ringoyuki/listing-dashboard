@@ -1050,7 +1050,8 @@ function smBatchCopyTasks() {
     
     // 1. 規定日数超過 (最終記号で放置)
     if(sd.symbol === finalSym) {
-       var passedDays = smDaysDiff(pd.shopsUpdatedAt);
+       var baseDate = sd.reportedAt || pd.shopsUpdatedAt;
+       var passedDays = smDaysDiff(baseDate);
        if(passedDays >= REPORT_OVER_DAYS) {
           blockOverdue.push({code: code, title: pd.title, price: pd.price, url: directUrl});
           return;
