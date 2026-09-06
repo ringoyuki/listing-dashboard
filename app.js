@@ -573,13 +573,14 @@ function runImport(){
       if(row.shippingDays !== undefined) ex.shippingDays = row.shippingDays;
       if(row.shopItemId) ex.shopItemId = row.shopItemId;
       if(row.category)   ex.category   = row.category;
+      if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
       added++;
     }
   });
@@ -591,6 +592,40 @@ function runImport(){
     }
   });
   localStorage.setItem('item_dict', JSON.stringify(dict));
+
+  // === AUTO-SYNC SALE DATA ===
+  try {
+      var saleDataStr = localStorage.getItem('sale_data_v1');
+      var saleData = saleDataStr ? JSON.parse(saleDataStr) : {};
+      var saleUpdated = false;
+      var nowObj = new Date();
+      var ymdDash = nowObj.getFullYear() + '-' + ('0'+(nowObj.getMonth()+1)).slice(-2) + '-' + ('0'+nowObj.getDate()).slice(-2);
+      
+      pendingRows.forEach(function(row){
+          if(!row.code || row.code === 'CHECK' || !row.actualSymbol) return;
+          var sd = saleData[row.code];
+          if(!sd) {
+              sd = { symbol: row.actualSymbol };
+              saleData[row.code] = sd;
+              saleUpdated = true;
+          } else if (sd.symbol !== row.actualSymbol) {
+              sd.symbol = row.actualSymbol;
+              if(sd.tasks) {
+                  var priceTask = sd.tasks.find(function(t) { return t.type === 'price_discount' && t.status === 'pending'; });
+                  if(priceTask) {
+                      priceTask.status = 'done';
+                      priceTask.completedAt = ymdDash;
+                  }
+              }
+              saleUpdated = true;
+          }
+      });
+      if(saleUpdated) {
+          localStorage.setItem('sale_data_v1', JSON.stringify(saleData));
+      }
+  } catch(e) { console.error('Auto-sync error:', e); }
+  // ============================
+
   // 更新日時を保存して表示
   var now = new Date();
   var ymd = now.getFullYear() + '/' + ('0'+(now.getMonth()+1)).slice(-2) + '/' + ('0'+now.getDate()).slice(-2);

@@ -418,7 +418,19 @@ function smRenderPanel(item){
     return '<a href="'+esc(href)+'" target="_blank" style="display:inline-block;padding:5px 10px;border-radius:6px;font-size:0.75rem;text-decoration:none;background:'+bg+';border:1px solid '+border+';color:'+color+';margin:2px;">'+emoji+' '+label+'</a>';
   }
 
-  var html = '<div style="padding:16px;">'
+  var alertHtml = '';
+  if (item.actualSymbol && sym && item.actualSymbol !== sym) {
+    var csvDateStr = localStorage.getItem('csv_updated_at') || '';
+    var changedAtStr = sd.symbolChangedAt || '';
+    if (csvDateStr && changedAtStr) {
+      var csvDate = new Date(csvDateStr.replace(' 更新', '').replace(/\//g, '-'));
+      var changeDate = new Date(changedAtStr);
+      if (changeDate < csvDate) {
+        alertHtml = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:10px;padding:12px;margin-bottom:16px;box-shadow: 0 0 10px rgba(239,68,68,0.3);">' + '<div style="font-size:0.9rem;font-weight:700;color:#fca5a5;margin-bottom:4px;">🚨 警告：メルカリ側の説明文（記号）が更新されていません！</div>' + '<div style="font-size:0.75rem;color:#fecaca;">ダッシュボード上の記号は <b style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 4px;border-radius:3px;">' + sym + '</b> に進んでいますが、メルカリ側の説明文は <b style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 4px;border-radius:3px;">' + item.actualSymbol + '</b> のままです。<br>スタッフが更新作業を忘れたか、システムのみ完了させています。直ちに修正してください。</div>' + '</div>';
+      }
+    }
+  }
+  var html = '<div style="padding:16px;">' + alertHtml
     // タイトル
     +'<div style="font-size:0.72rem;color:#cbd5e1;margin-bottom:2px;">'+esc(item.code)+'</div>'
     +'<div style="font-size:0.88rem;font-weight:600;color:#e2e8f0;margin-bottom:14px;line-height:1.4;">'+esc(item.title.slice(0,70))+'</div>'
@@ -499,7 +511,8 @@ function smOnLikes(code){
   if(!result) return;
 
   if(!nextSym){
-        var d = smDaysDiff(item.shopsUpdatedAt);
+        var baseDate = sd.reportedAt || item.shopsUpdatedAt;
+    var d = smDaysDiff(baseDate);
     var html = '';
     if(d < 10) {
       html = '<div style="background:rgba(100,116,139,0.12);border-radius:8px;padding:12px;color:#d1d5db;font-size:0.83rem;">'
@@ -589,14 +602,14 @@ function smOnLikes(code){
     html += '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:#f87171;margin-bottom:6px;">⚠️ オーナー確認が必要な変更</div>'
       +gridHtml
-      + mercariBtn + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
+      + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
       +'</div>';
   } else {
     var isBox = nextSym==='□';
     html += '<div style="background:'+(isBox?'rgba(239,68,68,0.07)':'rgba(34,197,94,0.07)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.25)':'rgba(34,197,94,0.25)')+';border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:'+(isBox?'#f87171':'#86efac')+';margin-bottom:6px;">'+(isBox?'🏁 最終フェーズ（底値）':'📋 記号変更')+'</div>'
       +gridHtml
-      + mercariBtn + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
+      + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
       +'</div>';
 
     // □の底値テキスト
@@ -1087,7 +1100,7 @@ function smBatchCopyTasks() {
       copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\n';
       blockOverdue.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n' + d.url + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n価格: ' + (d.price||0).toLocaleString() + '円\n' + d.url + '\n\n';
           replyTemplateOverdue.push(n.num + ' ⇒ ');
       });
   }
