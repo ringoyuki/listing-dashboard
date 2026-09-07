@@ -504,7 +504,13 @@ function parseCsv(text){
     var actualSymbol = symMatch ? symMatch[1] : '';
     var shopsRegAt = cols.length > COL.REG_DATE ? cols[COL.REG_DATE].trim() : '';
     var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
-    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,actualSymbol:actualSymbol,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
+    
+    var brandId = cols.length > 154 ? cols[154].trim() : '';
+    var shippingMethod = cols.length > 158 ? cols[158].trim() : '';
+    var shippingOrigin = cols.length > 159 ? cols[159].trim() : '';
+    var shippingDays = cols.length > 160 ? cols[160].trim() : '';
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,actualSymbol:actualSymbol,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim()),brandId:brandId,shippingMethod:shippingMethod,shippingOrigin:shippingOrigin,shippingDays:shippingDays});
+    
   }
   var pa=document.getElementById('prev-area');
   if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">データが見つかりません</p>';return;}
@@ -560,10 +566,10 @@ function runImport(){
       if(row.shopItemId) ex.shopItemId = row.shopItemId;
       if(row.category)   ex.category   = row.category;
 if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
-      if(row.brandId) ex.brandId = row.brandId;
-      if(row.shippingMethod) ex.shippingMethod = row.shippingMethod;
-      if(row.shippingOrigin) ex.shippingOrigin = row.shippingOrigin;
-      if(row.shippingDays) ex.shippingDays = row.shippingDays;
+      if(row.brandId !== undefined) ex.brandId = row.brandId;
+      if(row.shippingMethod !== undefined) ex.shippingMethod = row.shippingMethod;
+      if(row.shippingOrigin !== undefined) ex.shippingOrigin = row.shippingOrigin;
+      if(row.shippingDays !== undefined) ex.shippingDays = row.shippingDays;
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
@@ -705,6 +711,11 @@ function checkErrors() {
   var container = document.getElementById('error-alert-container');
   if(!container) return;
   var errorItems = [];
+  var d = items.find(i => i.code === 'D1087_861');
+  if(d && !window._debugShown){
+    window._debugShown=true;
+    alert('D1087_861 DEBUG:\nMethod: [' + d.shippingMethod + ']\nOrigin: [' + d.shippingOrigin + ']\nDays: [' + d.shippingDays + ']');
+  }
   items.forEach(function(item) {
     var stock = parseInt(item.stock) || 0;
     
