@@ -711,11 +711,6 @@ function checkErrors() {
   var container = document.getElementById('error-alert-container');
   if(!container) return;
   var errorItems = [];
-  var d = items.find(i => i.code === 'D1087_861');
-  if(d && !window._debugShown){
-    window._debugShown=true;
-    alert('D1087_861 DEBUG:\nMethod: [' + d.shippingMethod + ']\nOrigin: [' + d.shippingOrigin + ']\nDays: [' + d.shippingDays + ']');
-  }
   items.forEach(function(item) {
     var stock = parseInt(item.stock) || 0;
     
