@@ -94,6 +94,11 @@ function smBoxPrice(maruPrice){
   return Math.floor((base * rates['□']) / 100) * 100;
 }
 
+function smPrevSym(sym){
+  var idx = SALE_SYMBOLS.indexOf(sym);
+  return (idx>0) ? SALE_SYMBOLS[idx-1] : sym;
+}
+
 function smNextSym(sym){
   var idx = SALE_SYMBOLS.indexOf(sym);
   return (idx>=0 && idx<SALE_SYMBOLS.length-1) ? SALE_SYMBOLS[idx+1] : null;
@@ -206,7 +211,8 @@ function smGetAllTasks(){
     var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 10;
     var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
     if(sd.symbol === finalSym) {
-       var passedDays = smDaysDiff(item.shopsUpdatedAt);
+       var baseDate = sd.reportedAt || item.shopsUpdatedAt;
+       var passedDays = smDaysDiff(baseDate);
        if(passedDays >= REPORT_OVER_DAYS) {
            tasks.push({
              taskId: 'REPORT_' + code,
@@ -231,6 +237,28 @@ function smGetAllTasks(){
         priority: over>0 ? 0 : (t.dueDate===today ? 1 : 2)
       });
     });
+
+    // ZOMBIE RECOVERY
+    var hasPending = sd.tasks.some(function(t){ return t.status==='pending'; });
+    if(sd.symbol !== finalSym && !hasPending) {
+        var nextSym = smNextSym(sd.symbol);
+        if(nextSym) {
+            var SALE_INTERVAL = typeof CONFIG !== 'undefined' ? CONFIG.SALE_INTERVAL : 10;
+            var baseStr = item.shopsUpdatedAt || today;
+            var targetDateStr = typeof shiftDateToSaleDay === 'function' ? shiftDateToSaleDay(smAddDays(baseStr, SALE_INTERVAL)) : smAddDays(baseStr, SALE_INTERVAL);
+            var over = smDaysDiff(targetDateStr);
+            tasks.push({
+                taskId: 'ZOMBIE_' + code,
+                code: code,
+                title: item.title,
+                type: 'symbol_change',
+                desc: nextSym + ' に記号変更',
+                dueDate: targetDateStr,
+                overdueDays: over,
+                priority: over > 0 ? 0 : (targetDateStr === today ? 1 : 2)
+            });
+        }
+    }
   });
   tasks.sort(function(a,b){
     if(a.priority!==b.priority) return a.priority-b.priority;
@@ -241,6 +269,13 @@ function smGetAllTasks(){
 
 function smCompleteTask(code, taskId){
   var sd = smGetItem(code);
+  if (taskId.startsWith('REPORT_')) {
+      sd.reportedAt = smTodayStr();
+      smSetItem(code, sd);
+      smRenderAll();
+      showToast('✅ 報告を完了し、タイマーをリセットしました', 1500);
+      return;
+  }
   var t = (sd.tasks||[]).find(function(x){ return x.id===taskId; });
   if(t){ t.status='done'; t.completedAt=smTodayStr(); }
   smSetItem(code, sd);
@@ -418,20 +453,29 @@ function smRenderPanel(item){
     return '<a href="'+esc(href)+'" target="_blank" style="display:inline-block;padding:5px 10px;border-radius:6px;font-size:0.75rem;text-decoration:none;background:'+bg+';border:1px solid '+border+';color:'+color+';margin:2px;">'+emoji+' '+label+'</a>';
   }
 
-  var alertHtml = '';
-  if (item.actualSymbol && sym && item.actualSymbol !== sym) {
-    var csvDateStr = localStorage.getItem('csv_updated_at') || '';
-    var changedAtStr = sd.symbolChangedAt || '';
-    if (csvDateStr && changedAtStr) {
-      var csvDate = new Date(csvDateStr.replace(' 更新', '').replace(/\//g, '-'));
-      var changeDate = new Date(changedAtStr);
-      if (changeDate < csvDate) {
-        alertHtml = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:10px;padding:12px;margin-bottom:16px;box-shadow: 0 0 10px rgba(239,68,68,0.3);">' + '<div style="font-size:0.9rem;font-weight:700;color:#fca5a5;margin-bottom:4px;">🚨 警告：メルカリ側の説明文（記号）が更新されていません！</div>' + '<div style="font-size:0.75rem;color:#fecaca;">ダッシュボード上の記号は <b style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 4px;border-radius:3px;">' + sym + '</b> に進んでいますが、メルカリ側の説明文は <b style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 4px;border-radius:3px;">' + item.actualSymbol + '</b> のままです。<br>スタッフが更新作業を忘れたか、システムのみ完了させています。直ちに修正してください。</div>' + '</div>';
-      }
+  
+var alertHtml = '';
+if (item.actualSymbol && sym && item.actualSymbol !== sym) {
+  var csvDateStr = localStorage.getItem('csv_updated_at') || '';
+  var changedAtStr = sd.symbolChangedAt || '';
+  
+  if (csvDateStr && changedAtStr) {
+    var csvDate = new Date(csvDateStr.replace(' 更新', '').replace(/\//g, '-'));
+    var changeDate = new Date(changedAtStr);
+    
+    // If the dashboard was changed BEFORE the CSV was downloaded, and symbols don't match -> ALARM!
+    if (changeDate < csvDate) {
+      alertHtml = '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:10px;padding:12px;margin-bottom:16px;box-shadow: 0 0 10px rgba(239,68,68,0.3);">'
+        + '<div style="font-size:0.9rem;font-weight:700;color:#fca5a5;margin-bottom:4px;">🚨 警告：メルカリ側の説明文（記号）が更新されていません！</div>'
+        + '<div style="font-size:0.75rem;color:#fecaca;">ダッシュボード上の記号は <b style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 4px;border-radius:3px;">' + sym + '</b> に進んでいますが、メルカリ側の説明文は <b style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 4px;border-radius:3px;">' + item.actualSymbol + '</b> のままです。<br>スタッフが更新作業を忘れたか、システムのみ完了させています。直ちに修正してください。</div>'
+        + '</div>';
     }
   }
-  var html = '<div style="padding:16px;">' + alertHtml
-    // タイトル
+}
+
+var html = '<div style="padding:16px;">'
++ alertHtml
+// タイトル
     +'<div style="font-size:0.72rem;color:#cbd5e1;margin-bottom:2px;">'+esc(item.code)+'</div>'
     +'<div style="font-size:0.88rem;font-weight:600;color:#e2e8f0;margin-bottom:14px;line-height:1.4;">'+esc(item.title.slice(0,70))+'</div>'
 
@@ -510,6 +554,42 @@ function smOnLikes(code){
   var result = document.getElementById('sm-action-result-'+code);
   if(!result) return;
 
+  
+  var pendingTasks = (sd.tasks||[]).filter(function(t){ return t.status==='pending'; });
+  pendingTasks.sort(function(a,b){ return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0); });
+  var nextTask = pendingTasks.length > 0 ? pendingTasks[0] : null;
+  var html = '';
+  function cbtn(v){ return '<button title="コピー" onclick="navigator.clipboard.writeText(\''+v+'\');showToast(\'✅ '+v+' をコピーしました\', 1500);event.stopPropagation();" style="margin-left:5px;padding:2px 6px;font-size:0.7rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#e2e8f0;border-radius:4px;cursor:pointer;vertical-align:middle;">📋</button>'; }
+
+
+
+
+
+  if(nextTask && nextTask.type === 'price_discount'){
+    var targetPrice = price - SALE_DISC_AMT;
+    if(targetPrice < 0) targetPrice = 0;
+    var yaAdd = targetPrice < 10000 ? 1000 : (targetPrice < 20000 ? 1500 : 2000);
+    var yaSokketu = targetPrice + yaAdd;
+
+    html += '<div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.25);border-radius:10px;padding:14px;margin-bottom:12px;">'
+      +'<div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:6px;">💡 500円値下げアクション（タスク対応）</div>'
+      +'<div style="display:grid; grid-template-columns:230px 1fr; row-gap:10px; align-items:center; font-size:0.95rem; color:#e2e8f0; margin-bottom:12px;">'
+      +'<div style="color:#cbd5e1;font-size:0.85rem;">メルカリShops、ラクマ</div>'
+      +'<div><span style="color:#94a3b8;text-decoration:line-through;">¥'+price.toLocaleString()+'</span> → <b style="color:#86efac;font-size:1.15em;">¥'+targetPrice.toLocaleString()+'</b>'+cbtn(targetPrice)+'</div>'
+      +'<div style="color:#cbd5e1;font-size:0.85rem;">メルカリ</div>'
+      +'<div><b style="color:#fca5a5;font-size:1.15em;">¥'+(targetPrice+1000).toLocaleString()+'</b>'+cbtn(targetPrice+1000)+'</div>'
+      +'<div style="color:#cbd5e1;font-size:0.85rem;">ヤフーフリマ</div>'
+      +'<div><b style="color:#fde047;font-size:1.15em;">¥'+(Math.floor(targetPrice/1000)*1000).toLocaleString()+'</b>'+cbtn(Math.floor(targetPrice/1000)*1000)+'</div>'
+      +'<div style="color:#cbd5e1;font-size:0.85rem;">ヤフオク</div>'
+      +'<div><span style="font-size:0.85em;color:#94a3b8;">開始:</span> <b style="color:#fdba74;font-size:1.15em;">¥'+targetPrice.toLocaleString()+'</b>'+cbtn(targetPrice)+'&nbsp;&nbsp;<span style="font-size:0.85em;color:#94a3b8;">即決:</span> <b style="color:#fdba74;font-size:1.15em;">¥'+yaSokketu.toLocaleString()+'</b>'+cbtn(yaSokketu)+'</div>'
+      +'</div>'
+      +'<button onclick="smCompleteTask(\''+esc(code)+'\',\''+nextTask.id+'\')" style="width:100%;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shops等で価格変更後に押す（タスク完了）</button>'
+      +'</div>';
+      
+    result.innerHTML = html;
+    return;
+  }
+
   if(!nextSym){
         var baseDate = sd.reportedAt || item.shopsUpdatedAt;
     var d = smDaysDiff(baseDate);
@@ -528,6 +608,9 @@ function smOnLikes(code){
         + '🚨 <b>オーナーに最終報告をしてください！</b><br>'
         + '（報告期日から <b style="color:#f87171;font-size:1rem;">' + (d - 10) + '</b> 日過ぎています）'
         + '</div>';
+    }
+    if (d >= 10) {
+        html += '<div style="margin-top:12px;"><button onclick="smCompleteTask(\''+esc(code)+'\', \'REPORT_\'+esc(code))" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ 報告完了（タイマーをリセット）</button></div>';
     }
     result.innerHTML = html;
     return;
@@ -548,7 +631,7 @@ function smOnLikes(code){
       + '🚨 原価が3万円以上の高額商品です。<br>記号を変更する前にオーナーに報告して許可をもらってください！'
       + '</div>';
   }
-  function cbtn(v){ return '<button title="コピー" onclick="navigator.clipboard.writeText(\''+v+'\');showToast(\'✅ '+v+' をコピーしました\', 1500);event.stopPropagation();" style="margin-left:5px;padding:2px 6px;font-size:0.7rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#e2e8f0;border-radius:4px;cursor:pointer;vertical-align:middle;">📋</button>'; }
+
 
   // --- セールあり ---
   if(hasSale){
@@ -923,7 +1006,7 @@ function runSimulation() {
   function addD(dObj, days) { var nd = new Date(dObj.getTime()); nd.setDate(nd.getDate()+days); return nd; }
   
     function calcRoute(basePrice, isRouteB) {
-    var syms = typeof CONFIG !== "undefined" && CONFIG.SALE_SYMBOLS ? CONFIG.SALE_SYMBOLS : ['●','■','▲','〇','□'];
+    var syms = typeof CONFIG !== "undefined" && CONFIG.SALE_SYMBOLS ? CONFIG.SALE_SYMBOLS : ['〇','●','■','▲','□'];
     var html = '<div style="margin-bottom:8px;"><b>' + fmtD(startD) + '</b>: ' + basePrice.toLocaleString() + ' (' + syms[0] + ')で出品</div>';
     
     var curPrice = basePrice;
@@ -931,73 +1014,53 @@ function runSimulation() {
     var interval = typeof CONFIG !== "undefined" && CONFIG.SALE_INTERVAL ? CONFIG.SALE_INTERVAL : 10;
     var half = typeof CONFIG !== "undefined" && CONFIG.SALE_HALF_DAYS ? CONFIG.SALE_HALF_DAYS : 5;
     var disc = typeof CONFIG !== "undefined" && CONFIG.SALE_DISC_AMT ? CONFIG.SALE_DISC_AMT : 500;
+    var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
     
-    // Day 5
-    var day5 = addD(curDate, half);
-    curPrice -= disc;
-    html += '<div><b>' + fmtD(day5) + '</b>: '+disc+'円値下げ → ' + curPrice.toLocaleString() + '</div>';
+    var nextSymIndex = 0;
     
-    var nextSymIndex = 1;
-    
-    // Route B triggers on Day 8
-    if(isRouteB) {
-      var day8 = addD(startD, 8);
-      var salePrice = smSymPrice(basePrice, syms[nextSymIndex]);
-      html += '<div style="color:#fca5a5; margin-top:4px; padding-left:8px; border-left:2px solid #f87171;">';
-      html += '<b>' + fmtD(day8) + '</b>: ゲリラセール! ('+salePrice.toLocaleString()+')<br>';
-      html += '<b>' + fmtD(addD(day8,1)) + '</b>: 元値に戻す ('+curPrice.toLocaleString()+')<br>';
-      html += '<span style="color:#fbbf24">※ここから5日・10日サイクルへ</span>';
-      html += '</div>';
-      
-      curDate = day8;
-      
-      while(nextSymIndex < syms.length) {
+    while(nextSymIndex < syms.length) {
         var sym = syms[nextSymIndex];
-        var hDate = addD(curDate, half);
-        curPrice = smSymPrice(basePrice, sym);
-        html += '<div style="margin-top:4px;"><b>' + fmtD(hDate) + '</b>: 記号変更 ('+sym+') → ' + curPrice.toLocaleString();
-        var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
-        if(sym === '〇' || sym === '□' || basePrice >= HIGH_PRICE_ALERT) {
-          html += ' <span style="color:#f87171; font-weight:bold;">(🚨オーナー報告)</span>';
+        
+        // 記号変更 (Except for the first symbol which is the listing)
+        if (nextSymIndex > 0) {
+            var hDate = addD(curDate, interval);
+            curPrice = smSymPrice(basePrice, sym);
+            html += '<div style="margin-top:4px;"><b>' + fmtD(hDate) + '</b>: 記号変更 ('+sym+') ⇒ ' + curPrice.toLocaleString();
+            if(sym === '〇' || sym === '□' || basePrice >= HIGH_PRICE_ALERT) {
+                html += ' <span style="color:#f87171; font-weight:bold;">(🚨オーナー報告)</span>';
+            }
+            html += '</div>';
+            curDate = hDate; // Update curDate to the start of this cycle
         }
-        html += '</div>';
         
-        var dDate = addD(hDate, half);
+        // 5日目値下げ
+        var dDate = addD(curDate, half);
         curPrice -= disc;
-        html += '<div><b>' + fmtD(dDate) + '</b>: '+disc+'円値下げ → ' + curPrice.toLocaleString() + '</div>';
+        html += '<div><b>' + fmtD(dDate) + '</b>: '+disc+'円値下げ ⇒ ' + curPrice.toLocaleString() + '</div>';
         
-        curDate = dDate;
-        nextSymIndex++;
-      }
-      
-      var finalReport = addD(curDate, (typeof CONFIG !== "undefined" && CONFIG.REPORT_OVER_DAYS ? CONFIG.REPORT_OVER_DAYS : 10));
-      html += '<div style="margin-top:8px; color:#fbbf24;"><b>' + fmtD(finalReport) + '</b>: ⚠️最終報告タスク</div>';
-      return html;
-
-    } else {
-      while(nextSymIndex < syms.length) {
-        var sym = syms[nextSymIndex];
-        var hDate = addD(curDate, interval);
-        curPrice = smSymPrice(basePrice, sym);
-        html += '<div style="margin-top:4px;"><b>' + fmtD(hDate) + '</b>: 記号変更 ('+sym+') → ' + curPrice.toLocaleString();
-        var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
-        if(sym === '〇' || sym === '□' || basePrice >= HIGH_PRICE_ALERT) {
-          html += ' <span style="color:#f87171; font-weight:bold;">(🚨オーナー報告)</span>';
+        // 8日目ゲリラセール (For ●, ■, ▲ if isRouteB is true)
+        // syms[0] is usually ●, syms[1] is ■, syms[2] is ▲. 
+        if (isRouteB && nextSymIndex < 3) {
+            var day8 = addD(curDate, 8);
+            var nextSym = syms[nextSymIndex + 1] || syms[syms.length - 1];
+            var salePrice = smSymPrice(basePrice, nextSym);
+            html += '<div style="color:#fca5a5; margin-top:4px; padding-left:8px; border-left:2px solid #f87171;">';
+            html += '<b>' + fmtD(day8) + '</b>: ゲリラセール! ('+salePrice.toLocaleString()+')<br>';
+            html += '<b>' + fmtD(addD(day8, 1)) + '</b>: 元値に戻す ('+curPrice.toLocaleString()+')<br>';
+            if (nextSymIndex === 0) {
+                html += '<span style="color:#fbbf24">※ここから5日・10日サイクルへ</span>';
+            }
+            html += '</div>';
         }
-        html += '</div>';
         
-        var dDate = addD(hDate, half);
-        curPrice -= disc;
-        html += '<div><b>' + fmtD(dDate) + '</b>: '+disc+'円値下げ → ' + curPrice.toLocaleString() + '</div>';
-        
-        curDate = hDate;
         nextSymIndex++;
-      }
-      var finalReport = addD(curDate, half + (typeof CONFIG !== "undefined" && CONFIG.REPORT_OVER_DAYS ? CONFIG.REPORT_OVER_DAYS : 10));
-      html += '<div style="margin-top:8px; color:#fbbf24;"><b>' + fmtD(finalReport) + '</b>: ⚠️最終報告タスク</div>';
-      return html;
     }
+    
+    var finalReport = addD(curDate, (typeof CONFIG !== "undefined" && CONFIG.REPORT_OVER_DAYS ? CONFIG.REPORT_OVER_DAYS : 10));
+    html += '<div style="margin-top:8px; color:#fbbf24;"><b>' + fmtD(finalReport) + '</b>: 🚨最終報告タスク</div>';
+    return html;
   }
+}
   
   document.getElementById('sim-res-1a').innerHTML = calcRoute(price1, false);
   document.getElementById('sim-res-1b').innerHTML = calcRoute(price1, true);
@@ -1034,6 +1097,7 @@ function smBatchCopyTasks() {
   var blockHighPrice = [];
   var blockMaru = [];
   var blockShikaku = [];
+  var blockHighSale = [];
 
   Object.keys(all).forEach(function(code){
     var sd = all[code];
@@ -1058,9 +1122,21 @@ function smBatchCopyTasks() {
        }
     }
     
+    // 3. 高額商品のゲリラセール実行
+    if (sd.saleDate === today) {
+       var base = smBasePrice(sd.symbol, pd.price || 0);
+       var isHigh = (base >= HIGH_PRICE_ALERT);
+       if (isHigh) {
+           var nextSym = smNextSym(sd.symbol) || finalSym;
+           var salePrice = smSymPrice(base, nextSym);
+           blockHighSale.push({code: code, title: pd.title, sym: sd.symbol, oldPrice: pd.price, newPrice: salePrice, url: directUrl});
+       }
+    }
+    
     // 2. 本日の記号変更
     if(sd.symbolChangedAt === today) {
-       var base = smBasePrice(sd.symbol, pd.price || 0);
+       var prevSym = smPrevSym(sd.symbol);
+       var base = smBasePrice(prevSym, pd.price || 0);
        var newPrice = smSymPrice(base, sd.symbol);
        var isHigh = (base >= HIGH_PRICE_ALERT);
        
@@ -1076,7 +1152,7 @@ function smBatchCopyTasks() {
     }
   });
 
-  var totalCount = blockOverdue.length + blockHighPrice.length + blockMaru.length + blockShikaku.length;
+  var totalCount = blockOverdue.length + blockHighPrice.length + blockMaru.length + blockShikaku.length + blockHighSale.length;
 
   if (totalCount === 0) {
     alert('コピーする報告対象がありません。');
@@ -1101,7 +1177,7 @@ function smBatchCopyTasks() {
       copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\n';
       blockOverdue.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n価格: ' + (d.price||0).toLocaleString() + '円\n' + d.url + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n' + '価格: ' + (d.price||0).toLocaleString() + '円\n' + d.url + '\n\n';
           replyTemplateOverdue.push(n.num + ' ⇒ ');
       });
   }
@@ -1123,6 +1199,15 @@ function smBatchCopyTasks() {
           var n = getNum();
           copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
+      });
+  }
+
+  if (blockHighSale.length > 0) {
+      copyText += '■■ 高額商品のゲリラセール確認 ■■\n';
+      copyText += '（※実行前にオーナーの許可が必要です）\n';
+      blockHighSale.forEach(function(d) {
+          var n = getNum();
+          copyText += n.num + ' 管理番号: ' + d.code + '\nゲリラセール予定 (' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円)\n' + d.title + '\n' + d.url + '\n\n';
       });
   }
 

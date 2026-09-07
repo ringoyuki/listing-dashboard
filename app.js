@@ -113,7 +113,6 @@ function initApp() {
     showToast('✅ '+items.length+'件 読み込みました',3000);
   }
   updateStats();
-  setTimeout(function(){ if(typeof checkErrors === 'function') checkErrors(); }, 500);
 }
 // 起動時の判定
 document.addEventListener('DOMContentLoaded', function(){
@@ -417,8 +416,7 @@ function openAllByData(code, title, shopsUrl) {
     }
     if (u) { window.open(u, '_blank'); opened++; }
   });
-  if (opened === 0) showToast('取り込み完了:追加'+added+' / 更新:'+updated+'件', 4000);
-  if(typeof checkErrors === 'function') checkErrors();
+  if (opened === 0) showToast('開けるページがありません');
 }
 // ===== CSV インポート =====
 function openCsvModal(){ document.getElementById('csv-modal').classList.add('open'); }
@@ -444,7 +442,7 @@ function extractCode(desc){
   }
   return '';
 }
-var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,BRAND:154,SHIPPING_METHOD:158,SHIPPING_ORIGIN:159,SHIPPING_DAYS:160,STATUS:163,REG_DATE:175,UPD_DATE:176};
+var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,STATUS:163,REG_DATE:175,UPD_DATE:176};
 
 document.addEventListener('DOMContentLoaded',function(){
   var fi=document.getElementById('csvfile');
@@ -495,17 +493,11 @@ function parseCsv(text){
     var desc = cols[COL.DESC] ? cols[COL.DESC].trim() : '';
     var catM = desc.match(/#[^\s\u3000\r\n,、。！？#]+/);
     var category = catM ? catM[0] : '';
+    var symMatch = desc.match(/([●■▲〇□])管理番号/);
+    var actualSymbol = symMatch ? symMatch[1] : '';
     var shopsRegAt = cols.length > COL.REG_DATE ? cols[COL.REG_DATE].trim() : '';
-var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
-var brandId = cols.length > COL.BRAND ? cols[COL.BRAND].trim() : '';
-var sMethod = cols.length > COL.SHIPPING_METHOD ? cols[COL.SHIPPING_METHOD].trim() : '';
-var sOrigin = cols.length > COL.SHIPPING_ORIGIN ? cols[COL.SHIPPING_ORIGIN].trim() : '';
-var sDays = cols.length > COL.SHIPPING_DAYS ? cols[COL.SHIPPING_DAYS].trim() : '';
-    var brandId = cols.length > COL.BRAND ? cols[COL.BRAND].trim() : '';
-var sMethod = cols.length > COL.SHIPPING_METHOD ? cols[COL.SHIPPING_METHOD].trim() : '';
-var sOrigin = cols.length > COL.SHIPPING_ORIGIN ? cols[COL.SHIPPING_ORIGIN].trim() : '';
-var sDays = cols.length > COL.SHIPPING_DAYS ? cols[COL.SHIPPING_DAYS].trim() : '';
-    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,brandId:brandId,shippingMethod:sMethod,shippingOrigin:sOrigin,shippingDays:sDays,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
+    var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,actualSymbol:actualSymbol,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim())});
   }
   var pa=document.getElementById('prev-area');
   if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">データが見つかりません</p>';return;}
@@ -539,15 +531,6 @@ var sDays = cols.length > COL.SHIPPING_DAYS ? cols[COL.SHIPPING_DAYS].trim() : '
 function runImport(){
   if(!pendingRows.length) return;
   var added=0,updated=0;
-  
-  // Create a Set of valid codes from the current CSV import
-  var validCodes = {};
-  pendingRows.forEach(function(r) { if(r.code !== 'CHECK') validCodes[r.code] = true; });
-  
-  // Filter existing items to KEEP ONLY items that exist in the CSV
-  // (This wipes out seed_data ghosts forever)
-  items = items.filter(function(i) { return validCodes[i.code]; });
-  
   pendingRows.forEach(function(row){
     // 管理番号で検索。CHECKの場合はShops商品IDで検索（重複防止）
     var ex = null;
@@ -567,20 +550,20 @@ function runImport(){
       ex.title=row.title; ex.price=row.price; ex.stock=row.stock; ex.status=row.status||'';
       if(row.shopsRegDate)  ex.shopsRegDate  = row.shopsRegDate;
       if(row.shopsUpdatedAt) ex.shopsUpdatedAt = row.shopsUpdatedAt;
-      if(row.brandId !== undefined) ex.brandId = row.brandId;
-      if(row.shippingMethod !== undefined) ex.shippingMethod = row.shippingMethod;
-      if(row.shippingOrigin !== undefined) ex.shippingOrigin = row.shippingOrigin;
-      if(row.shippingDays !== undefined) ex.shippingDays = row.shippingDays;
       if(row.shopItemId) ex.shopItemId = row.shopItemId;
       if(row.category)   ex.category   = row.category;
-      if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
+if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
+      if(row.brandId) ex.brandId = row.brandId;
+      if(row.shippingMethod) ex.shippingMethod = row.shippingMethod;
+      if(row.shippingOrigin) ex.shippingOrigin = row.shippingOrigin;
+      if(row.shippingDays) ex.shippingDays = row.shippingDays;
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',brandId:row.brandId||'',shippingMethod:row.shippingMethod||'',shippingOrigin:row.shippingOrigin||'',shippingDays:row.shippingDays||'',createdAt:Date.now()});
       added++;
     }
   });
@@ -594,12 +577,13 @@ function runImport(){
   localStorage.setItem('item_dict', JSON.stringify(dict));
 
   // === AUTO-SYNC SALE DATA ===
+  // CSV取り込み時に実際の記号（actualSymbol）でダッシュボードの状態を強制上書きする
   try {
       var saleDataStr = localStorage.getItem('sale_data_v1');
       var saleData = saleDataStr ? JSON.parse(saleDataStr) : {};
       var saleUpdated = false;
-      var nowObj = new Date();
-      var ymdDash = nowObj.getFullYear() + '-' + ('0'+(nowObj.getMonth()+1)).slice(-2) + '-' + ('0'+nowObj.getDate()).slice(-2);
+      var now = new Date();
+      var ymdDash = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2);
       
       pendingRows.forEach(function(row){
           if(!row.code || row.code === 'CHECK' || !row.actualSymbol) return;
@@ -609,7 +593,9 @@ function runImport(){
               saleData[row.code] = sd;
               saleUpdated = true;
           } else if (sd.symbol !== row.actualSymbol) {
+              // The dashboard's symbol is out of sync with Mercari! OVERWRITE IT!
               sd.symbol = row.actualSymbol;
+              // Auto-complete any pending price_discount tasks
               if(sd.tasks) {
                   var priceTask = sd.tasks.find(function(t) { return t.type === 'price_discount' && t.status === 'pending'; });
                   if(priceTask) {
@@ -625,7 +611,6 @@ function runImport(){
       }
   } catch(e) { console.error('Auto-sync error:', e); }
   // ============================
-
   // 更新日時を保存して表示
   var now = new Date();
   var ymd = now.getFullYear() + '/' + ('0'+(now.getMonth()+1)).slice(-2) + '/' + ('0'+now.getDate()).slice(-2);
@@ -642,8 +627,7 @@ function runImport(){
   }
   localStorage.setItem('last_seed','manual');
   save(); updateStats(); closeCsvModal();
-  showToast('取り込み完了:追加'+added+' / 更新:'+updated+'件', 4000);
-  if(typeof checkErrors === 'function') checkErrors();
+  showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
 }
 
 
@@ -664,8 +648,7 @@ function applyNewSeed(){
   items=newItems;
   localStorage.setItem(SEED_KEY,window._SEED_FILE||'');
   save(); updateStats(); dismissBanner();
-  showToast('取り込み完了:追加'+added+' / 更新:'+updated+'件', 4000);
-  if(typeof checkErrors === 'function') checkErrors();
+  showToast('✅ '+newItems.length+'件に更新しました',4000);
 }
 
 function dismissBanner(){
@@ -679,8 +662,7 @@ load();
 
 if(window._SEED_DATA && items.length===0){
   items=window._SEED_DATA; save();
-  showToast('取り込み完了:追加'+added+' / 更新:'+updated+'件', 4000);
-  if(typeof checkErrors === 'function') checkErrors();
+  showToast('✅ '+items.length+'件 読み込みました',3000);
 }
 var lastSeed=localStorage.getItem(SEED_KEY);
 if(window._SEED_DATA && window._SEED_FILE && window._SEED_FILE!==lastSeed && items.length>0){
@@ -707,65 +689,3 @@ updateStats();
 
 
 
-
-
-function checkErrors() {
-  var container = document.getElementById('error-alert-container');
-  if(!container) return;
-  var errorItems = [];
-  items.forEach(function(item) {
-    var stock = parseInt(item.stock) || 0;
-    
-    // 無視する条件1：在庫0の商品（非公開・公開問わず、在庫0のものはすべて無視）
-    if (stock <= 0) return;
-    
-    // 無視する条件2：私物（管理番号に入力があり、かつアルファベットが含まれていない場合）
-    if (item.code && item.code !== 'CHECK' && !/[a-zA-Z]/.test(item.code)) return;
-    
-    var errBadges = '';
-    if (!item.code || item.code === 'CHECK') {
-      errBadges += '<span style="display:inline-block; background:#7c3aed; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">🏷️コード未入力</span>';
-    }
-    if (item.shippingMethod !== '3') {
-      errBadges += '<span style="display:inline-block; background:#ea580c; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">📦配送方法</span>';
-    }
-    if (item.shippingOrigin !== 'jp27') {
-      errBadges += '<span style="display:inline-block; background:#ca8a04; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">📍発送元(大阪以外)</span>';
-    }
-    if (item.shippingDays !== '1') {
-      errBadges += '<span style="display:inline-block; background:#16a34a; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">⏱️発送日数</span>';
-    }
-    
-    var cat = item.category || '';
-    if (cat.indexOf('時計') === -1 && !item.brandId) {
-      errBadges += '<span style="display:inline-block; background:#2563eb; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">🏢ブランド未入力</span>';
-    }
-    
-    if (errBadges !== '') {
-      errorItems.push({ item: item, badges: errBadges });
-    }
-  });
-  
-  if (errorItems.length > 0) {
-    var html = '<div style="background:rgba(31,41,55,0.8); border:1px solid rgba(239,68,68,0.5); border-radius:8px; padding:16px; max-width:1000px; margin:0 auto 20px auto; text-align:left;">';
-    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; font-size:1.1rem;">⚠️ 設定エラー（' + errorItems.length + '件）</h3>';
-    html += '<p style="color:#9ca3af; font-size:0.85rem; margin-top:0; margin-bottom:16px;">※メルカリShopsだけでなく、メルカリ、ヤフオク、ラクマ、ヤフーフリマ等も確認・修正してください。</p>';
-    html += '<div style="max-height:280px; overflow-y:auto; padding-right:10px;">';
-    errorItems.forEach(function(e) {
-      var name = e.item.title || '(商品名不明)';
-      var code = e.item.code && e.item.code !== 'CHECK' ? e.item.code : 'コード無し';
-      var searchCode = code === 'コード無し' ? '' : code;
-      html += '<div style="margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">';
-      html += '<b style="color:#60a5fa; cursor:pointer; text-decoration:underline;" onclick="window.open(\'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?tab=opened&keyword=' + searchCode + '\', \'_blank\');">[' + code + ']</b> ';
-      html += '<span style="color:#d1d5db; font-size:0.9rem;">' + name + '</span><br>';
-      html += '<div style="margin-top:6px;">' + e.badges + '</div>';
-      html += '</div>';
-    });
-    html += '</div></div>';
-    container.innerHTML = html;
-    container.style.display = 'block';
-  } else {
-    container.innerHTML = '';
-    container.style.display = 'none';
-  }
-}

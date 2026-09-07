@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=1788743966">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>emailjs.init("v4_FoQtSLS1iANLLK");</script>
 </head>
@@ -45,7 +45,6 @@
         <span id="csv-updated-at" style="font-size:0.7rem;color:#64748b;"></span>
       </div>
     </header>
-<div id="error-alert-container" style="display:none; text-align:center; margin-top:20px; margin-bottom: 20px;"></div>
 
     <!-- 検索 -->
     <div class="search-panel">
@@ -130,7 +129,7 @@
   <!-- 相場検索パネル -->
   <div class="backdrop" id="market-modal" onclick="if(event.target.id==='market-modal')closeMarketModal()" style="align-items:flex-start;padding-top:0;">
     <div class="modal" style="max-width:98vw;width:1100px;margin:0 auto;height:100vh;border-radius:0;display:flex;flex-direction:column;">
-      <div class="mhead" style="flex-shrink:0; position:relative;">
+      <div class="mhead" style="flex-shrink:0;">
         <div>
           <h2>📊 出品してX日更新なし</h2>
           <p class="msub">取り込み済みの商品データから、更新なしの商品を抽出します</p>
@@ -162,15 +161,12 @@
   <!-- ===== 商品管理モーダル ===== -->
   <div class="backdrop" id="sale-modal" onclick="if(event.target.id==='sale-modal')closeSaleModal()" style="align-items:flex-start;padding-top:0;">
     <div class="modal" style="max-width:100vw;width:100%;margin:0;height:100vh;border-radius:0;display:flex;flex-direction:column;">
-      <div class="mhead" style="flex-shrink:0; position:relative;">
+      <div class="mhead" style="flex-shrink:0;">
         <div>
           <h2>📋 商品管理</h2>
-          
+          <p class="msub">最終更新から15日以上経過した商品のセール・記号変更・タスク管理</p>
         </div>
-        <div id="global-sale-banner" style="position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); text-align:center; font-size:0.9rem; font-weight:700; color:#fbbf24; white-space:nowrap; line-height:1.2;"></div>
-        
         <div style="display:flex;gap:8px;align-items:center;">
-          <button onclick="openSimulatorModal()" style="background:rgba(217,119,6,0.2);border:1px solid rgba(217,119,6,0.5);color:#fcd34d;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:700;white-space:nowrap;margin-left:8px;">⚙️ 設定ロードマップ</button>
           <button onclick="smUndo()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#e2e8f0;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">↩ 元に戻す</button>
           <button id="sm-drive-csv-btn" onclick="smLoadCsvFromDrive()" style="background:rgba(34,197,94,0.18);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">☁ Driveから最新CSV取り込み</button>
           <button id="sm-sync-btn" onclick="smSyncFromDrive()" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">☁ Drive同期</button>
@@ -196,23 +192,20 @@
           <div style="font-size:0.7rem;color:#475569;margin-top:6px;">※スタッフが「保存」したファイル（.json）をChatwork等で受け取り、「取り込む」から選択すると状態が同期されます。</div>
         </div>
       </div>
-      
+      <div style="flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <div onclick="var b=document.getElementById('sm-task-body');b.style.display=b.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;background:rgba(251,191,36,0.05);">
+          <span style="font-size:0.8rem;font-weight:700;color:#fbbf24;">⏰ 今日のタスク</span>
+          <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;"></span>
+          <span style="margin-left:auto;font-size:0.7rem;color:#475569;">▼ クリックで開閉</span>
+        </div>
+        <div id="sm-task-body" style="max-height:180px;overflow-y:auto;">
+          <div id="sm-task-list"></div>
+        </div>
+      </div>
       <div style="flex:1;overflow:hidden;display:flex;">
-        <div style="width:360px;min-width:320px;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;">
-          
-          <div style="flex:1;display:flex;flex-direction:column;border-bottom:2px solid rgba(255,255,255,0.1);min-height:0;">
-            <div style="padding:7px 12px;background:rgba(251,191,36,0.05);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.8rem;font-weight:700;color:#fbbf24;">
-              ⏰ 今日のタスク <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;margin-left:8px;"></span>
-            </div>
-            <div id="sm-task-body" style="flex:1;overflow-y:auto;">
-              <div id="sm-task-list"></div>
-            </div>
-          </div>
-
-          <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
-            <div style="padding:7px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.8rem;font-weight:700;color:#60a5fa;">📋 10日以上経過した商品</div>
-            <div id="sm-item-list" style="flex:1;overflow-y:auto;"></div>
-          </div>
+        <div style="width:320px;min-width:260px;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;flex-shrink:0;">
+          <div style="padding:7px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.75rem;color:#64748b;">📋 15日以上経過した商品</div>
+          <div id="sm-item-list" style="flex:1;overflow-y:auto;"></div>
         </div>
         <div id="sm-action-panel" style="flex:1;overflow-y:auto;display:none;">
           <div style="padding:32px;text-align:center;color:#475569;">
@@ -224,103 +217,9 @@
     </div>
   </div>
 
-  <!-- <script src="seed_data.js"></script> -->
-  <script src="app.js?v=1788695659"></script>`n  <script src="config.js?v=1788695659"></script>
-  <script src="market_search.js?v=2"></script>
-  <script src="sale_manager_v2.js?v=1788695659"></script>
-
-  <!-- ===== 設定ロードマップモーダル ===== -->
-  <div class="backdrop" id="sim-modal" onclick="if(event.target.id==='sim-modal')closeSimulatorModal()" style="display:none; align-items:center; justify-content:center;">
-    <div class="modal" style="max-width:900px; width:95%; max-height:90vh; display:flex; flex-direction:column;">
-      <div class="mhead" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <h2 style="color:#fbbf24;">⚙️ 設定ロードマップ (シミュレーション)</h2>
-          <p class="msub">config.js?v=1788695659 の設定に基づく値下げスケジュールの確認</p>
-        </div>
-        <button onclick="closeSimulatorModal()" style="background:transparent;border:none;color:#94a3b8;font-size:1.5rem;cursor:pointer;">×</button>
-      </div>
-      
-      <div class="mbody" style="flex:1; overflow-y:auto; padding:16px;">
-        <!-- Settings Overview -->
-        <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; margin-bottom:16px; font-size:0.85rem;">
-          <h3 style="margin-top:0; color:#cbd5e1; font-size:0.95rem;">現在の config.js?v=1788695659 設定</h3>
-          <div id="sim-config-display" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; color:#94a3b8;"></div>
-        </div>
-
-        <!-- Input Area -->
-        <div style="display:flex; gap:16px; align-items:flex-end; margin-bottom:20px;">
-          <div>
-            <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px;">出品日（基準）</label>
-            <input type="date" id="sim-start-date" class="input-dark" style="width:140px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px;">金額1 (安い商品)</label>
-            <input type="number" id="sim-price-1" class="input-dark" value="16800" style="width:120px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px;">金額2 (高い商品)</label>
-            <input type="number" id="sim-price-2" class="input-dark" value="50000" style="width:120px;">
-          </div>
-          <button onclick="runSimulation()" style="background:#3b82f6; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:bold; height:34px;">▶ 計算開始</button>
-        </div>
-
-        <!-- Results Area -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-          <!-- Price 1 -->
-          <div style="background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:8px; padding:12px;">
-            <h3 id="sim-title-1" style="margin-top:0; color:#60a5fa; text-align:center; font-size:1.1rem;">金額1</h3>
-            <div style="display:flex; gap:8px;">
-              <div style="flex:1;">
-                <h4 style="color:#fbbf24; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンA (いいね2以下)</h4>
-                <div id="sim-res-1a" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
-              </div>
-              <div style="flex:1;">
-                <h4 style="color:#f87171; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンB (いいね3以上)</h4>
-                <div id="sim-res-1b" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Price 2 -->
-          <div style="background:rgba(0,0,0,0.3); border:1px solid #334155; border-radius:8px; padding:12px;">
-            <h3 id="sim-title-2" style="margin-top:0; color:#a78bfa; text-align:center; font-size:1.1rem;">金額2</h3>
-            <div style="display:flex; gap:8px;">
-              <div style="flex:1;">
-                <h4 style="color:#fbbf24; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンA (いいね2以下)</h4>
-                <div id="sim-res-2a" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
-              </div>
-              <div style="flex:1;">
-                <h4 style="color:#f87171; font-size:0.85rem; border-bottom:1px solid #475569; padding-bottom:4px;">パターンB (いいね3以上)</h4>
-                <div id="sim-res-2b" style="font-size:0.75rem; color:#cbd5e1; line-height:1.6;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <script src="seed_data.js"></script>
+  <script src="app.js?v=1788743966"></script>
+  <script src="market_search.js?v=1788743966"></script>
+  <script src="sale_manager_v2.js?v=1788743966"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
