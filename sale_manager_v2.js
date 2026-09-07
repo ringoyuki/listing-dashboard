@@ -1060,7 +1060,7 @@ function runSimulation() {
     html += '<div style="margin-top:8px; color:#fbbf24;"><b>' + fmtD(finalReport) + '</b>: 🚨最終報告タスク</div>';
     return html;
   }
-}
+
   
   document.getElementById('sim-res-1a').innerHTML = calcRoute(price1, false);
   document.getElementById('sim-res-1b').innerHTML = calcRoute(price1, true);
