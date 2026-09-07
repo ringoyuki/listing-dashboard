@@ -1087,10 +1087,10 @@ document.addEventListener('click', function(e) {
 function smBatchCopyTasks() {
   var all = smGetAll();
   var today = smTodayStr();
-  var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 2;
-  var HIGH_PRICE_ALERT = typeof CONFIG !== 'undefined' ? CONFIG.HIGH_PRICE_ALERT : 30000;
+  var REPORT_OVER_DAYS = typeof CONFIG !== \'undefined\' ? CONFIG.REPORT_OVER_DAYS : 2;
+  var HIGH_PRICE_ALERT = typeof CONFIG !== \'undefined\' ? CONFIG.HIGH_PRICE_ALERT : 30000;
   
-  var sym80 = SALE_SYMBOLS.length > 3 ? SALE_SYMBOLS[3] : '〇';
+  var sym80 = SALE_SYMBOLS.length > 3 ? SALE_SYMBOLS[3] : \'\';
   var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
 
   var blockOverdue = [];
@@ -1105,11 +1105,11 @@ function smBatchCopyTasks() {
     if(!pd) return;
     
     // Extract direct URL if available
-    var directUrl = '';
+    var directUrl = \'\';
     if (pd.urls && pd.urls.mercari_shops) {
-        directUrl = pd.urls.mercari_shops.replace('mercari-shops.com/products/', 'jp.mercari.com/shops/product/');
+        directUrl = pd.urls.mercari_shops.replace(\'mercari-shops.com/products/\', \'jp.mercari.com/shops/product/\');
     } else {
-        directUrl = 'https://jp.mercari.com/search?keyword=' + encodeURIComponent(code);
+        directUrl = \'https://jp.mercari.com/search?keyword=\' + encodeURIComponent(code);
     }
     
     // 1. 規定日数超過 (最終記号で放置)
@@ -1117,19 +1117,20 @@ function smBatchCopyTasks() {
        var baseDate = sd.reportedAt || pd.shopsUpdatedAt;
        var passedDays = smDaysDiff(baseDate);
        if(passedDays >= REPORT_OVER_DAYS) {
-          blockOverdue.push({code: code, title: pd.title, price: pd.price, url: directUrl});
+          blockOverdue.push({code: code, title: pd.title, price: pd.price, url: directUrl, passedDays: passedDays, sym: sd.symbol});
           return;
        }
     }
     
-    // 3. 高額商品のゲリラセール実行
+    // 3. 高額商品のゲリラセール確認
     if (sd.saleDate === today) {
        var base = smBasePrice(sd.symbol, pd.price || 0);
        var isHigh = (base >= HIGH_PRICE_ALERT);
        if (isHigh) {
            var nextSym = smNextSym(sd.symbol) || finalSym;
            var salePrice = smSymPrice(base, nextSym);
-           blockHighSale.push({code: code, title: pd.title, sym: sd.symbol, oldPrice: pd.price, newPrice: salePrice, url: directUrl});
+           var passedDaysFromListing = smDaysDiff(pd.shopsUpdatedAt || today);
+           blockHighSale.push({code: code, title: pd.title, sym: sd.symbol, oldPrice: pd.price, newPrice: salePrice, url: directUrl, passedDays: passedDaysFromListing});
        }
     }
     
@@ -1139,8 +1140,9 @@ function smBatchCopyTasks() {
        var base = smBasePrice(prevSym, pd.price || 0);
        var newPrice = smSymPrice(base, sd.symbol);
        var isHigh = (base >= HIGH_PRICE_ALERT);
+       var passedDaysFromListing = smDaysDiff(pd.shopsUpdatedAt || today);
        
-       var itemData = {code: code, title: pd.title, sym: sd.symbol, oldPrice: pd.price, newPrice: newPrice, url: directUrl};
+       var itemData = {code: code, title: pd.title, sym: sd.symbol, prevSym: prevSym, oldPrice: pd.price, newPrice: newPrice, url: directUrl, passedDays: passedDaysFromListing};
 
        if (isHigh) {
            blockHighPrice.push(itemData);
@@ -1155,103 +1157,116 @@ function smBatchCopyTasks() {
   var totalCount = blockOverdue.length + blockHighPrice.length + blockMaru.length + blockShikaku.length + blockHighSale.length;
 
   if (totalCount === 0) {
-    alert('コピーする報告対象がありません。');
+    alert(\'コピーできるタスクはありません\');
     return;
   }
 
-  var copyText = '【本日の作業報告：計' + totalCount + '件】\n\n';
+  var copyText = \'【本日の作業報告：計\' + totalCount + \'件】\n\n\';
   var counter = 1;
-  var circleNums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳','㉑','㉒','㉓','㉔','㉕','㉖','㉗','㉘','㉙','㉚','㉛','㉜','㉝','㉞','㉟','㊱','㊲','㊳','㊴','㊵','㊶','㊷','㊸','㊹','㊺','㊻','㊼','㊽','㊾','㊿'];
 
   function getNum() {
-      var num = (counter <= 50) ? circleNums[counter-1] : '(' + counter + ')';
+      var num = \']\';
+      var ret = \'[\' + counter + num;
       counter++;
-      return { num: num, index: counter - 1 };
+      return ret;
   }
 
   var replyTemplateOverdue = [];
-  var replyTemplateSym = [];
+  var replyTemplateSale = [];
 
   if (blockOverdue.length > 0) {
-      copyText += '■■ 最終価格から規定日数超過の商品 ■■\n';
-      copyText += '（※販売戦略の再検討・再出品等のご判断をお願いします）\n';
+      copyText += \'■■ 停滞商品のご報告 ■■\n\';
       blockOverdue.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n' + d.title + '\n' + '価格: ' + (d.price||0).toLocaleString() + '円\n' + d.url + '\n\n';
-          replyTemplateOverdue.push(n.num + ' ⇒ ');
-      });
-  }
-
-  if (blockHighPrice.length > 0) {
-      copyText += '■■ 高額商品の記号変更 ■■\n';
-      copyText += '（※利益への影響が大きいためご報告します）\n';
-      blockHighPrice.forEach(function(d) {
-          var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
-          replyTemplateSym.push(n.num + ' ⇒ ');
-      });
-  }
-
-  if (blockMaru.length > 0) {
-      copyText += '■■ 『〇』への記号変更商品 ■■\n';
-      copyText += '（※底値圏に入った商品です）\n';
-      blockMaru.forEach(function(d) {
-          var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
-          replyTemplateSym.push(n.num + ' ⇒ ');
+          copyText += n + \' 管理番号: \' + d.code + \'\n\';
+          copyText += \'タイトル: \' + d.title + \'\n\';
+          copyText += \'現在の記号: \' + d.sym + \' (最終価格)\n\';
+          copyText += \'経過日数: \' + d.sym + \'になってから \' + d.passedDays + \'日超過\n\';
+          copyText += \'現在の価格: \' + (d.price||0).toLocaleString() + \'円\n\';
+          copyText += \'URL: \' + d.url + \'\n\n\';
+          replyTemplateOverdue.push(n + \' ⇒ \');
       });
   }
 
   if (blockHighSale.length > 0) {
-      copyText += '■■ 高額商品のゲリラセール確認 ■■\n';
-      copyText += '（※実行前にオーナーの許可が必要です）\n';
+      copyText += \'■■ 高額ゲリラセールの実行許可願い ■■\n\';
       blockHighSale.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\nゲリラセール予定 (' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円)\n' + d.title + '\n' + d.url + '\n\n';
+          copyText += n + \' 管理番号: \' + d.code + \'\n\';
+          copyText += \'タイトル: \' + d.title + \'\n\';
+          copyText += \'現在の記号: \' + d.sym + \'\n\';
+          copyText += \'経過日数: 出品から \' + d.passedDays + \'日経過\n\';
+          copyText += \'提案アクション: \' + (d.oldPrice||0).toLocaleString() + \'円 ⇒ \' + (d.newPrice||0).toLocaleString() + \'円 にゲリラ値下げ\n\';
+          copyText += \'URL: \' + d.url + \'\n\n\';
+          replyTemplateSale.push(n + \' ⇒ \');
       });
   }
 
-  if (blockShikaku.length > 0) {
-      copyText += '■■ 『□』への記号変更商品 ■■\n';
-      copyText += '（※最終価格に到達した商品です）\n';
-      blockShikaku.forEach(function(d) {
-          var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.sym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
-          replyTemplateSym.push(n.num + ' ⇒ ');
-      });
+  if (blockHighPrice.length > 0 || blockMaru.length > 0 || blockShikaku.length > 0) {
+      copyText += \'■■ 記号変更のご報告 ■■\n\';
+      
+      if (blockHighPrice.length > 0) {
+          copyText += \'▼ 高額商品の記号変更\n\';
+          blockHighPrice.forEach(function(d) {
+              var n = getNum();
+              copyText += n + \' 管理番号: \' + d.code + \'\n\';
+              copyText += \'タイトル: \' + d.title + \'\n\';
+              copyText += \'現在の記号: \' + d.sym + \'\n\';
+              copyText += \'経過日数: 出品から \' + d.passedDays + \'日経過\n\';
+              copyText += \'変更内容: \' + d.prevSym + \' ⇒ \' + d.sym + \' (\' + (d.oldPrice||0).toLocaleString() + \'円 ⇒ \' + (d.newPrice||0).toLocaleString() + \'円 に値下げ)\n\';
+              copyText += \'URL: \' + d.url + \'\n\n\';
+          });
+      }
+
+      if (blockMaru.length > 0) {
+          copyText += \'▼ 底値圏(〇)への突入\n\';
+          blockMaru.forEach(function(d) {
+              var n = getNum();
+              copyText += n + \' 管理番号: \' + d.code + \'\n\';
+              copyText += \'タイトル: \' + d.title + \'\n\';
+              copyText += \'現在の記号: \' + d.sym + \'\n\';
+              copyText += \'経過日数: 出品から \' + d.passedDays + \'日経過\n\';
+              copyText += \'変更内容: \' + d.prevSym + \' ⇒ \' + d.sym + \' (\' + (d.oldPrice||0).toLocaleString() + \'円 ⇒ \' + (d.newPrice||0).toLocaleString() + \'円 に値下げ)\n\';
+              copyText += \'URL: \' + d.url + \'\n\n\';
+          });
+      }
+
+      if (blockShikaku.length > 0) {
+          copyText += \'▼ 最終価格(□)への到達\n\';
+          blockShikaku.forEach(function(d) {
+              var n = getNum();
+              copyText += n + \' 管理番号: \' + d.code + \'\n\';
+              copyText += \'タイトル: \' + d.title + \'\n\';
+              copyText += \'現在の記号: \' + d.sym + \'\n\';
+              copyText += \'経過日数: 出品から \' + d.passedDays + \'日経過\n\';
+              copyText += \'変更内容: \' + d.prevSym + \' ⇒ \' + d.sym + \' (\' + (d.oldPrice||0).toLocaleString() + \'円 ⇒ \' + (d.newPrice||0).toLocaleString() + \'円 に値下げ)\n\';
+              copyText += \'URL: \' + d.url + \'\n\n\';
+          });
+      }
   }
 
   // -------------------------
   // オーナー返信用テンプレートの生成
   // -------------------------
-  copyText += '---------------------------------\n';
-  copyText += '【オーナー返信用テンプレート】\n\n';
+  copyText += \'---------------------------------\n\';
+  copyText += \'【オーナー返信用テンプレート】\n\n\';
   
   if (replyTemplateOverdue.length > 0) {
-      copyText += '■ 至急報告（デッドストック）への指示\n';
-      replyTemplateOverdue.forEach(function(line) { copyText += line + '\n'; });
-      copyText += '\n';
+      copyText += \'■ 停滞商品への指示\n\';
+      replyTemplateOverdue.forEach(function(line) { copyText += line + \'\n\'; });
+      copyText += \'\n\';
   }
   
-  if (replyTemplateSym.length > 0) {
-      copyText += '■ 記号変更への追加指示（※あれば）\n';
-      replyTemplateSym.forEach(function(line) { copyText += line + '\n'; });
-      copyText += '\n';
+  if (replyTemplateSale.length > 0) {
+      copyText += \'■ ゲリラセールへの指示\n\';
+      replyTemplateSale.forEach(function(line) { copyText += line + \'\n\'; });
+      copyText += \'\n\';
   }
 
   navigator.clipboard.writeText(copyText).then(function() {
-    alert('報告用テキストをコピーしました！');
+    alert(\'報告用テキストをコピーしました！\');
   }).catch(function() {
-    alert('コピーに失敗しました。');
+    alert(\'コピーに失敗しました。\');
   });
 }
 
-function smExecMercariComment(code, price) {
-  var nextPrice = price - (typeof CONFIG !== 'undefined' ? CONFIG.SALE_DISC_AMT : 500);
-  if (nextPrice < 0) nextPrice = 0;
-  var comment = "本日限定！" + nextPrice.toLocaleString() + "円にお値下げいたします！\n購入希望の方は「購入希望」とコメントをお願いします！";
-  navigator.clipboard.writeText(comment).then(function() {
-    alert('【コピー完了】\n' + comment + '\n\n商品ページを開きます！');
-    window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(code), '_blank');
-  });
-}
