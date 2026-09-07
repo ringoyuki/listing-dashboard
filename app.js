@@ -382,6 +382,11 @@ function renderCard(item, searchCode, searchTitle) {
     + '<span class="rtitle">'+esc(item.title)+'</span>'
     + (item.price?'<span class="rprice">¥'+Number(item.price).toLocaleString()+'</span>':'')
     + (item.stock >= 1 ? (item.status === '1' ? '<span class="rbadge" style="background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3);color:#c7d2fe;">🔒 非公開（在庫あり）</span>' : '') : (item.status === '1' ? '<span class="rbadge rbadge-private">🔒 非公開保存</span>' : '<span class="rbadge rbadge-sold">📦 売り切れ</span>'))
+    + (item.stock >= 1 && !item.code ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">⚠️ 管理番号なし</span>' : '')
+    + (item.stock >= 1 && !item.brandId ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">🏢 ブランド未登録</span>' : '')
+    + (item.stock >= 1 && item.shippingMethod !== '3' ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">📦 配送方法エラー</span>' : '')
+    + (item.stock >= 1 && item.shippingOrigin !== 'jp27' ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">📍 発送元エラー</span>' : '')
+    + (item.stock >= 1 && item.shippingDays !== '1' ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">⏱ 発送日数エラー</span>' : '')
     + '</div>'
     + dateInfo
     + '<div class="plat-rows">'+rows+'</div>'
