@@ -375,13 +375,13 @@ function smRenderTasks(){
       : today
         ? '<span style="font-size:0.68rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);padding:2px 7px;border-radius:4px;">🟡 今日</span>'
         : '<span style="font-size:0.68rem;color:#cbd5e1;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:4px;">'+smFmtDate(t.dueDate)+'</span>';
-    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="smSelectItem(''+esc(t.code)+'')">'
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="smSelectItem(\''+esc(t.code)+'\')">'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-size:0.72rem;color:#cbd5e1;">'+esc(t.code)+'</div>'
       +'<div style="font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(t.desc)+'</div>'
       +'</div>'
       +badge
-      +'<button onclick="event.stopPropagation();smCompleteTask(''+esc(t.code)+'',''+t.taskId+'')" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;border-radius:5px;padding:3px 9px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✅ 完了</button>'
+      +'<button onclick="event.stopPropagation();smCompleteTask(\''+esc(t.code)+'\',\''+t.taskId+'\')" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;border-radius:5px;padding:3px 9px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✅ 完了</button>'
       +'</div>';
   }).join('');
 }
@@ -406,7 +406,7 @@ function smRenderList(){
     var sel  = item.code===_smSelected;
     var pendingTasks = ((sd.tasks||[]).filter(function(t){ return t.status!=='done'; })).length;
 
-    return '<div onclick="smSelectItem(''+esc(item.code)+'')" style="display:flex;align-items:center;gap:10px;padding:9px 12px;'
+    return '<div onclick="smSelectItem(\''+esc(item.code)+'\')" style="display:flex;align-items:center;gap:10px;padding:9px 12px;'
       +(sel?'background:rgba(99,102,241,0.15);border-left:3px solid #818cf8;':'background:rgba(255,255,255,0.02);border-left:3px solid transparent;')
       +'border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:all 0.15s;">'
       +'<span style="font-size:1.1rem;min-width:22px;text-align:center;color:'+sc+';">'+sym+'</span>'
@@ -514,7 +514,7 @@ var html = '<div style="padding:16px;">'
     +'<div style="display:flex;align-items:center;gap:8px;">'
     +'<input type="number" id="sm-likes-'+esc(item.code)+'" min="0" value="0" style="width:70px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:6px 8px;font-size:0.95rem;text-align:center;">'
     +'<span style="color:#d1d5db;font-size:0.82rem;">いいね</span>'
-    +'<button onclick="smOnLikes(''+esc(item.code)+'')" style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;border-radius:7px;padding:7px 16px;font-size:0.83rem;cursor:pointer;font-weight:600;">アクション確認 →</button>'
+    +'<button onclick="smOnLikes(\''+esc(item.code)+'\')" style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;border-radius:7px;padding:7px 16px;font-size:0.83rem;cursor:pointer;font-weight:600;">アクション確認 →</button>'
     +'</div>'
     +'</div>'
 
@@ -527,7 +527,7 @@ var html = '<div style="padding:16px;">'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">'
     +SALE_SYMBOLS.map(function(s){
       var active = s===sym;
-      return '<button onclick="smManualChange(''+esc(item.code)+'',''+s+'')" style="padding:6px 14px;border-radius:6px;font-size:0.9rem;cursor:pointer;'
+      return '<button onclick="smManualChange(\''+esc(item.code)+'\',\''+s+'\')" style="padding:6px 14px;border-radius:6px;font-size:0.9rem;cursor:pointer;'
         +(active?'background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.6);color:#c7d2fe;':'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#d1d5db;')+'">'+s+'</button>';
     }).join('')
     +'</div>'
@@ -559,7 +559,7 @@ function smOnLikes(code){
   pendingTasks.sort(function(a,b){ return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0); });
   var nextTask = pendingTasks.length > 0 ? pendingTasks[0] : null;
   var html = '';
-  function cbtn(v){ return '<button title="コピー" onclick="navigator.clipboard.writeText(''+v+'');showToast('✅ '+v+' をコピーしました', 1500);event.stopPropagation();" style="margin-left:5px;padding:2px 6px;font-size:0.7rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#e2e8f0;border-radius:4px;cursor:pointer;vertical-align:middle;">📋</button>'; }
+  function cbtn(v){ return '<button title="コピー" onclick="navigator.clipboard.writeText(\''+v+'\');showToast(\'✅ '+v+' をコピーしました\', 1500);event.stopPropagation();" style="margin-left:5px;padding:2px 6px;font-size:0.7rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#e2e8f0;border-radius:4px;cursor:pointer;vertical-align:middle;">📋</button>'; }
 
 
 
@@ -583,7 +583,7 @@ function smOnLikes(code){
       +'<div style="color:#cbd5e1;font-size:0.85rem;">ヤフオク</div>'
       +'<div><span style="font-size:0.85em;color:#94a3b8;">開始:</span> <b style="color:#fdba74;font-size:1.15em;">¥'+targetPrice.toLocaleString()+'</b>'+cbtn(targetPrice)+'&nbsp;&nbsp;<span style="font-size:0.85em;color:#94a3b8;">即決:</span> <b style="color:#fdba74;font-size:1.15em;">¥'+yaSokketu.toLocaleString()+'</b>'+cbtn(yaSokketu)+'</div>'
       +'</div>'
-      +'<button onclick="smCompleteTask(''+esc(code)+'',''+nextTask.id+'')" style="width:100%;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shops等で価格変更後に押す（タスク完了）</button>'
+      +'<button onclick="smCompleteTask(\''+esc(code)+'\',\''+nextTask.id+'\')" style="width:100%;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shops等で価格変更後に押す（タスク完了）</button>'
       +'</div>';
       
     result.innerHTML = html;
@@ -610,7 +610,7 @@ function smOnLikes(code){
         + '</div>';
     }
     if (d >= 10) {
-        html += '<div style="margin-top:12px;"><button onclick="smCompleteTask(''+esc(code)+'', 'REPORT_'+esc(code))" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ 報告完了（タイマーをリセット）</button></div>';
+        html += '<div style="margin-top:12px;"><button onclick="smCompleteTask(\''+esc(code)+'\', \'REPORT_\'+esc(code))" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ 報告完了（タイマーをリセット）</button></div>';
     }
     result.innerHTML = html;
     return;
@@ -649,12 +649,12 @@ function smOnLikes(code){
       // セール文
       +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">② コメント欄にセール文をコピペ</div>'
       +'<textarea id="sm-stext-'+esc(code)+'" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;border-radius:6px;padding:8px;font-size:0.78rem;resize:vertical;min-height:110px;">'+saleText+'</textarea>'
-      +'<button onclick="smCopyText('sm-stext-'+esc(code)+'')" style="width:100%;margin-top:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">📋 セール文をコピー</button>'
+      +'<button onclick="smCopyText(\'sm-stext-'+esc(code)+'\')" style="width:100%;margin-top:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">📋 セール文をコピー</button>'
 
       // セール実施完了ボタン
       +'<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
       +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:6px;">③ セール設定が完了したら押す</div>'
-      +'<button onclick="smAfterSale(''+esc(code)+'',''+nextSym+'','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ セール設定完了（翌日タスクを自動追加）</button>'
+      +'<button onclick="smAfterSale(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ セール設定完了（翌日タスクを自動追加）</button>'
       +'</div>'
       +'</div>';
   }
@@ -685,14 +685,14 @@ function smOnLikes(code){
     html += '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:#f87171;margin-bottom:6px;">⚠️ オーナー確認が必要な変更</div>'
       +gridHtml
-      + '<button onclick="smDoChange(''+esc(code)+'',''+nextSym+'','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
+      + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">⚠️ オーナー承認済み：'+nextSym+'に変更</button>'
       +'</div>';
   } else {
     var isBox = nextSym==='□';
     html += '<div style="background:'+(isBox?'rgba(239,68,68,0.07)':'rgba(34,197,94,0.07)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.25)':'rgba(34,197,94,0.25)')+';border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:'+(isBox?'#f87171':'#86efac')+';margin-bottom:6px;">'+(isBox?'🏁 最終フェーズ（底値）':'📋 記号変更')+'</div>'
       +gridHtml
-      + '<button onclick="smDoChange(''+esc(code)+'',''+nextSym+'','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
+      + '<button onclick="smDoChange(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:'+(isBox?'rgba(239,68,68,0.18)':'rgba(34,197,94,0.18)')+';border:1px solid '+(isBox?'rgba(239,68,68,0.4)':'rgba(34,197,94,0.4)')+';color:'+(isBox?'#fca5a5':'#86efac')+';border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ Shopsで価格変更後に押す（'+nextSym+' / ¥'+nextPrice.toLocaleString()+'）</button>'
       +'</div>';
 
     // □の底値テキスト
@@ -702,11 +702,11 @@ function smOnLikes(code){
 
         +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">① 全プラットフォームの説明文の一番上に追加</div>'
         +'<textarea id="sm-tdesc-'+esc(code)+'" readonly style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;border-radius:6px;padding:8px;font-size:0.78rem;resize:vertical;min-height:80px;">'+esc(TEICHI_DESC)+'</textarea>'
-        +'<button onclick="smCopyText('sm-tdesc-'+esc(code)+'')" style="width:100%;margin-top:5px;margin-bottom:10px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">📋 説明文テキストをコピー</button>'
+        +'<button onclick="smCopyText(\'sm-tdesc-'+esc(code)+'\')" style="width:100%;margin-top:5px;margin-bottom:10px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">📋 説明文テキストをコピー</button>'
 
         +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">② メルカリのコメント欄に投稿</div>'
         +'<textarea id="sm-tcomm-'+esc(code)+'" readonly style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;border-radius:6px;padding:8px;font-size:0.78rem;resize:vertical;min-height:80px;">'+esc(TEICHI_COMMENT)+'</textarea>'
-        +'<button onclick="smCopyText('sm-tcomm-'+esc(code)+'')" style="width:100%;margin-top:5px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">📋 コメントテキストをコピー</button>'
+        +'<button onclick="smCopyText(\'sm-tcomm-'+esc(code)+'\')" style="width:100%;margin-top:5px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">📋 コメントテキストをコピー</button>'
         +'</div>';
     }
   }
