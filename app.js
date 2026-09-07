@@ -24,6 +24,7 @@ function logout() {
   localStorage.removeItem('auth_ok');
   localStorage.removeItem('auth_time');
   location.reload();
+if(typeof checkErrors === "function") checkErrors();
 }
 
 // ===== ログイン履歴記録 =====
@@ -108,6 +109,7 @@ function initApp() {
   }
   // データロードなど
   load();
+if(typeof checkErrors === "function") checkErrors();
   if(window._SEED_DATA && items.length===0){
     items=window._SEED_DATA; save();
     showToast('✅ '+items.length+'件 読み込みました',3000);
@@ -632,6 +634,7 @@ if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
   }
   localStorage.setItem('last_seed','manual');
   save(); updateStats(); closeCsvModal();
+  if(typeof checkErrors === "function") checkErrors();
   showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
 }
 
@@ -653,6 +656,7 @@ function applyNewSeed(){
   items=newItems;
   localStorage.setItem(SEED_KEY,window._SEED_FILE||'');
   save(); updateStats(); dismissBanner();
+  if(typeof checkErrors === "function") checkErrors();
   showToast('✅ '+newItems.length+'件に更新しました',4000);
 }
 
@@ -664,6 +668,7 @@ function dismissBanner(){
 
 // ===== 初期化 =====
 load();
+if(typeof checkErrors === "function") checkErrors();
 
 if(window._SEED_DATA && items.length===0){
   items=window._SEED_DATA; save();
@@ -694,3 +699,63 @@ updateStats();
 
 
 
+
+
+function checkErrors() {
+  var container = document.getElementById('error-alert-container');
+  if(!container) return;
+  var errorItems = [];
+  items.forEach(function(item) {
+    var stock = parseInt(item.stock) || 0;
+    
+    // 無視する条件1：在庫0の商品（非公開・公開問わず、在庫0のものはすべて無視）
+    if (stock <= 0) return;
+    
+    // 無視する条件2：私物（管理番号に入力があり、かつアルファベットが含まれていない場合）
+    if (item.code && item.code !== 'CHECK' && !/[a-zA-Z]/.test(item.code)) return;
+    
+    var errBadges = '';
+    if (!item.code || item.code === 'CHECK') {
+      errBadges += '<span style="display:inline-block; background:#7c3aed; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">🏷️管理番号なし</span>';
+    }
+    if (!item.brandId) {
+      errBadges += '<span style="display:inline-block; background:#2563eb; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">🏢ブランド未登録</span>';
+    }
+    if (item.shippingMethod !== '3') {
+      errBadges += '<span style="display:inline-block; background:#ea580c; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">📦配送方法エラー</span>';
+    }
+    if (item.shippingOrigin !== 'jp27') {
+      errBadges += '<span style="display:inline-block; background:#ca8a04; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">📍発送元エラー</span>';
+    }
+    if (item.shippingDays !== '1') {
+      errBadges += '<span style="display:inline-block; background:#16a34a; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">⏱️発送日数エラー</span>';
+    }
+    
+    if (errBadges !== '') {
+      errorItems.push({ item: item, badges: errBadges });
+    }
+  });
+  
+  if (errorItems.length > 0) {
+    var html = '<div style="background:rgba(31,41,55,0.8); border:1px solid rgba(239,68,68,0.5); border-radius:8px; padding:16px; max-width:1000px; margin:0 auto 20px auto; text-align:left;">';
+    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; font-size:1.1rem;">⚠️ 設定エラー（' + errorItems.length + '件）</h3>';
+    html += '<p style="color:#9ca3af; font-size:0.85rem; margin-top:0; margin-bottom:16px;">※メルカリShopsだけでなく、メルカリ等も確認・修正してください。</p>';
+    html += '<div style="max-height:280px; overflow-y:auto; padding-right:10px;">';
+    errorItems.forEach(function(e) {
+      var name = e.item.title || '(商品名不明)';
+      var code = e.item.code && e.item.code !== 'CHECK' ? e.item.code : 'コード無し';
+      var searchCode = code === 'コード無し' ? '' : code;
+      html += '<div style="margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">';
+      html += '<b style="color:#60a5fa; cursor:pointer; text-decoration:underline;" onclick="window.open(\'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?tab=opened&keyword=' + searchCode + '\', \'_blank\');">[' + code + ']</b> ';
+      html += '<span style="color:#d1d5db; font-size:0.9rem;">' + name + '</span><br>';
+      html += '<div style="margin-top:6px;">' + e.badges + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+    container.style.display = 'block';
+  } else {
+    container.innerHTML = '';
+    container.style.display = 'none';
+  }
+}
