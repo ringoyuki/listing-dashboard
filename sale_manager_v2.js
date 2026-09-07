@@ -1104,6 +1104,9 @@ function smBatchCopyTasks() {
     var pd = items.find(function(i){ return i.code===code; });
     if(!pd) return;
     
+    if(!pd.code || pd.code==='CHECK' || !/[a-zA-Z]/.test(pd.code)) return;
+    if((pd.stock||0) <= 0 || pd.status === '1' || pd.status === 1) return;
+    
     // Extract direct URL if available
     var directUrl = '';
     if (pd.urls && pd.urls.mercari_shops) {
