@@ -313,21 +313,34 @@ function renderNotFound(code, title) {
 }
 
 
-// ===== プラットフォーム別適正価格バッジ =====
+// ===== プラットフォーム別適正価格バッジ（クリックでコピー） =====
+function copyPlatPrice(val, btn) {
+  navigator.clipboard.writeText(String(val)).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '✅ コピー済み';
+    btn.style.color = '#86efac';
+    setTimeout(function(){ btn.textContent = orig; btn.style.color = '#fbbf24'; }, 1500);
+  });
+}
 function platPriceBadge(platKey, basePrice) {
   var p = parseInt(basePrice) || 0;
   if (p <= 0) return '';
-  var sty = 'font-size:0.78rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);border-radius:4px;padding:2px 8px;white-space:nowrap;margin-right:6px;';
-  var label = '';
-  if (platKey === 'mercari_shops') { label = '¥' + p.toLocaleString(); }
-  else if (platKey === 'mercari')  { label = '¥' + (p+1000).toLocaleString(); }
-  else if (platKey === 'rakuma')   { label = '¥' + p.toLocaleString(); }
-  else if (platKey === 'yahoo_flea') { label = '¥' + (Math.floor(p/1000)*1000).toLocaleString(); }
-  else if (platKey === 'yahoo_auction') {
+  var sty = 'font-size:0.78rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);border-radius:4px;padding:2px 8px;white-space:nowrap;margin-right:4px;cursor:pointer;transition:background 0.15s;';
+  if (platKey === 'mercari_shops') {
+    return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">¥' + p.toLocaleString() + '</button>';
+  } else if (platKey === 'mercari') {
+    return '<button onclick="copyPlatPrice('+(p+1000)+',this)" style="'+sty+'">¥' + (p+1000).toLocaleString() + '</button>';
+  } else if (platKey === 'rakuma') {
+    return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">¥' + p.toLocaleString() + '</button>';
+  } else if (platKey === 'yahoo_flea') {
+    var fp = Math.floor(p/1000)*1000;
+    return '<button onclick="copyPlatPrice('+fp+',this)" style="'+sty+'">¥' + fp.toLocaleString() + '</button>';
+  } else if (platKey === 'yahoo_auction') {
     var bn = p < 10000 ? p+1000 : p < 20000 ? p+1500 : p+2000;
-    label = '開始¥' + p.toLocaleString() + ' 即決¥' + bn.toLocaleString();
+    return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">開始¥' + p.toLocaleString() + '</button>'
+         + '<button onclick="copyPlatPrice('+bn+',this)" style="'+sty+'margin-left:2px;">即決¥' + bn.toLocaleString() + '</button>';
   }
-  return label ? '<span style="'+sty+'">'+label+'</span>' : '';
+  return '';
 }
 
 // ===== 商品カード描画 =====
