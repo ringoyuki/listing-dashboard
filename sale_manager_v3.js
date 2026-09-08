@@ -640,7 +640,7 @@ function smOnLikes(code){
 
   // --- セールあり ---
   if(hasSale){
-    var saleText = smGenSaleText(price, nextPrice, saleTime);
+    var saleText = smGenSaleText(price + 1000, nextPrice, saleTime);
     var _yaAdd = nextPrice < 10000 ? 1000 : (nextPrice < 20000 ? 1500 : 2000);
     var _yaSokketu = nextPrice + _yaAdd;
     var _yfFlea = Math.floor(nextPrice/1000)*1000;
