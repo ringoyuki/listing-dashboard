@@ -312,6 +312,24 @@ function renderNotFound(code, title) {
     + '</div>';
 }
 
+
+// ===== プラットフォーム別適正価格バッジ =====
+function platPriceBadge(platKey, basePrice) {
+  var p = parseInt(basePrice) || 0;
+  if (p <= 0) return '';
+  var sty = 'font-size:0.78rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);border-radius:4px;padding:2px 8px;white-space:nowrap;margin-right:6px;';
+  var label = '';
+  if (platKey === 'mercari_shops') { label = '¥' + p.toLocaleString(); }
+  else if (platKey === 'mercari')  { label = '¥' + (p+1000).toLocaleString(); }
+  else if (platKey === 'rakuma')   { label = '¥' + p.toLocaleString(); }
+  else if (platKey === 'yahoo_flea') { label = '¥' + (Math.floor(p/1000)*1000).toLocaleString(); }
+  else if (platKey === 'yahoo_auction') {
+    var bn = p < 10000 ? p+1000 : p < 20000 ? p+1500 : p+2000;
+    label = '開始¥' + p.toLocaleString() + ' 即決¥' + bn.toLocaleString();
+  }
+  return label ? '<span style="'+sty+'">'+label+'</span>' : '';
+}
+
 // ===== 商品カード描画 =====
 function renderCard(item, searchCode, searchTitle) {
   // 検索に使ったコードが管理番号と違う場合はitem.codeを優先
@@ -359,8 +377,10 @@ function renderCard(item, searchCode, searchTitle) {
       }
     }
 
+    var pb = item.price ? platPriceBadge(p.key, item.price) : '';
     return '<div class="plat-row">'
       + '<div class="plat-name">'+p.emoji+' '+p.name+'</div>'
+      + (pb ? '<div class="plat-price">'+pb+'</div>' : '')
       + '<div class="plat-actions">'+actions+'</div>'
       + '</div>';
   }).join('');
@@ -711,6 +731,11 @@ function checkErrors() {
   var container = document.getElementById('error-alert-container');
   if(!container) return;
   var errorItems = [];
+  var d = items.find(i => i.code === 'D1087_861');
+  if(d && !window._debugShown){
+    window._debugShown=true;
+    alert('D1087_861 DEBUG:\nMethod: [' + d.shippingMethod + ']\nOrigin: [' + d.shippingOrigin + ']\nDays: [' + d.shippingDays + ']');
+  }
   items.forEach(function(item) {
     var stock = parseInt(item.stock) || 0;
     

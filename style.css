@@ -68,6 +68,13 @@ body{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);co
 
 /* プラットフォーム行 */
 .plat-rows{padding:8px 12px}
+/* プラットフォーム適正価格バッジ */
+.plat-price {
+  display: flex;
+  align-items: center;
+  min-width: 160px;
+}
+
 .plat-row{
   display:flex;align-items:center;
   padding:8px 4px;
