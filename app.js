@@ -482,7 +482,7 @@ function extractCode(desc){
   }
   return '';
 }
-var COL={ID:0,NAME:62,DESC:63,STOCK:67,CODE:70,PRICE:155,STATUS:163,REG_DATE:175,UPD_DATE:176};
+// COL定数は廃止。parseCsv内でヘッダー名から動的取得する（メルカリ列追加対応）
 
 document.addEventListener('DOMContentLoaded',function(){
   var fi=document.getElementById('csvfile');
@@ -517,32 +517,60 @@ function parseCsv(text){
   }
   if (c !== '' || r.length > 0) { r.push(c); rows.push(r); }
 
+  // ヘッダー行から列名で動的に列番号を取得（メルカリCSV列追加に対応）
+  var hdr = rows[0] || [];
+  function ci(name){ var idx = hdr.indexOf(name); return idx >= 0 ? idx : -1; }
+  var COL = {
+    ID:          ci('商品ID'),
+    NAME:        ci('商品名'),
+    DESC:        ci('商品説明'),
+    STOCK:       ci('SKU1_在庫数'),
+    CODE:        ci('SKU1_商品管理コード'),
+    PRICE:       ci('販売価格'),
+    STATUS:      ci('商品ステータス'),
+    REG_DATE:    ci('商品登録日時'),
+    UPD_DATE:    ci('最終更新日時'),
+    BRAND:       ci('ブランドID'),
+    SHIP_METHOD: ci('配送方法'),
+    SHIP_ORIGIN: ci('発送元の地域'),
+    SHIP_DAYS:   ci('発送までの日数'),
+    LIKES:       ci('いいね数'),
+    VIEWS:       ci('閲覧数')
+  };
+  if (COL.NAME < 0 || COL.PRICE < 0) {
+    console.warn('[parseCsv] ヘッダーが見つかりません。CSV形式を確認してください。先頭列:', hdr.slice(0, 5));
+  }
+
   pendingRows = []; var skip = 0, noCode = 0;
   for(var i = 1; i < rows.length; i++){
     var cols = rows[i];
-    if(cols.length < 71){ skip++; continue; }
-    var stock = parseInt(cols[COL.STOCK].trim()) || 0;
-    var status = cols.length > COL.STATUS ? cols[COL.STATUS].trim() : '';
-    var itemId=cols[COL.ID].trim();
-    var title=cols[COL.NAME].trim();
-    var code=cols[COL.CODE].trim()||extractCode(cols[COL.DESC].trim());
-    var price=cols[COL.PRICE].trim();
+    if(cols.length < 10){ skip++; continue; }
+    var stock = COL.STOCK >= 0 ? (parseInt(cols[COL.STOCK]) || 0) : 0;
+    var status = COL.STATUS >= 0 && cols[COL.STATUS] ? cols[COL.STATUS].trim() : '';
+    var itemId = COL.ID >= 0 && cols[COL.ID] ? cols[COL.ID].trim() : '';
+    var title  = COL.NAME >= 0 && cols[COL.NAME] ? cols[COL.NAME].trim() : '';
+    var code   = (COL.CODE >= 0 && cols[COL.CODE] ? cols[COL.CODE].trim() : '') || extractCode(COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '');
+    var price  = COL.PRICE >= 0 && cols[COL.PRICE] ? cols[COL.PRICE].trim() : '';
     if(!code){code='CHECK';noCode++;}
     var shopsUrl=itemId?'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/'+itemId:'';
     // 商品説明からハッシュタグ（カテゴリ）を抽出
-    var desc = cols[COL.DESC] ? cols[COL.DESC].trim() : '';
+    var desc = COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '';
     var catM = desc.match(/#[^\s\u3000\r\n,、。！？#]+/);
     var category = catM ? catM[0] : '';
     var symMatch = desc.match(/([●■▲〇□])管理番号/);
     var actualSymbol = symMatch ? symMatch[1] : '';
-    var shopsRegAt = cols.length > COL.REG_DATE ? cols[COL.REG_DATE].trim() : '';
-    var shopsUpdAt = cols.length > COL.UPD_DATE ? cols[COL.UPD_DATE].trim() : '';
-    
-    var brandId = cols.length > 154 ? cols[154].trim() : '';
-    var shippingMethod = cols.length > 158 ? cols[158].trim() : '';
-    var shippingOrigin = cols.length > 159 ? cols[159].trim() : '';
-    var shippingDays = cols.length > 160 ? cols[160].trim() : '';
-    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,actualSymbol:actualSymbol,noCode:!cols[COL.CODE].trim()&&!extractCode(cols[COL.DESC].trim()),brandId:brandId,shippingMethod:shippingMethod,shippingOrigin:shippingOrigin,shippingDays:shippingDays});
+    var shopsRegAt = COL.REG_DATE >= 0 && cols[COL.REG_DATE] ? cols[COL.REG_DATE].trim() : '';
+    var shopsUpdAt = COL.UPD_DATE >= 0 && cols[COL.UPD_DATE] ? cols[COL.UPD_DATE].trim() : '';
+
+    var brandId        = COL.BRAND >= 0 && cols[COL.BRAND] ? cols[COL.BRAND].trim() : '';
+    var shippingMethod = COL.SHIP_METHOD >= 0 && cols[COL.SHIP_METHOD] ? cols[COL.SHIP_METHOD].trim() : '';
+    var shippingOrigin = COL.SHIP_ORIGIN >= 0 && cols[COL.SHIP_ORIGIN] ? cols[COL.SHIP_ORIGIN].trim() : '';
+    var shippingDays   = COL.SHIP_DAYS >= 0 && cols[COL.SHIP_DAYS] ? cols[COL.SHIP_DAYS].trim() : '';
+    var likes          = COL.LIKES >= 0 && cols[COL.LIKES] ? (parseInt(cols[COL.LIKES].trim()) || 0) : -1;
+    var views          = COL.VIEWS >= 0 && cols[COL.VIEWS] ? (parseInt(cols[COL.VIEWS].trim()) || 0) : -1;
+    var _rawCode = COL.CODE >= 0 && cols[COL.CODE] ? cols[COL.CODE].trim() : '';
+    var _rawDesc = COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '';
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,actualSymbol:actualSymbol,noCode:!_rawCode&&!extractCode(_rawDesc),brandId:brandId,shippingMethod:shippingMethod,shippingOrigin:shippingOrigin,shippingDays:shippingDays,likes:likes,views:views});
     
   }
   var pa=document.getElementById('prev-area');
@@ -603,13 +631,15 @@ if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
       if(row.shippingMethod !== undefined) ex.shippingMethod = row.shippingMethod;
       if(row.shippingOrigin !== undefined) ex.shippingOrigin = row.shippingOrigin;
       if(row.shippingDays !== undefined) ex.shippingDays = row.shippingDays;
+      if(row.likes >= 0) ex.likes = row.likes;
+      if(row.views >= 0) ex.views = row.views;
       if(!ex.urls) ex.urls={};
       if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
       ex.updatedAt=Date.now(); updated++;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',brandId:row.brandId||'',shippingMethod:row.shippingMethod||'',shippingOrigin:row.shippingOrigin||'',shippingDays:row.shippingDays||'',createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',brandId:row.brandId||'',shippingMethod:row.shippingMethod||'',shippingOrigin:row.shippingOrigin||'',shippingDays:row.shippingDays||'',likes:row.likes>=0?row.likes:-1,views:row.views>=0?row.views:-1,createdAt:Date.now()});
       added++;
     }
   });
