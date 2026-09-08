@@ -632,14 +632,30 @@ function smOnLikes(code){
   // --- セールあり ---
   if(hasSale){
     var saleText = smGenSaleText(price, nextPrice, saleTime);
+    var _yaAdd = nextPrice < 10000 ? 1000 : (nextPrice < 20000 ? 1500 : 2000);
+    var _yaSokketu = nextPrice + _yaAdd;
+    var _yfFlea = Math.floor(nextPrice/1000)*1000;
     html += '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px;margin-bottom:12px;">'
       +'<div style="font-size:0.82rem;font-weight:700;color:#f87171;margin-bottom:10px;">🔥 セール実施（いいね'+likes+'件 ≥ '+SALE_MIN_LIKES+'）</div>'
 
-      // Shops手順
+      // 価格一覧
       +'<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin-bottom:10px;">'
-      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">① Shopsでタイムセール予約</div>'
-      +'<div style="display:grid; grid-template-columns:230px 1fr; row-gap:8px; align-items:center; font-size:0.95rem; color:#e2e8f0;">'+'<div style="color:#cbd5e1;font-size:0.85rem;">メルカリShops、ヤフオク、ラクマ</div>'+'<div><b style="color:#86efac;font-size:1.15em;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+'&nbsp;&nbsp;<span style="font-size:0.85rem;">時間: <b>'+saleTime+'</b></span></div>'+'<div style="color:#cbd5e1;font-size:0.85rem;">メルカリ</div>'+'<div><b style="color:#fca5a5;font-size:1.15em;">¥'+(nextPrice+1000).toLocaleString()+'</b>'+cbtn(nextPrice+1000)+'</div>'+'<div style="color:#cbd5e1;font-size:0.85rem;">ヤフーフリマ</div>'+'<div><b style="color:#fde047;font-size:1.15em;">¥'+(Math.floor(nextPrice/1000)*1000).toLocaleString()+'</b>'+cbtn(Math.floor(nextPrice/1000)*1000)+'</div>'+'</div>'
-      +'<div style="font-size:0.72rem;color:#cbd5e1;margin-top:4px;">📌 翌日にShopsが自動で価格を戻します</div>'
+      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:6px;">① 各プラットで価格変更（Shops: タイムセール予約 or 手動→翌日戻す）</div>'
+      +'<div style="display:grid;grid-template-columns:200px 1fr;row-gap:8px;align-items:center;font-size:0.92rem;color:#e2e8f0;">'
+      +'<div style="color:#86efac;font-size:0.85rem;">メルカリShops</div>'
+      +'<div><b style="color:#86efac;font-size:1.15em;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+'&nbsp;<span style="font-size:0.8rem;color:#94a3b8;">'+saleTime+'</span></div>'
+      +'<div style="color:#86efac;font-size:0.85rem;">メルカリ（フリマ）</div>'
+      +'<div><b style="color:#86efac;font-size:1.15em;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+'</div>'
+      +'<div style="color:#86efac;font-size:0.85rem;">ラクマ</div>'
+      +'<div><b style="color:#86efac;font-size:1.15em;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+'</div>'
+      +'<div style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.07);margin:4px 0;"></div>'
+      +'<div style="color:#475569;font-size:0.78rem;">── 参考（操作不要）──</div><div></div>'
+      +'<div style="color:#64748b;font-size:0.85rem;">ヤフーフリマ</div>'
+      +'<div><b style="color:#94a3b8;font-size:1.05em;">¥'+_yfFlea.toLocaleString()+'</b>'+cbtn(_yfFlea)+'</div>'
+      +'<div style="color:#64748b;font-size:0.85rem;">ヤフオク</div>'
+      +'<div><span style="font-size:0.78rem;color:#64748b;">最低入札</span>&nbsp;<b style="color:#94a3b8;font-size:1.05em;">¥'+nextPrice.toLocaleString()+'</b>'+cbtn(nextPrice)+'&nbsp;&nbsp;<span style="font-size:0.78rem;color:#64748b;">即決</span>&nbsp;<b style="color:#94a3b8;font-size:1.05em;">¥'+_yaSokketu.toLocaleString()+'</b>'+cbtn(_yaSokketu)+'</div>'
+      +'</div>'
+      +'<div style="font-size:0.72rem;color:#94a3b8;margin-top:6px;">📌 翌日にShops価格を元に戻すこと（タイムセール非対応の場合は手動で戻す）</div>'
       +'</div>'
 
       // セール文
