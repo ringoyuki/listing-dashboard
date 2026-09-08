@@ -229,9 +229,14 @@ function smGetAllTasks(){
     sd.tasks.forEach(function(t){
       if(t.status==='done') return;
       var over = smDaysDiff(t.dueDate);
+      // いいね数が取得済みでSALE_MIN_LIKES以上なら表示名をセールに変更
+      var taskLikes = (typeof item.likes !== 'undefined' && item.likes >= 0) ? item.likes : -1;
+      var displayDesc = (t.type === 'symbol_change' && taskLikes >= SALE_MIN_LIKES)
+        ? ('🔥 ゲリラセール実施（いいね' + taskLikes + '件）')
+        : t.desc;
       tasks.push({
         taskId:t.id, code:code,
-        title:item.title, type:t.type, desc:t.desc,
+        title:item.title, type:t.type, desc:displayDesc,
         dueDate:t.dueDate, overdueDays:over
       });
     });
@@ -245,12 +250,16 @@ function smGetAllTasks(){
             var baseStr = item.shopsUpdatedAt || today;
             var targetDateStr = typeof shiftDateToSaleDay === 'function' ? shiftDateToSaleDay(smAddDays(baseStr, SALE_INTERVAL)) : smAddDays(baseStr, SALE_INTERVAL);
             var over = smDaysDiff(targetDateStr);
+            var zombieLikes = (typeof item.likes !== 'undefined' && item.likes >= 0) ? item.likes : -1;
+            var zombieDesc = (zombieLikes >= SALE_MIN_LIKES)
+                ? ('🔥 ゲリラセール実施（いいね' + zombieLikes + '件）')
+                : (nextSym + ' に記号変更');
             tasks.push({
                 taskId: 'ZOMBIE_' + code,
                 code: code,
                 title: item.title,
                 type: 'symbol_change',
-                desc: nextSym + ' に記号変更',
+                desc: zombieDesc,
                 dueDate: targetDateStr,
                 overdueDays: over
             });
@@ -665,8 +674,12 @@ function smOnLikes(code){
 
       // セール実施完了ボタン
       +'<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
-      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:6px;">③ セール設定が完了したら押す</div>'
-      +'<button onclick="smAfterSale(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+')" style="width:100%;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ セール設定完了（翌日タスクを自動追加）</button>'
+      +'<div style="font-size:0.72rem;color:#d1d5db;margin-bottom:4px;">③ セール実施日を確認して押す（事前予約の場合は実際のセール日に変更）</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      +'<span style="font-size:0.78rem;color:#94a3b8;white-space:nowrap;">セール実施日:</span>'
+      +'<input type="date" id="sm-saledate-'+esc(code)+'" value="'+smTodayStr()+'" style="flex:1;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;border-radius:5px;padding:4px 8px;font-size:0.82rem;">'
+      +'</div>'
+      +'<button onclick="smAfterSale(\''+esc(code)+'\',\''+nextSym+'\','+nextPrice+', document.getElementById(\'sm-saledate-'+esc(code)+'\').value)" style="width:100%;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;border-radius:7px;padding:9px;font-size:0.83rem;cursor:pointer;font-weight:600;">✅ セール設定完了（翌日タスクを自動追加）</button>'
       +'</div>'
       +'</div>';
   }
@@ -727,27 +740,32 @@ function smOnLikes(code){
 }
 
 // セール完了 → 翌日・変更タスク追加
-function smAfterSale(code, nextSym, nextPrice){
+function smAfterSale(code, nextSym, nextPrice, saleDate){
   var sdUndo = smGetItem(code);
   localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sdUndo)), action:'afterSale'}));
   var today = smTodayStr();
+  // セール実施日（指定がなければ今日）
+  var actualSaleDate = (saleDate && /^\d{4}-\d{2}-\d{2}$/.test(saleDate)) ? saleDate : today;
 
-  // Reset the base update date to today (Plan 2: Restart the cycle)
+  // Reset the base update date to セール実施日（スケジュールリセット基準）
   var itemIndex = items.findIndex(function(i){ return i.code === code; });
   if(itemIndex !== -1) {
-    items[itemIndex].shopsUpdatedAt = new Date().toISOString();
+    items[itemIndex].shopsUpdatedAt = actualSaleDate + 'T00:00:00.000Z';
   }
 
-  // 翌日戻すタスクのみ追加
+  // 翌日戻すタスクのみ追加（実施日の翌日）
   smAddTask(code,{
-    type:'revert_check', dueDate:smAddDays(today,1),
+    type:'revert_check', dueDate:smAddDays(actualSaleDate, 1),
     desc:'Shopsタイムセール確認（元値に戻っているか確認）'
   });
 
   var sd = smGetItem(code);
   smSetItem(code, sd);
 
-  showToast('✔ ゲリラセール実施（スケジュールリセット）', 3000);
+  var msg = (actualSaleDate === today)
+    ? '✔ ゲリラセール実施（スケジュールリセット）'
+    : ('✔ セール設定完了（実施日: ' + actualSaleDate + ' 起算でリセット）');
+  showToast(msg, 3000);
   smRenderAll();
 }
 
