@@ -519,13 +519,19 @@ function parseCsv(text){
 
   // ヘッダー行から列名で動的に列番号を取得（メルカリCSV列追加に対応）
   var hdr = rows[0] || [];
-  function ci(name){ var idx = hdr.indexOf(name); return idx >= 0 ? idx : -1; }
+  // 完全一致ではなく部分一致で列を探す（BOMや微妙な名称変更に対応）
+  function ci(keyword){ 
+    for(var j=0; j<hdr.length; j++){
+      if(hdr[j] && hdr[j].indexOf(keyword) !== -1) return j;
+    }
+    return -1; 
+  }
   var COL = {
     ID:          ci('商品ID'),
     NAME:        ci('商品名'),
     DESC:        ci('商品説明'),
-    STOCK:       ci('SKU1_在庫数'),
-    CODE:        ci('SKU1_商品管理コード'),
+    STOCK:       ci('在庫数'),         // 'SKU1_在庫数'等の揺れに対応
+    CODE:        ci('商品管理コード'), // 'SKU1_商品管理コード'等の揺れに対応
     PRICE:       ci('販売価格'),
     STATUS:      ci('商品ステータス'),
     REG_DATE:    ci('商品登録日時'),
