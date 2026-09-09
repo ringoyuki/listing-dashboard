@@ -76,6 +76,17 @@
         <div class="welcome-icon">🔍</div>
         <p>管理番号か商品名を入力して「検索」を押してください</p>
       </div>
+    
+      <!-- スタッフ用 簡易価格計算ツール (完全独立) -->
+      <div id="quick-calc-tool" style="margin: 60px 0 20px 0; padding: 20px; background: rgba(30,41,59,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+        <h3 style="font-size: 1rem; color: #e2e8f0; margin-bottom: 12px; font-weight: 600;">🧮 スタッフ用 簡易価格計算ツール</h3>
+        <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Shopsの価格を入力して計算を押すと、各プラットフォームの価格が表示されます。ボタンをクリックでコピーできます。</p>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+          <input type="number" id="quick-calc-input" placeholder="Shops価格 (例: 16800)" style="padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(15,15,19,0.8); color: white; font-size: 1rem; width: 180px; outline: none;">
+          <button onclick="if(typeof runQuickCalc==='function')runQuickCalc()" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); color: #c7d2fe; border-radius: 8px; padding: 10px 20px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: background 0.2s;">計算する</button>
+        </div>
+        <div id="quick-calc-result" style="display: flex; gap: 10px; flex-wrap: wrap; min-height: 40px; align-items: center;"></div>
+      </div>
     </main>
   </div>
 
@@ -225,7 +236,7 @@
   </div>
 
   <!-- <script src="seed_data.js"></script> -->
-  <script src="app.js?v=1788917229"></script>
+  <script src="app.js?v=1788918062"></script>
   <script src="config.js?v=1788767195"></script>
   <script src="market_search.js?v=1788767195"></script>
   <script src="sale_manager_v3.js?v=1788906324"></script>

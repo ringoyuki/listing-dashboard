@@ -839,3 +839,64 @@ function checkErrors() {
     container.style.display = 'none';
   }
 }
+
+
+// ==========================================
+// スタッフ用 簡易価格計算ツール (完全独立機能)
+// ==========================================
+function runQuickCalc() {
+  var input = document.getElementById('quick-calc-input');
+  var resultArea = document.getElementById('quick-calc-result');
+  if (!input || !resultArea) return;
+  
+  var p = parseInt(input.value);
+  if (!p || p <= 0) {
+    resultArea.innerHTML = '<span style="font-size: 0.85rem; color: #f87171;">数値を正しく入力してください</span>';
+    return;
+  }
+
+  // 計算ルール (既存の platPriceBadge と同等のロジック)
+  var mercari = p + 1000;
+  var rakuma = p;
+  var yflea = Math.floor(p / 1000) * 1000;
+  var yauc_start = p;
+  var yauc_bin = p < 10000 ? p + 1000 : (p < 20000 ? p + 1500 : p + 2000);
+
+  // コピー用関数
+  window.copyQuickPrice = function(price, btn) {
+    var temp = document.createElement('textarea');
+    temp.value = price;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    
+    var oldHtml = btn.innerHTML;
+    var oldBg = btn.style.background;
+    var oldBc = btn.style.borderColor;
+    var oldCol = btn.style.color;
+    
+    btn.innerHTML = '✅ コピー完了';
+    btn.style.background = 'rgba(34,197,94,0.2)';
+    btn.style.borderColor = 'rgba(34,197,94,0.5)';
+    btn.style.color = '#86efac';
+    
+    setTimeout(function(){
+      btn.innerHTML = oldHtml;
+      btn.style.background = oldBg;
+      btn.style.borderColor = oldBc;
+      btn.style.color = oldCol;
+    }, 1200);
+  };
+
+  var sty = 'background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;';
+  
+  var html = '';
+  html += '<button onclick="copyQuickPrice('+mercari+', this)" style="'+sty+'">🔴 メルカリ ¥'+mercari.toLocaleString()+'</button>';
+  html += '<button onclick="copyQuickPrice('+rakuma+', this)" style="'+sty+'">🟣 ラクマ ¥'+rakuma.toLocaleString()+'</button>';
+  html += '<button onclick="copyQuickPrice('+yauc_start+', this)" style="'+sty+'">🟠 ヤフオク(開始) ¥'+yauc_start.toLocaleString()+'</button>';
+  html += '<button onclick="copyQuickPrice('+yauc_bin+', this)" style="'+sty+'">🟠 ヤフオク(即決) ¥'+yauc_bin.toLocaleString()+'</button>';
+  html += '<button onclick="copyQuickPrice('+yflea+', this)" style="'+sty+'">🟡 Y!フリマ ¥'+yflea.toLocaleString()+'</button>';
+  
+  resultArea.innerHTML = html;
+}
