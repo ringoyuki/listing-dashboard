@@ -1,0 +1,920 @@
+﻿// ===== パスワード認証 =====
+var PASS = '132';
+function toHalfWidth(str) {
+  return str.replace(/[０-９]/g, function(s) {
+    return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+  });
+}
+function checkAuth() {
+  var raw = document.getElementById('inp-pass').value;
+  var val = toHalfWidth(raw).trim();
+  if(val === PASS) {
+    localStorage.setItem('auth_ok', 'true');
+    localStorage.setItem('auth_time', Date.now().toString()); // 期限管理
+    recordLogin(true); // ← ログイン記録
+    initApp();
+  } else {
+    document.getElementById('login-err').textContent = 'パスワードが違います';
+    recordLogin(false); // ← 失敗も記録
+  }
+}
+
+// ===== ログアウト =====
+function logout() {
+  localStorage.removeItem('auth_ok');
+  localStorage.removeItem('auth_time');
+  location.reload();
+if(typeof checkErrors === "function") checkErrors();
+}
+
+// ===== ログイン履歴記録 =====
+function recordLogin(success) {
+  var now = new Date();
+  var ts = now.getFullYear() + '/' +
+    ('0'+(now.getMonth()+1)).slice(-2) + '/' +
+    ('0'+now.getDate()).slice(-2) + ' ' +
+    ('0'+now.getHours()).slice(-2) + ':' +
+    ('0'+now.getMinutes()).slice(-2);
+  var ua = navigator.userAgent;
+  var device = /iPhone|iPad/.test(ua) ? '📱 iPhone/iPad'
+    : /Android/.test(ua) ? '📱 Android'
+    : /Windows/.test(ua) ? '💻 Windows'
+    : /Mac/.test(ua) ? '💻 Mac'
+    : '🖥 その他';
+  var browser = /Chrome/.test(ua) && !/Edg/.test(ua) ? 'Chrome'
+    : /Edg/.test(ua) ? 'Edge'
+    : /Firefox/.test(ua) ? 'Firefox'
+    : /Safari/.test(ua) ? 'Safari'
+    : 'その他';
+  var log = JSON.parse(localStorage.getItem('login_log') || '[]');
+  log.unshift({ ts: ts, device: device, browser: browser, ok: success });
+  if (log.length > 30) log = log.slice(0, 30);
+  localStorage.setItem('login_log', JSON.stringify(log));
+
+  // Gmail通知（EmailJS）
+  var resultText = success ? '✅ ログイン成功' : '❌ パスワード失敗';
+  if (typeof emailjs !== 'undefined') {
+    emailjs.send('service_2dj253q', '2kjgd7s', {
+      login_time: ts,
+      device: device,
+      browser: browser,
+      location: '—',
+      result: resultText
+    }).then(function() {
+      console.log('Login notification sent');
+    }).catch(function(e) {
+      console.warn('EmailJS error:', JSON.stringify(e));
+    });
+  } else {
+    console.warn('EmailJS not loaded');
+  }
+}
+
+function showLoginLog() {
+  var log = JSON.parse(localStorage.getItem('login_log') || '[]');
+  var modal = document.getElementById('login-log-modal');
+  var body = document.getElementById('login-log-body');
+  if (!log.length) {
+    body.innerHTML = '<p style="color:var(--tx2);padding:16px;">まだ履歴がありません</p>';
+  } else {
+    body.innerHTML = log.map(function(l) {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);">'
+        + '<span style="font-size:0.8rem;color:var(--tx2);white-space:nowrap;">' + l.ts + '</span>'
+        + '<span>' + l.device + '</span>'
+        + '<span style="font-size:0.8rem;color:var(--tx2);">' + l.browser + '</span>'
+        + (l.ok
+          ? '<span style="margin-left:auto;font-size:0.75rem;color:#4ade80;font-weight:700;">✅ 成功</span>'
+          : '<span style="margin-left:auto;font-size:0.75rem;color:#f87171;font-weight:700;">❌ 失敗</span>')
+        + '</div>';
+    }).join('');
+  }
+  modal.classList.add('open');
+}
+function closeLoginLog() {
+  document.getElementById('login-log-modal').classList.remove('open');
+}
+
+function initApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-main').style.display = 'block';
+  // ファイル名を復元
+  var si = document.getElementById('seed-info');
+  var savedFn = localStorage.getItem('csv_filename');
+  if (si && savedFn) si.textContent = '📄 ' + savedFn;
+  // 更新日時を復元
+  var ua = document.getElementById('csv-updated-at');
+  if (ua) {
+    var saved = localStorage.getItem('csv_updated_at');
+    if (saved) ua.textContent = saved;
+  }
+  // データロードなど
+  load();
+if(typeof checkErrors === "function") checkErrors();
+  if(window._SEED_DATA && items.length===0){
+    items=window._SEED_DATA; save();
+    showToast('✅ '+items.length+'件 読み込みました',3000);
+  }
+  updateStats();
+}
+// 起動時の判定
+document.addEventListener('DOMContentLoaded', function(){
+  if(localStorage.getItem('auth_ok') === 'true') {
+    // 2日(48時間)でセッション期限切れ
+    var loginTime = parseInt(localStorage.getItem('auth_time') || '0');
+    var elapsed = Date.now() - loginTime;
+    var twoDays = 48 * 60 * 60 * 1000;
+    if (elapsed > twoDays) {
+      localStorage.removeItem('auth_ok');
+      localStorage.removeItem('auth_time');
+    } else {
+      initApp();
+    }
+  }
+});
+
+// ===== プラットフォーム定義 =====
+// preferTitle: 全部開く時にタイトル検索を優先する
+var PLATS = [
+  { key:'mercari_shops', name:'メルカリShops', emoji:'🛍',
+    codeSearch:false, titleSearch:false, preferTitle:false },
+  { key:'mercari',       name:'メルカリ',      emoji:'🔴',
+    codeSearch:true,  titleSearch:true,  preferTitle:false },
+  { key:'yahoo_auction', name:'ヤフオク',       emoji:'🟠',
+    codeSearch:false, titleSearch:true,  preferTitle:true },
+  { key:'rakuma',        name:'ラクマ',         emoji:'🟣',
+    codeSearch:true,  titleSearch:true,  preferTitle:true },  // ラクマはタイトル優先
+  { key:'yahoo_flea',    name:'Yahoo!フリマ',   emoji:'🟡',
+    codeSearch:true,  titleSearch:true,  preferTitle:false }
+];
+
+// 検索URL生成
+function makeUrl(platKey, type, code, title) {
+  var qc = encodeURIComponent(code  || '');
+  var qt = encodeURIComponent(title || '');
+  // ラクマはタイトル最大40文字のため、スペース区切りでキリよく切り詰める
+  var _rt = (title || '').length > 40 ? (title||'').slice(0,40) : (title||'');
+  var _sp = _rt.lastIndexOf(' ');
+  var qtRakuma = encodeURIComponent(_sp > 0 ? _rt.slice(0, _sp) : _rt);
+  if (type === 'code') {
+    if (platKey === 'mercari')    return 'https://jp.mercari.com/search?keyword=' + qc;
+    if (platKey === 'rakuma')     return 'https://fril.jp/s?query=' + qc;
+    if (platKey === 'yahoo_flea') return 'https://paypayfleamarket.yahoo.co.jp/search/' + qc + '?page=1';
+  }
+  if (type === 'title') {
+    if (platKey === 'mercari')       return 'https://jp.mercari.com/search?keyword=' + qt;
+    if (platKey === 'yahoo_auction') return 'https://auctions.yahoo.co.jp/search/search?auccat=&tab_ex=commerce&ei=utf-8&aq=-1&oq=&sc_i=&fr=auc_top&p=' + qt;
+    if (platKey === 'rakuma')        return 'https://fril.jp/s?query=' + qtRakuma;
+    if (platKey === 'yahoo_flea')    return 'https://paypayfleamarket.yahoo.co.jp/search/' + qt + '?page=1';
+  }
+  return null;
+}
+
+// ===== STATE =====
+var items = [];
+var pendingRows = [];
+var SK = 'listing_mgr_v5';
+
+function load(){ try{ var r=localStorage.getItem(SK); items=r?JSON.parse(r):[]; }catch(e){items=[];} }
+function save(){ localStorage.setItem(SK,JSON.stringify(items)); }
+function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+function showToast(msg, dur){
+  dur=dur||2500;
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},dur);
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function updateStats(){ document.getElementById('stat-total').textContent = items.length; }
+
+// ===== 検索 =====
+function doSearch(){
+  var code  = document.getElementById('inp-code').value.trim();
+  var title = document.getElementById('inp-title').value.trim();
+  if (!code && !title){ showToast('管理番号か商品名を入力してください'); return; }
+
+  var lc = code.toLowerCase();
+  var lt = title.toLowerCase();
+
+  var matched = items.filter(function(item){
+    var matchCode = false;
+      if (code) {
+        var ic = (item.code || '').toLowerCase();
+        var it = (item.title || '').toLowerCase();
+        if (ic && (ic.indexOf(lc) >= 0 || lc.indexOf(ic) >= 0)) matchCode = true;
+        if (it && (it.indexOf(lc) >= 0 || lc.indexOf(it) >= 0)) matchCode = true;
+      }
+      var matchTitle = false;
+      if (title) {
+        var it2 = (item.title || '').toLowerCase();
+        if (it2.indexOf(lt) >= 0) {
+          matchTitle = true;
+        }
+      }
+      if (code && title) return matchCode || matchTitle;
+      if (code) return matchCode;
+      if (title) return matchTitle;
+      return false;
+  });
+
+  // 完全一致を上位に
+  matched.sort(function(a,b){
+    var aE = (code && a.code && a.code.toLowerCase()===lc) ? 0 : 1;
+    var bE = (code && b.code && b.code.toLowerCase()===lc) ? 0 : 1;
+    return aE - bE;
+  });
+
+  var fPub = document.getElementById('filter-public') ? document.getElementById('filter-public').checked : true;
+  var fPrivStock = document.getElementById('filter-private-stock') ? document.getElementById('filter-private-stock').checked : true;
+  var fPriv = document.getElementById('filter-private') ? document.getElementById('filter-private').checked : true;
+  var fSold = document.getElementById('filter-sold') ? document.getElementById('filter-sold').checked : true;
+
+  matched = matched.filter(function(item){
+    var isPrivStock = (item.stock >= 1 && item.status === '1');
+    var isPub = (item.stock >= 1 && item.status !== '1');
+    var isPriv = (item.stock < 1 && item.status === '1');
+    var isSold = (item.stock < 1 && item.status !== '1');
+    
+    if (isPub && !fPub) return false;
+    if (isPrivStock && !fPrivStock) return false;
+    if (isPriv && !fPriv) return false;
+    if (isSold && !fSold) return false;
+    return true;
+  });
+
+  var el = document.getElementById('results');
+
+    if (!matched.length) {
+    var dict = JSON.parse(localStorage.getItem('item_dict') || '{}');
+    var hist = null;
+    if (code) {
+      var keys = Object.keys(dict);
+      for(var k=0; k<keys.length; k++){
+        var dk = keys[k].toLowerCase();
+        if(dk && (dk.indexOf(lc) >= 0 || lc.indexOf(dk) >= 0)){
+          hist = dict[keys[k]];
+          break;
+        }
+      }
+    }
+    if (code && hist) {
+      var urls = {};
+      if(hist.shopsUrl) urls['mercari_shops'] = hist.shopsUrl;
+      matched.push({ code: code, title: hist.title, stock: 0, urls: urls });
+    } else {
+      el.innerHTML = renderNotFound(code, title);
+      return;
+    }
+  }
+
+  el.innerHTML = matched.slice(0,20).map(function(item){
+    return renderCard(item, code, title);
+  }).join('');
+}
+
+// ===== 商品が見つからない場合 =====
+function renderNotFound(code, title) {
+  var warn = '';
+  if (code) {
+    warn = '<div class="warn-box">'
+      + '<div class="warn-title">⚠ 「' + esc(code) + '」はShopsの在庫データにありません</div>'
+      + '<div class="warn-body">※ 番号の間違い、Shopsで売却済みの商品、または他プラットフォームの消し忘れの可能性があります。</div>'
+      + '</div>';
+  }
+
+  // それでも各プラットで検索できるボタンを表示
+  var rows = PLATS.map(function(p){
+    if (p.key === 'mercari_shops') {
+        var su = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?keyword=' + encodeURIComponent(code);
+        return '<div class="plat-row">'
+          + '<div class="plat-name">' + p.emoji + ' ' + p.name + '</div>'
+          + '<div class="plat-actions"><span style="color:#f87171;font-size:0.85rem;margin-right:10px;font-weight:bold;">📦 Shops在庫なし</span><a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">↗ 検索で開く</a></div>'
+          + '</div>';
+      }
+    var actions = '';
+    if (p.codeSearch && code)  actions += '<a href="'+esc(makeUrl(p.key,'code',code,title))+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
+    if (p.titleSearch) actions += '<a href="'+esc(makeUrl(p.key,'title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+    if (p.key === 'yahoo_auction') actions = '<a href="'+esc(makeUrl('yahoo_auction','title',code,title))+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+    return '<div class="plat-row">'
+      + '<div class="plat-name">' + p.emoji + ' ' + p.name + '</div>'
+      + '<div class="plat-actions">' + (actions||'<span class="plat-note">入力が必要</span>') + '</div>'
+      + '</div>';
+  }).join('');
+
+  return warn
+    + '<div class="rcard">'
+    + '<div class="rcard-info" style="border-color:rgba(239,68,68,.3)">'
+    + (code  ? '<span class="rcode" style="color:var(--red);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08)">'+esc(code)+'</span>' : '')
+    + (title ? '<span class="rtitle">'+esc(title)+'</span>' : '')
+    + '<span style="font-size:.72rem;color:var(--red);font-weight:700">Shops在庫なし</span>'
+    + '</div>'
+    + '<div class="plat-rows">' + rows + '</div>'
+    + '</div>';
+}
+
+
+// ===== プラットフォーム別適正価格バッジ（クリックでコピー） =====
+function copyPlatPrice(val, btn) {
+  navigator.clipboard.writeText(String(val)).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '✅ コピー済み';
+    btn.style.color = '#86efac';
+    setTimeout(function(){ btn.textContent = orig; btn.style.color = '#fbbf24'; }, 1500);
+  });
+}
+function platPriceBadge(platKey, basePrice) {
+  var p = parseInt(basePrice) || 0;
+  if (p <= 0) return '';
+  var sty = 'font-size:0.78rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);border-radius:4px;padding:2px 8px;white-space:nowrap;margin-right:4px;cursor:pointer;transition:background 0.15s;';
+  if (platKey === 'mercari_shops') {
+    return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">¥' + p.toLocaleString() + '</button>';
+  } else if (platKey === 'mercari') {
+    return '<button onclick="copyPlatPrice('+(p+1000)+',this)" style="'+sty+'">¥' + (p+1000).toLocaleString() + '</button>';
+  } else if (platKey === 'rakuma') {
+    return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">¥' + p.toLocaleString() + '</button>';
+  } else if (platKey === 'yahoo_flea') {
+    var fp = Math.floor(p/1000)*1000;
+    return '<button onclick="copyPlatPrice('+fp+',this)" style="'+sty+'">¥' + fp.toLocaleString() + '</button>';
+  } else if (platKey === 'yahoo_auction') {
+    var bn = p < 10000 ? p+1000 : p < 20000 ? p+1500 : p+2000;
+    if (typeof CONFIG === 'undefined' || CONFIG.YAHOO_AUCTION_STYLE_ENABLED !== true) {
+      return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">定額¥' + p.toLocaleString() + '</button>';
+    }
+    return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">開始¥' + p.toLocaleString() + '</button>'
+         + '<button onclick="copyPlatPrice('+bn+',this)" style="'+sty+'margin-left:2px;">即決¥' + bn.toLocaleString() + '</button>';
+  }
+  return '';
+}
+
+// ===== 商品カード描画 =====
+function renderCard(item, searchCode, searchTitle) {
+  // 検索に使ったコードが管理番号と違う場合はitem.codeを優先
+  var code  = item.code  || searchCode  || '';
+  var title = item.title || searchTitle || '';
+
+  var rows = PLATS.map(function(p){
+    var url = item.urls && item.urls[p.key];
+    var actions = '';
+
+    if (p.key === 'mercari_shops') {
+      var su = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?keyword=' + encodeURIComponent(code);
+      if (url) {
+        var idMatch = url.match(/\/product(s)?\/([a-zA-Z0-9]+)$/);
+        var itemId = idMatch ? idMatch[2] : '';
+        if (itemId) {
+          var adminUrl = 'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/' + itemId;
+          var pubUrl = 'https://jp.mercari.com/shops/product/' + itemId;
+          actions = '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">検索</a>'
+                  + '<a href="'+esc(adminUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">管理画面</a>'
+                  + '<a href="'+esc(pubUrl)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">商品ページ</a>';
+        } else {
+          actions = '<a href="'+esc(su)+'" target="_blank" class="pbtn pbtn-shops">検索</a>'
+                  + '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops" style="background:#f1f5f9;color:#475569;margin-left:4px">管理画面</a>';
+        }
+      } else {
+        actions = '<span class="plat-note">CSV取込後に表示</span>';
+      }
+    } else {
+      if (url) actions += '<a href="'+esc(url)+'" target="_blank" class="pbtn pbtn-shops" style="margin-right:2px">↗ 開く</a>';
+
+      if (p.key === 'yahoo_auction') {
+        // ヤフオクはタイトルのみ
+        var tu = makeUrl('yahoo_auction','title',code,title); if(true) actions += '<a href="'+esc(tu)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+      } else if (p.key === 'rakuma') {
+        // ラクマはタイトル優先で表示
+        var tu2 = makeUrl('rakuma','title',code,title); var cu2 = makeUrl('rakuma','code',code,title); if(true) actions += '<a href="'+esc(tu2)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+        if (cu2 && code) actions += '<a href="'+esc(cu2)+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
+      } else {
+        // メルカリ・Yフリマ：コード優先
+        var cu3 = p.codeSearch && code ? makeUrl(p.key,'code',code,title) : null;
+        var tu3 = p.titleSearch ? makeUrl(p.key,'title',code,title) : null;
+        if (cu3) actions += '<a href="'+esc(cu3)+'" target="_blank" class="pbtn pbtn-code">コードで検索</a>';
+        if (tu3) actions += '<a href="'+esc(tu3)+'" target="_blank" class="pbtn pbtn-title">タイトルで検索</a>';
+      }
+    }
+
+    var pb = item.price ? platPriceBadge(p.key, item.price) : '';
+    return '<div class="plat-row">'
+      + '<div class="plat-name">'+p.emoji+' '+p.name+'</div>'
+      + (pb ? '<div class="plat-price">'+pb+'</div>' : '')
+      + '<div class="plat-actions">'+actions+'</div>'
+      + '</div>';
+  }).join('');
+
+  // ★ 全部開くボタン：item.id のみ渡す（タイトルの特殊文字でJSが壊れる問題を修正）
+  var sUrl = (item.urls && item.urls['mercari_shops']) ? item.urls['mercari_shops'] : '';
+   var openAllBtn = '<button class="btn-openall" onclick="openAllByData(\'' + esc(code) + '\', \'' + esc(title) + '\', \'' + esc(sUrl) + '\')">🔗 全プラット一気に開く</button>';
+
+  // 日時情報
+  var dateInfo = '';
+  if (item.shopsRegDate || item.shopsUpdatedAt) {
+    dateInfo = '<div class="rcard-dates">'
+      + (item.shopsRegDate ? '<span class="rdate">📅 出品: ' + esc(item.shopsRegDate) + '</span>' : '')
+      + (item.shopsUpdatedAt ? '<span class="rdate">🔄 更新: ' + esc(item.shopsUpdatedAt) + '</span>' : '')
+      + '</div>';
+  }
+
+  return '<div class="rcard">'
+    + '<div class="rcard-info">'
+    + '<span class="rcode">'+esc(item.code)+'</span>'
+    + '<span class="rtitle">'+esc(item.title)+'</span>'
+    + (item.price?'<span class="rprice">¥'+Number(item.price).toLocaleString()+'</span>':'')
+    + (item.stock >= 1 ? (item.status === '1' ? '<span class="rbadge" style="background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3);color:#c7d2fe;">🔒 非公開（在庫あり）</span>' : '') : (item.status === '1' ? '<span class="rbadge rbadge-private">🔒 非公開保存</span>' : '<span class="rbadge rbadge-sold">📦 売り切れ</span>'))
+    + (item.stock >= 1 && !item.code ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">⚠️ 管理番号なし</span>' : '')
+    + (item.stock >= 1 && !item.brandId ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">🏢 ブランド未登録</span>' : '')
+    + (item.stock >= 1 && item.shippingMethod !== '3' ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">📦 配送方法エラー</span>' : '')
+    + (item.stock >= 1 && item.shippingOrigin !== 'jp27' ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">📍 発送元エラー</span>' : '')
+    + (item.stock >= 1 && item.shippingDays !== '1' ? '<span class="rbadge" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;margin-left:4px;">⏱ 発送日数エラー</span>' : '')
+    + '</div>'
+    + dateInfo
+    + '<div class="plat-rows">'+rows+'</div>'
+    + '<div class="plat-footer">'+openAllBtn+'</div>'
+    + '</div>';
+}
+
+// ===== 全プラット一気に開く =====
+// ★ 修正: item.id だけ受け取り、item から code/title を直接取得
+function openAllByData(code, title, shopsUrl) {
+  var opened = 0;
+  PLATS.forEach(function(p){
+    var u = null;
+    if (p.key === 'mercari_shops') {
+      if (shopsUrl) {
+        var idMatch = shopsUrl.match(/\/product(s)?\/([a-zA-Z0-9]+)$/);
+        var itemId = idMatch ? idMatch[2] : '';
+        if (itemId) {
+          window.open('https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/' + itemId, '_blank');
+        } else {
+          window.open(shopsUrl, '_blank');
+        }
+        opened++;
+      }
+      return;
+    }
+    if (p.preferTitle) {
+      if (title) u = makeUrl(p.key, 'title', code, title);
+    } else {
+      if (code) u = makeUrl(p.key, 'code', code, title);
+      if (!u && title) u = makeUrl(p.key, 'title', code, title);
+    }
+    if (u) { window.open(u, '_blank'); opened++; }
+  });
+  if (opened === 0) showToast('開けるページがありません');
+}
+// ===== CSV インポート =====
+function openCsvModal(){ document.getElementById('csv-modal').classList.add('open'); }
+function closeCsvModal(){
+  document.getElementById('csv-modal').classList.remove('open');
+  document.getElementById('csvfile').value='';
+  document.getElementById('prev-area').innerHTML='';
+  document.getElementById('btn-import').style.display='none';
+  pendingRows=[];
+}
+
+var MARKERS=['●管理番号','■管理番号','▲管理番号','〇管理番号','□管理番号','△管理番号'];
+function extractCode(desc){
+  var lines=(desc||'').split('\n');
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i].trim();
+    if(MARKERS.some(function(m){return l===m||l.indexOf(m)===0;})){
+      for(var j=i+1;j<Math.min(i+5,lines.length);j++){
+        var c=lines[j].trim();
+        if(/^[A-E]\d{4,}/.test(c)) return c;
+      }
+    }
+  }
+  return '';
+}
+// COL定数は廃止。parseCsv内でヘッダー名から動的取得する（メルカリ列追加対応）
+
+document.addEventListener('DOMContentLoaded',function(){
+  var fi=document.getElementById('csvfile');
+  if(fi) fi.addEventListener('change',function(e){
+    var f=e.target.files[0]; if(!f)return;
+    window._csvFileName = f.name; // ファイル名を保存
+    var reader=new FileReader();
+    reader.onload=function(ev){ parseCsv(ev.target.result); };
+    reader.readAsText(f,'Shift_JIS');
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape') closeCsvModal();
+  });
+});
+
+function parseCsv(text){
+  var rows = [];
+  var r = [], c = '', inQ = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (ch === '"') {
+      if (inQ && text[i+1] === '"') { c += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (ch === ',' && !inQ) {
+      r.push(c); c = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      r.push(c); rows.push(r); r = []; c = '';
+    } else {
+      c += ch;
+    }
+  }
+  if (c !== '' || r.length > 0) { r.push(c); rows.push(r); }
+
+  // ヘッダー行から列名で動的に列番号を取得（メルカリCSV列追加に対応）
+  var hdr = rows[0] || [];
+  // 完全一致ではなく部分一致で列を探す（BOMや微妙な名称変更に対応）
+  function ci(keyword){ 
+    for(var j=0; j<hdr.length; j++){
+      if(hdr[j] && hdr[j].indexOf(keyword) !== -1) return j;
+    }
+    return -1; 
+  }
+  var COL = {
+    ID:          ci('商品ID'),
+    NAME:        ci('商品名'),
+    DESC:        ci('商品説明'),
+    STOCK:       ci('在庫数'),         // 'SKU1_在庫数'等の揺れに対応
+    CODE:        ci('商品管理コード'), // 'SKU1_商品管理コード'等の揺れに対応
+    PRICE:       ci('販売価格'),
+    STATUS:      ci('商品ステータス'),
+    REG_DATE:    ci('商品登録日時'),
+    UPD_DATE:    ci('最終更新日時'),
+    BRAND:       ci('ブランドID'),
+    SHIP_METHOD: ci('配送方法'),
+    SHIP_ORIGIN: ci('発送元の地域'),
+    SHIP_DAYS:   ci('発送までの日数'),
+    LIKES:       ci('いいね数'),
+    VIEWS:       ci('閲覧数')
+  };
+  // CSV仕様変更を検知した場合は、不正な在庫数や価格で上書きしないよう取込を止める。
+  var colLabels = {
+    ID:'商品ID', NAME:'商品名', DESC:'商品説明', STOCK:'在庫数', CODE:'商品管理コード',
+    PRICE:'販売価格', STATUS:'商品ステータス', REG_DATE:'商品登録日時', UPD_DATE:'最終更新日時',
+    BRAND:'ブランドID', SHIP_METHOD:'配送方法', SHIP_ORIGIN:'発送元の地域',
+    SHIP_DAYS:'発送までの日数', LIKES:'いいね数', VIEWS:'閲覧数'
+  };
+  var missingCols = Object.keys(COL).filter(function(key){ return COL[key] < 0; });
+  if (missingCols.length > 0) {
+    pendingRows = [];
+    var missingNames = missingCols.map(function(key){ return colLabels[key]; });
+    var msg = 'CSVの列構成が変更された可能性があるため、取り込みを中止しました。\n\n'
+      + '見つからない列：\n・' + missingNames.join('\n・') + '\n\n'
+      + 'メルカリShopsのCSV仕様を確認し、ツールを修正してから再度取り込んでください。';
+    console.error('[parseCsv] 必須ヘッダー不足:', missingNames, '受信ヘッダー:', hdr);
+    alert(msg);
+    return;
+  }
+
+  pendingRows = []; var skip = 0, noCode = 0;
+  for(var i = 1; i < rows.length; i++){
+    var cols = rows[i];
+    if(cols.length < 10){ skip++; continue; }
+    var stock = COL.STOCK >= 0 ? (parseInt(cols[COL.STOCK]) || 0) : 0;
+    var status = COL.STATUS >= 0 && cols[COL.STATUS] ? cols[COL.STATUS].trim() : '';
+    var itemId = COL.ID >= 0 && cols[COL.ID] ? cols[COL.ID].trim() : '';
+    var title  = COL.NAME >= 0 && cols[COL.NAME] ? cols[COL.NAME].trim() : '';
+    var code   = (COL.CODE >= 0 && cols[COL.CODE] ? cols[COL.CODE].trim() : '') || extractCode(COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '');
+    var price  = COL.PRICE >= 0 && cols[COL.PRICE] ? cols[COL.PRICE].trim() : '';
+    if(!code){code='CHECK';noCode++;}
+    var shopsUrl=itemId?'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products/'+itemId:'';
+    // 商品説明からハッシュタグ（カテゴリ）を抽出
+    var desc = COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '';
+    var catM = desc.match(/#[^\s\u3000\r\n,、。！？#]+/);
+    var category = catM ? catM[0] : '';
+    var symMatch = desc.match(/([●■▲〇□])管理番号/);
+    var actualSymbol = symMatch ? symMatch[1] : '';
+    var shopsRegAt = COL.REG_DATE >= 0 && cols[COL.REG_DATE] ? cols[COL.REG_DATE].trim() : '';
+    var shopsUpdAt = COL.UPD_DATE >= 0 && cols[COL.UPD_DATE] ? cols[COL.UPD_DATE].trim() : '';
+
+    var brandId        = COL.BRAND >= 0 && cols[COL.BRAND] ? cols[COL.BRAND].trim() : '';
+    var shippingMethod = COL.SHIP_METHOD >= 0 && cols[COL.SHIP_METHOD] ? cols[COL.SHIP_METHOD].trim() : '';
+    var shippingOrigin = COL.SHIP_ORIGIN >= 0 && cols[COL.SHIP_ORIGIN] ? cols[COL.SHIP_ORIGIN].trim() : '';
+    var shippingDays   = COL.SHIP_DAYS >= 0 && cols[COL.SHIP_DAYS] ? cols[COL.SHIP_DAYS].trim() : '';
+    var likes          = COL.LIKES >= 0 && cols[COL.LIKES] ? (parseInt(cols[COL.LIKES].trim()) || 0) : -1;
+    var views          = COL.VIEWS >= 0 && cols[COL.VIEWS] ? (parseInt(cols[COL.VIEWS].trim()) || 0) : -1;
+    var _rawCode = COL.CODE >= 0 && cols[COL.CODE] ? cols[COL.CODE].trim() : '';
+    var _rawDesc = COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '';
+    pendingRows.push({code:code,title:title,price:price,shopsUrl:shopsUrl,shopItemId:itemId,stock:stock,status:status,category:category,shopsRegDate:shopsRegAt,shopsUpdatedAt:shopsUpdAt,actualSymbol:actualSymbol,noCode:!_rawCode&&!extractCode(_rawDesc),brandId:brandId,shippingMethod:shippingMethod,shippingOrigin:shippingOrigin,shippingDays:shippingDays,likes:likes,views:views});
+    
+  }
+  var pa=document.getElementById('prev-area');
+  if(!pendingRows.length){pa.innerHTML='<p style="color:var(--red);padding:12px">データが見つかりません</p>';return;}
+  var html='<div class="prev-bar">'
+    +'<span class="prev-ok">対象: <b>'+pendingRows.length+'件</b></span>'
+    +(skip?'<span class="prev-skip">スキップ: '+skip+'件</span>':'')
+    +(noCode?'<span class="prev-warn">⚠ 管理番号不明: '+noCode+'件</span>':'')
+    +'</div>'
+    +(noCode?'<div style="font-size:0.78rem;color:#fbbf24;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);border-radius:8px;margin-bottom:10px;"><div style="font-weight:600;margin-bottom:6px;">⚠ 管理番号不明の商品:</div>'+pendingRows.filter(function(r){return r.code==="CHECK";}).map(function(r){return '<div style="font-size:0.75rem;color:#e2e8f0;padding:2px 0;">・'+esc(r.title.slice(0,50))+(r.title.length>50?'…':'')+'</div>';}).join('')+'</div>':'')
+    +'<div class="prev-wrap"><table class="prev-tbl">'
+    +'<thead><tr><th>管理番号</th><th>商品名</th><th>価格</th><th>Shops</th></tr></thead><tbody>'
+        +pendingRows.slice(0,100).map(function(r){
+      var isCheck = r.code === 'CHECK';
+      return '<tr'+(isCheck?' style="background:rgba(239,68,68,0.12);"':'')+'>'
+        +'<td>'+(isCheck
+          ? '<span style="color:#f87171;font-size:0.75rem;font-weight:700;">⚠️ 管理番号なし</span><br><span style="color:#e2e8f0;font-weight:600;">'+esc(r.title)+'</span>'
+          : '<code>'+esc(r.code)+'</code>')
+        +'</td>'
+        +(isCheck ? '' : '<td>'+esc(r.title.slice(0,30))+(r.title.length>30?'…':'')+'</td>')
+        +(isCheck ? '<td></td>' : '')
+        +'<td>&yen;'+Number(r.price||0).toLocaleString()+'</td>'
+        +'<td>'+(r.shopsUrl?'<a href="'+r.shopsUrl+'" target="_blank" style="color:#a78bfa;">Shops確認</a>':'-')+'</td>'
+        +'</tr>';
+    }).join('')
+    +(pendingRows.length>25?'<tr><td colspan="4" style="text-align:center;color:var(--tx2);padding:8px">他 '+(pendingRows.length-25)+'件</td></tr>':'')
+    +'</tbody></table></div>';
+  pa.innerHTML=html;
+  document.getElementById('btn-import').style.display='inline-block';
+}
+
+function runImport(){
+  if(!pendingRows.length) return;
+  var added=0,updated=0;
+  pendingRows.forEach(function(row){
+    // 管理番号で検索。CHECKの場合はShops商品IDで検索（重複防止）
+    var ex = null;
+    if (row.code !== 'CHECK') {
+      ex = items.find(function(i){ return i.code === row.code; });
+    } else if (row.shopItemId) {
+      ex = items.find(function(i){
+        // ① shopItemIdが一致（新しいエントリー）
+        if (i.shopItemId === row.shopItemId) return true;
+        // ② shopItemIdがなくてもURLにitemIdが含まれる（古いエントリー）
+        var url = i.urls && i.urls['mercari_shops'];
+        if (url && url.endsWith('/' + row.shopItemId)) return true;
+        return false;
+      });
+    }
+    if(ex){
+      ex.title=row.title; ex.price=row.price; ex.stock=row.stock; ex.status=row.status||'';
+      if(row.shopsRegDate)  ex.shopsRegDate  = row.shopsRegDate;
+      if(row.shopsUpdatedAt) ex.shopsUpdatedAt = row.shopsUpdatedAt;
+      if(row.shopItemId) ex.shopItemId = row.shopItemId;
+      if(row.category)   ex.category   = row.category;
+if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
+      if(row.brandId !== undefined) ex.brandId = row.brandId;
+      if(row.shippingMethod !== undefined) ex.shippingMethod = row.shippingMethod;
+      if(row.shippingOrigin !== undefined) ex.shippingOrigin = row.shippingOrigin;
+      if(row.shippingDays !== undefined) ex.shippingDays = row.shippingDays;
+      if(row.likes >= 0) ex.likes = row.likes;
+      if(row.views >= 0) ex.views = row.views;
+      if(!ex.urls) ex.urls={};
+      if(row.shopsUrl) ex.urls['mercari_shops']=row.shopsUrl;
+      ex.updatedAt=Date.now(); updated++;
+    } else {
+      var urls={};
+      if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',brandId:row.brandId||'',shippingMethod:row.shippingMethod||'',shippingOrigin:row.shippingOrigin||'',shippingDays:row.shippingDays||'',likes:row.likes>=0?row.likes:-1,views:row.views>=0?row.views:-1,createdAt:Date.now()});
+      added++;
+    }
+  });
+  // item_dict に保存（管理番号→タイトル+ShopsURL の辞書）
+  var dict = JSON.parse(localStorage.getItem('item_dict') || '{}');
+  pendingRows.forEach(function(row){
+    if (row.code && row.code !== 'CHECK') {
+      dict[row.code] = { title: row.title, shopsUrl: row.shopsUrl };
+    }
+  });
+  localStorage.setItem('item_dict', JSON.stringify(dict));
+
+  // === AUTO-SYNC SALE DATA ===
+  // CSV取り込み時に実際の記号（actualSymbol）でダッシュボードの状態を強制上書きする
+  try {
+      var saleDataStr = localStorage.getItem('sale_data_v1');
+      var saleData = saleDataStr ? JSON.parse(saleDataStr) : {};
+      var saleUpdated = false;
+      var now = new Date();
+      var ymdDash = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2);
+      
+      pendingRows.forEach(function(row){
+          if(!row.code || row.code === 'CHECK' || !row.actualSymbol) return;
+          var sd = saleData[row.code];
+          if(!sd) {
+              sd = { symbol: row.actualSymbol };
+              saleData[row.code] = sd;
+              saleUpdated = true;
+          } else if (sd.symbol !== row.actualSymbol) {
+              // The dashboard's symbol is out of sync with Mercari! OVERWRITE IT!
+              sd.symbol = row.actualSymbol;
+              // Auto-complete any pending price_discount tasks
+              if(sd.tasks) {
+                  var priceTask = sd.tasks.find(function(t) { return t.type === 'price_discount' && t.status === 'pending'; });
+                  if(priceTask) {
+                      priceTask.status = 'done';
+                      priceTask.completedAt = ymdDash;
+                  }
+              }
+              saleUpdated = true;
+          }
+      });
+      if(saleUpdated) {
+          localStorage.setItem('sale_data_v1', JSON.stringify(saleData));
+      }
+  } catch(e) { console.error('Auto-sync error:', e); }
+  // ============================
+  // 更新日時を保存して表示
+  var now = new Date();
+  var ymd = now.getFullYear() + '/' + ('0'+(now.getMonth()+1)).slice(-2) + '/' + ('0'+now.getDate()).slice(-2);
+  var hm  = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+  var updatedStr = ymd + ' ' + hm + ' 更新';
+  localStorage.setItem('csv_updated_at', updatedStr);
+  var ua = document.getElementById('csv-updated-at');
+  if (ua) ua.textContent = updatedStr;
+  // ファイル名をヘッダーに表示・保存
+  if (window._csvFileName) {
+    var si = document.getElementById('seed-info');
+    if (si) si.textContent = '📄 ' + window._csvFileName;
+    localStorage.setItem('csv_filename', window._csvFileName);
+  }
+  localStorage.setItem('last_seed','manual');
+  save(); updateStats(); closeCsvModal();
+  if(typeof checkErrors === "function") checkErrors();
+  showToast('✅ 新規:'+added+'件 / 更新:'+updated+'件', 4000);
+}
+
+
+
+// ===== seed_data.js 自動インポート =====
+var SEED_KEY='last_seed_file';
+
+function applyNewSeed(){
+  if(!window._SEED_DATA) return;
+  var newItems=window._SEED_DATA.map(function(s){
+    var ex=s.code!=='CHECK'?items.find(function(i){return i.code===s.code;}):null;
+    if(ex){
+      var merged=Object.assign({},ex.urls,s.urls);
+      return Object.assign({},ex,{title:s.title,price:s.price,urls:merged,updatedAt:Date.now()});
+    }
+    return s;
+  });
+  items=newItems;
+  localStorage.setItem(SEED_KEY,window._SEED_FILE||'');
+  save(); updateStats(); dismissBanner();
+  if(typeof checkErrors === "function") checkErrors();
+  showToast('✅ '+newItems.length+'件に更新しました',4000);
+}
+
+function dismissBanner(){
+  localStorage.setItem(SEED_KEY,window._SEED_FILE||'');
+  var b=document.getElementById('upd-banner');
+  if(b) b.style.display='none';
+}
+
+// ===== 初期化 =====
+load();
+if(typeof checkErrors === "function") checkErrors();
+
+if(window._SEED_DATA && items.length===0){
+  items=window._SEED_DATA; save();
+  showToast('✅ '+items.length+'件 読み込みました',3000);
+}
+var lastSeed=localStorage.getItem(SEED_KEY);
+if(window._SEED_DATA && window._SEED_FILE && window._SEED_FILE!==lastSeed && items.length>0){
+  var b=document.getElementById('upd-banner');
+  var m=document.getElementById('upd-msg');
+  if(b&&m){ m.textContent='📥 新しいShopsデータあり（'+window._SEED_FILE+'）'; b.style.display='flex'; }
+}
+if(window._SEED_FILE){
+  var si=document.getElementById('seed-info');
+  if(si) si.textContent='📄 '+window._SEED_FILE;
+}
+
+updateStats();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function checkErrors() {
+  var container = document.getElementById('error-alert-container');
+  if(!container) return;
+  var errorItems = [];
+  items.forEach(function(item) {
+    var stock = parseInt(item.stock) || 0;
+    
+    // 無視する条件1：在庫0の商品（非公開・公開問わず、在庫0のものはすべて無視）
+    if (stock <= 0) return;
+    
+    // 無視する条件2：私物（管理番号に入力があり、かつアルファベットが含まれていない場合）
+    if (item.code && item.code !== 'CHECK' && !/[a-zA-Z]/.test(item.code)) return;
+    
+    var errBadges = '';
+    if (!item.code || item.code === 'CHECK') {
+      errBadges += '<span style="display:inline-block; background:#7c3aed; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">🏷️管理番号なし</span>';
+    }
+    if (!item.brandId) {
+      errBadges += '<span style="display:inline-block; background:#2563eb; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">🏢ブランド未登録</span>';
+    }
+    if (item.shippingMethod !== '3') {
+      errBadges += '<span style="display:inline-block; background:#ea580c; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">📦配送方法エラー</span>';
+    }
+    if (item.shippingOrigin !== 'jp27') {
+      errBadges += '<span style="display:inline-block; background:#ca8a04; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">📍発送元エラー</span>';
+    }
+    if (item.shippingDays !== '1') {
+      errBadges += '<span style="display:inline-block; background:#16a34a; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;">⏱️発送日数エラー</span>';
+    }
+    
+    if (errBadges !== '') {
+      errorItems.push({ item: item, badges: errBadges });
+    }
+  });
+  
+  if (errorItems.length > 0) {
+    var html = '<div style="background:rgba(31,41,55,0.8); border:1px solid rgba(239,68,68,0.5); border-radius:8px; padding:16px; max-width:1000px; margin:0 auto 20px auto; text-align:left;">';
+    html += '<h3 style="color:#fca5a5; margin-top:0; margin-bottom:12px; font-size:1.1rem;">⚠️ 設定エラー（' + errorItems.length + '件）</h3>';
+    html += '<p style="color:#9ca3af; font-size:0.85rem; margin-top:0; margin-bottom:16px;">※メルカリShopsだけでなく、メルカリ等も確認・修正してください。</p>';
+    html += '<div style="max-height:280px; overflow-y:auto; padding-right:10px;">';
+    errorItems.forEach(function(e) {
+      var name = e.item.title || '(商品名不明)';
+      var code = e.item.code && e.item.code !== 'CHECK' ? e.item.code : 'コード無し';
+      var searchCode = code === 'コード無し' ? '' : code;
+      html += '<div style="margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">';
+      html += '<b style="color:#60a5fa; cursor:pointer; text-decoration:underline;" onclick="window.open(\'https://mercari-shops.com/seller/shops/qWn7JdhbsaotJpySx9NmFF/products?tab=opened&keyword=' + searchCode + '\', \'_blank\');">[' + code + ']</b> ';
+      html += '<span style="color:#d1d5db; font-size:0.9rem;">' + name + '</span><br>';
+      html += '<div style="margin-top:6px;">' + e.badges + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+    container.style.display = 'block';
+  } else {
+    container.innerHTML = '';
+    container.style.display = 'none';
+  }
+}
+
+
+// ==========================================
+// スタッフ用 簡易価格計算ツール (完全独立機能)
+// ==========================================
+function runQuickCalc() {
+  var input = document.getElementById('quick-calc-input');
+  var resultArea = document.getElementById('quick-calc-result');
+  if (!input || !resultArea) return;
+  
+  var p = parseInt(input.value);
+  if (!p || p <= 0) {
+    resultArea.innerHTML = '<span style="font-size: 0.85rem; color: #f87171;">数値を正しく入力してください</span>';
+    return;
+  }
+
+  // 計算ルール (既存の platPriceBadge と同等のロジック)
+  var mercari = p + 1000;
+  var rakuma = p;
+  var yflea = Math.floor(p / 1000) * 1000;
+  var yauc_start = p;
+  var yauc_bin = p < 10000 ? p + 1000 : (p < 20000 ? p + 1500 : p + 2000);
+  var yahooAuctionStyle = typeof CONFIG !== 'undefined' && CONFIG.YAHOO_AUCTION_STYLE_ENABLED === true;
+
+  // コピー用関数
+  window.copyQuickPrice = function(price, btn) {
+    var temp = document.createElement('textarea');
+    temp.value = price;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    
+    var oldHtml = btn.innerHTML;
+    var oldBg = btn.style.background;
+    var oldBc = btn.style.borderColor;
+    var oldCol = btn.style.color;
+    
+    btn.innerHTML = '✅ コピー完了';
+    btn.style.background = 'rgba(34,197,94,0.2)';
+    btn.style.borderColor = 'rgba(34,197,94,0.5)';
+    btn.style.color = '#86efac';
+    
+    setTimeout(function(){
+      btn.innerHTML = oldHtml;
+      btn.style.background = oldBg;
+      btn.style.borderColor = oldBc;
+      btn.style.color = oldCol;
+    }, 1200);
+  };
+
+  var sty = 'background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 0.9rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;';
+  
+  var html = '';
+  html += '<button onclick="copyQuickPrice('+mercari+', this)" style="'+sty+'">🔴 メルカリ ¥'+mercari.toLocaleString()+'</button>';
+  html += '<button onclick="copyQuickPrice('+rakuma+', this)" style="'+sty+'">🟣 ラクマ ¥'+rakuma.toLocaleString()+'</button>';
+  if (yahooAuctionStyle) {
+    html += '<button onclick="copyQuickPrice('+yauc_start+', this)" style="'+sty+'">🟠 ヤフオク(開始) ¥'+yauc_start.toLocaleString()+'</button>';
+    html += '<button onclick="copyQuickPrice('+yauc_bin+', this)" style="'+sty+'">🟠 ヤフオク(即決) ¥'+yauc_bin.toLocaleString()+'</button>';
+  } else {
+    html += '<button onclick="copyQuickPrice('+p+', this)" style="'+sty+'">🟠 ヤフオク(定額) ¥'+p.toLocaleString()+'</button>';
+  }
+  html += '<button onclick="copyQuickPrice('+yflea+', this)" style="'+sty+'">🟡 Y!フリマ ¥'+yflea.toLocaleString()+'</button>';
+  
+  resultArea.innerHTML = html;
+}
