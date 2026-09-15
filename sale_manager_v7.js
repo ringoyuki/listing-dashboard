@@ -291,7 +291,9 @@ function smGetAllTasks(){
   var month = d.getMonth();
   Object.keys(all).forEach(function(code){
     var sd = all[code];
-    if(!sd.tasks) return;
+    // 初期版JSONには tasks 自体がない商品がある。
+    // その場合も空配列として扱い、下のZOMBIE RECOVERYで次回作業を復元する。
+    var sdTasks = Array.isArray(sd.tasks) ? sd.tasks : [];
     var item = items.find(function(i){ return i.code===code; });
     if(!item) return;
     if(!item.code || item.code==='CHECK' || !/[a-zA-Z]/.test(item.code)) return;
@@ -315,7 +317,7 @@ function smGetAllTasks(){
        }
     }
 
-    sd.tasks.forEach(function(t){
+    sdTasks.forEach(function(t){
       if(t.status==='done') return;
       var over = smDaysDiff(t.dueDate);
       // いいね数が取得済みでSALE_MIN_LIKES以上なら表示名をセールに変更
@@ -331,7 +333,7 @@ function smGetAllTasks(){
     });
 
     // ZOMBIE RECOVERY
-    var hasPending = sd.tasks.some(function(t){ return t.status==='pending'; });
+    var hasPending = sdTasks.some(function(t){ return t.status==='pending'; });
     if(sd.symbol !== finalSym && !hasPending) {
         var nextSym = smNextSym(sd.symbol);
         if(nextSym) {
