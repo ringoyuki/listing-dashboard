@@ -173,6 +173,16 @@ function smWorkBaseDate(item, sd){
   return dates.sort(function(a,b){ return new Date(b).getTime()-new Date(a).getTime(); })[0];
 }
 
+// 〇から次の□へ進む期限は「〇になった日」から数える。
+// 途中の500円値下げや、その結果CSVの更新日時が変わっても、
+// 〇の滞在期間をリセットして報告を先送りしない。
+function smTaskBaseDate(item, sd){
+  if(sd && sd.symbol === '〇' && sd.symbolChangedAt && !isNaN(new Date(sd.symbolChangedAt).getTime())){
+    return sd.symbolChangedAt;
+  }
+  return smWorkBaseDate(item, sd);
+}
+
 // Drive上の古いデータに新しいフィールドがなくても、端末側のオーナー指示を消さない。
 // 両方に指示がある場合は、更新時刻が新しい方を採用する。
 function smMergeRemoteItem(localItem, remoteItem){
@@ -261,9 +271,9 @@ function smGetTargets(){
     if(!/[a-zA-Z]/.test(item.code)) return false;
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
     var sd = smGetItem(item.code);
-    return smDaysDiff(smWorkBaseDate(item,sd)) >= SALE_INTERVAL;
+    return smDaysDiff(smTaskBaseDate(item,sd)) >= SALE_INTERVAL;
   }).sort(function(a,b){
-    return smDaysDiff(smWorkBaseDate(b,smGetItem(b.code))) - smDaysDiff(smWorkBaseDate(a,smGetItem(a.code)));
+    return smDaysDiff(smTaskBaseDate(b,smGetItem(b.code))) - smDaysDiff(smTaskBaseDate(a,smGetItem(a.code)));
   });
 }
 
@@ -326,7 +336,7 @@ function smGetAllTasks(){
         var nextSym = smNextSym(sd.symbol);
         if(nextSym) {
             var SALE_INTERVAL = typeof CONFIG !== 'undefined' ? CONFIG.SALE_INTERVAL : 10;
-            var baseStr = smWorkBaseDate(item,sd) || today;
+            var baseStr = smTaskBaseDate(item,sd) || today;
             var targetDateStr = typeof shiftDateToSaleDay === 'function' ? shiftDateToSaleDay(smAddDays(baseStr, SALE_INTERVAL)) : smAddDays(baseStr, SALE_INTERVAL);
             var over = smDaysDiff(targetDateStr);
             var zombieLikes = (typeof item.likes !== 'undefined' && item.likes >= 0) ? item.likes : -1;
@@ -665,7 +675,7 @@ function smRenderList(){
 
   el.innerHTML = targets.map(function(item){
     var sd   = smGetItem(item.code);
-    var workBaseDate = smWorkBaseDate(item,sd);
+    var workBaseDate = smTaskBaseDate(item,sd);
     var days = smDaysDiff(workBaseDate);
     var sym  = sd.symbol||'●';
     var sc   = {'●':'#c7d2fe','■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[sym]||'#c7d2fe';
@@ -704,7 +714,7 @@ function smRenderPanel(item){
   var sd   = smGetItem(item.code);
   var sym  = sd.symbol||'●';
   var price= parseInt(item.price)||0;
-  var workBaseDate = smWorkBaseDate(item,sd);
+  var workBaseDate = smTaskBaseDate(item,sd);
   var days = smDaysDiff(workBaseDate);
   var sc   = {'●':'#c7d2fe','■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[sym]||'#c7d2fe';
   var ownerInstruction = sd.ownerInstruction || '';
