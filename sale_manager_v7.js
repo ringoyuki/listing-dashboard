@@ -154,6 +154,23 @@ function smSetItem(code, itemData){
   if(SALE_GAS_URL) smSyncItem(code, itemData);
 }
 
+// CSV上の更新日と、ツールで実施・登録した作業日を混同しない。
+// 日数判定には確認できる最新の作業基準日を使い、古いCSV日時だけで
+// 「長期間未作業」と誤判定しないようにする。
+function smWorkBaseDate(item, sd){
+  var dates = [];
+  function add(v){ if(v && !isNaN(new Date(v).getTime())) dates.push(v); }
+  add(item && (item.saleBasisAt || item.shopsUpdatedAt));
+  add(sd && sd.symbolChangedAt);
+  add(sd && sd.lastActionAt);
+  (sd && sd.tasks || []).forEach(function(t){
+    if(t.completedAt) add(t.completedAt);
+    if(t.type==='revert_check' && t.status==='pending' && t.dueDate) add(smAddDays(t.dueDate,-1));
+  });
+  if(!dates.length) return '';
+  return dates.sort(function(a,b){ return new Date(b).getTime()-new Date(a).getTime(); })[0];
+}
+
 // Drive上の古いデータに新しいフィールドがなくても、端末側のオーナー指示を消さない。
 // 両方に指示がある場合は、更新時刻が新しい方を採用する。
 function smMergeRemoteItem(localItem, remoteItem){
@@ -241,9 +258,10 @@ function smGetTargets(){
     // 無視する条件2：私物（アルファベットが含まれていない管理番号）
     if(!/[a-zA-Z]/.test(item.code)) return false;
     if((item.stock||0) <= 0 || item.status === '1' || item.status === 1) return; // 数量0、またはステータス1（非公開）を除外
-    return smDaysDiff(item.shopsUpdatedAt) >= SALE_INTERVAL;
+    var sd = smGetItem(item.code);
+    return smDaysDiff(smWorkBaseDate(item,sd)) >= SALE_INTERVAL;
   }).sort(function(a,b){
-    return smDaysDiff(b.shopsUpdatedAt) - smDaysDiff(a.shopsUpdatedAt);
+    return smDaysDiff(smWorkBaseDate(b,smGetItem(b.code))) - smDaysDiff(smWorkBaseDate(a,smGetItem(a.code)));
   });
 }
 
@@ -270,7 +288,7 @@ function smGetAllTasks(){
     var REPORT_OVER_DAYS = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 10;
     var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
     if(sd.symbol === finalSym) {
-       var baseDate = sd.reportedAt || item.shopsUpdatedAt;
+       var baseDate = sd.reportedAt || smWorkBaseDate(item,sd);
        var passedDays = smDaysDiff(baseDate);
        if(passedDays >= REPORT_OVER_DAYS) {
            tasks.push({
@@ -306,7 +324,7 @@ function smGetAllTasks(){
         var nextSym = smNextSym(sd.symbol);
         if(nextSym) {
             var SALE_INTERVAL = typeof CONFIG !== 'undefined' ? CONFIG.SALE_INTERVAL : 10;
-            var baseStr = item.shopsUpdatedAt || today;
+            var baseStr = smWorkBaseDate(item,sd) || today;
             var targetDateStr = typeof shiftDateToSaleDay === 'function' ? shiftDateToSaleDay(smAddDays(baseStr, SALE_INTERVAL)) : smAddDays(baseStr, SALE_INTERVAL);
             var over = smDaysDiff(targetDateStr);
             var zombieLikes = (typeof item.likes !== 'undefined' && item.likes >= 0) ? item.likes : -1;
@@ -338,7 +356,7 @@ function smGetOwnerReportCandidate(code, sd, item, allTasks){
   var reportDays = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 10;
   var finalSym = SALE_SYMBOLS[SALE_SYMBOLS.length - 1];
   if(sd.symbol === finalSym){
-    var baseDate = sd.reportedAt || item.shopsUpdatedAt;
+    var baseDate = sd.reportedAt || smWorkBaseDate(item,sd);
     var passedDays = smDaysDiff(baseDate);
     if(passedDays >= reportDays){
       return {
@@ -396,6 +414,10 @@ function smCompleteTask(code, taskId, revertConfirmed){
       return;
   }
   var t = (sd.tasks||[]).find(function(x){ return x.id===taskId; });
+  if(t && t.dueDate && t.dueDate > smTodayStr()){
+    alert('このタスクは '+smFmtDate(t.dueDate)+' の予定です。\n予定内容は確認できますが、完了操作は当日以降に行ってください。');
+    return;
+  }
   if(t && t.type === 'revert_check' && !revertConfirmed){
     smOpenRevertChecklist(code, taskId);
     return;
@@ -478,6 +500,24 @@ function closeSaleModal(){
 }
 
 var _smSelected = null;
+var _smTaskViewDate = smTodayStr();
+
+function smSetTaskViewDate(dateStr){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr||'')) return;
+  _smTaskViewDate = dateStr;
+  smRenderTasks();
+}
+
+function smMoveTaskViewDate(days){
+  _smTaskViewDate = smAddDays(_smTaskViewDate||smTodayStr(), days);
+  smRenderTasks();
+}
+
+function smTaskDateLabel(dateStr){
+  var parts = (dateStr||'').split('-');
+  if(parts.length!==3) return dateStr;
+  return Number(parts[1])+'月'+Number(parts[2])+'日';
+}
 
 function shiftDateToSaleDay(dStr) {
     if (!dStr) return dStr;
@@ -519,24 +559,48 @@ function smRenderTasks(){
   smUpdateSaleBanner();
   var el = document.getElementById('sm-task-list');
   if(!el) return;
-  var tasks = smGetAllTasks();
+  var todayStr = smTodayStr();
+  var viewDate = _smTaskViewDate || todayStr;
+  var viewingToday = viewDate === todayStr;
+  var allTasks = smGetAllTasks();
+  // 今日画面は、期限超過を含む「今日までの未完了」をすべて表示する。
+  // 将来日画面は、その日に予定されているタスクだけを確認用に表示する。
+  var tasks = allTasks.filter(function(t){
+    return viewingToday ? t.dueDate <= todayStr : t.dueDate === viewDate;
+  });
+  var heading = document.getElementById('sm-task-heading');
+  var count = document.getElementById('sm-task-count');
+  if(heading) heading.textContent = viewingToday ? '⏰ 今日のタスク' : '📅 '+smTaskDateLabel(viewDate)+'の予定';
+  if(count) count.textContent = viewingToday ? '未完了 '+tasks.length+'件' : tasks.length+'件';
   var pendingOwnerReport = smGetPendingOwnerReport();
-  var sentButtonHTML = pendingOwnerReport && pendingOwnerReport.items && pendingOwnerReport.items.length
+  var sentButtonHTML = viewingToday && pendingOwnerReport && pendingOwnerReport.items && pendingOwnerReport.items.length
     ? '<div style="padding:10px;"><button id="btn-mark-owner-report-sent" style="width:100%;padding:11px;background:#15803d;color:white;font-weight:bold;border:1px solid #22c55e;border-radius:5px;cursor:pointer;font-size:13px;">✅ チャット送信後：オーナーへ送信済みにする</button></div>'
     : '';
 
+  var dateNavHTML = '<div style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(15,23,42,.78);">'
+    +'<div style="display:grid;grid-template-columns:34px 1fr 34px;gap:6px;align-items:center;">'
+    +'<button onclick="smMoveTaskViewDate(-1)" title="前の日" style="height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e2e8f0;cursor:pointer;">‹</button>'
+    +'<input type="date" value="'+esc(viewDate)+'" onchange="smSetTaskViewDate(this.value)" style="height:34px;box-sizing:border-box;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:#111827;color:#e2e8f0;padding:0 8px;font-size:.78rem;">'
+    +'<button onclick="smMoveTaskViewDate(1)" title="次の日" style="height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e2e8f0;cursor:pointer;">›</button>'
+    +'</div>'
+    +(viewingToday
+      ? '<div style="margin-top:6px;color:#fbbf24;font-size:.72rem;text-align:center;">期限超過を含む、今日中に終える作業です</div>'
+      : '<button onclick="smSetTaskViewDate(smTodayStr())" style="width:100%;margin-top:6px;padding:6px;border-radius:6px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);color:#fbbf24;font-size:.72rem;cursor:pointer;">今日の未完了へ戻る</button>')
+    +'</div>';
+
   if(!tasks.length){
-    el.innerHTML = sentButtonHTML + '<div style="padding:10px 16px;color:#cbd5e1;font-size:0.82rem;">✅ 期限のタスクはありません</div>';
+    el.innerHTML = dateNavHTML + sentButtonHTML + '<div style="padding:14px 16px;color:#cbd5e1;font-size:0.82rem;">'
+      +(viewingToday ? '✅ 今日までの未完了タスクはありません' : 'この日に予定されているタスクはありません')+'</div>';
     return;
   }
 
-  var copyBtnHTML = '<div style="padding:10px;display:grid;gap:7px;">'
+  var copyBtnHTML = viewingToday ? '<div style="padding:10px;display:grid;gap:7px;">'
     +'<button id="btn-batch-copy-tasks" style="width:100%;padding:12px;background:#e74c3c;color:white;font-weight:bold;border:none;border-radius:5px;cursor:pointer;font-size:14px;">📝 オーナーへの本日の報告をコピー</button>'
     +(pendingOwnerReport && pendingOwnerReport.items && pendingOwnerReport.items.length
       ? '<button id="btn-mark-owner-report-sent" style="width:100%;padding:11px;background:#15803d;color:white;font-weight:bold;border:1px solid #22c55e;border-radius:5px;cursor:pointer;font-size:13px;">✅ チャット送信後：オーナーへ送信済みにする</button>'
       : '')
-    +'</div>';
-  el.innerHTML = copyBtnHTML + tasks.map(function(t){
+    +'</div>' : '<div style="padding:8px 12px;color:#94a3b8;font-size:.72rem;background:rgba(255,255,255,.025);">予定の確認画面です。完了操作は当日以降にできます。</div>';
+  el.innerHTML = dateNavHTML + copyBtnHTML + tasks.map(function(t){
     var over = t.overdueDays>0;
     var today = t.dueDate===smTodayStr();
     var bg   = over ? 'rgba(239,68,68,0.10)' : today ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
@@ -545,10 +609,17 @@ function smRenderTasks(){
       : today
         ? '<span style="font-size:0.68rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,0.12);padding:2px 7px;border-radius:4px;">🟡 今日</span>'
         : '<span style="font-size:0.68rem;color:#cbd5e1;background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:4px;">'+smFmtDate(t.dueDate)+'</span>';
-    var completeLabel = t.type === 'revert_check' ? '☑ 確認へ' : '✅ 完了';
-    var completeControl = t.type === 'report'
-      ? '<span style="border:1px solid rgba(251,191,36,.35);color:#fbbf24;border-radius:5px;padding:3px 9px;font-size:.69rem;white-space:nowrap;">上の報告から送信</span>'
-      : '<button onclick="event.stopPropagation();smCompleteTask(\''+esc(t.code)+'\',\''+t.taskId+'\')" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;border-radius:5px;padding:3px 9px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">'+completeLabel+'</button>';
+    var completeControl = '';
+    if(!viewingToday){
+      completeControl = '<span style="border:1px solid rgba(148,163,184,.25);color:#94a3b8;border-radius:5px;padding:3px 9px;font-size:.69rem;white-space:nowrap;">予定</span>';
+    }else if(t.type === 'report'){
+      completeControl = '<span style="border:1px solid rgba(251,191,36,.35);color:#fbbf24;border-radius:5px;padding:3px 9px;font-size:.69rem;white-space:nowrap;">上の報告から送信</span>';
+    }else if(t.type === 'symbol_change' || t.type === 'price_discount'){
+      completeControl = '<button onclick="event.stopPropagation();smSelectItem(\''+esc(t.code)+'\')" style="background:rgba(59,130,246,.13);border:1px solid rgba(96,165,250,.35);color:#93c5fd;border-radius:5px;padding:3px 9px;font-size:.72rem;cursor:pointer;white-space:nowrap;">➡ 作業へ</button>';
+    }else{
+      var completeLabel = t.type === 'revert_check' ? '☑ 確認へ' : '✅ 完了';
+      completeControl = '<button onclick="event.stopPropagation();smCompleteTask(\''+esc(t.code)+'\',\''+t.taskId+'\')" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;border-radius:5px;padding:3px 9px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">'+completeLabel+'</button>';
+    }
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:'+bg+';border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="smSelectItem(\''+esc(t.code)+'\')">'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-size:0.72rem;color:#cbd5e1;">'+esc(t.code)+'</div>'
@@ -572,8 +643,9 @@ function smRenderList(){
   }
 
   el.innerHTML = targets.map(function(item){
-    var days = smDaysDiff(item.shopsUpdatedAt);
     var sd   = smGetItem(item.code);
+    var workBaseDate = smWorkBaseDate(item,sd);
+    var days = smDaysDiff(workBaseDate);
     var sym  = sd.symbol||'●';
     var sc   = {'●':'#c7d2fe','■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[sym]||'#c7d2fe';
     var dc   = days>=60?'#f87171':days>=30?'#fb923c':'#fbbf24';
@@ -587,7 +659,7 @@ function smRenderList(){
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-size:0.7rem;color:#cbd5e1;">'+esc(item.code)+(pendingTasks?' <span style="color:#fb923c;font-weight:700;">⏰'+pendingTasks+'</span>':'')+'</div>'
       +'<div style="font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(item.title.slice(0,36))+'</div>'
-      +'<div style="font-size:0.7rem;color:#cbd5e1;margin-top:1px;">¥'+Number(item.price||0).toLocaleString()+' ／ 更新:'+smFmtDate(item.shopsUpdatedAt)+'</div>'
+      +'<div style="font-size:0.7rem;color:#cbd5e1;margin-top:1px;">¥'+Number(item.price||0).toLocaleString()+' ／ 価格・記号基準:'+smFmtDate(workBaseDate)+'</div>'
       +'</div>'
       +'<div style="font-weight:700;color:'+dc+';font-size:0.95rem;white-space:nowrap;">'+days+'<span style="font-size:0.65rem;margin-left:1px;">日</span></div>'
       +'</div>';
@@ -611,7 +683,8 @@ function smRenderPanel(item){
   var sd   = smGetItem(item.code);
   var sym  = sd.symbol||'●';
   var price= parseInt(item.price)||0;
-  var days = smDaysDiff(item.shopsUpdatedAt);
+  var workBaseDate = smWorkBaseDate(item,sd);
+  var days = smDaysDiff(workBaseDate);
   var sc   = {'●':'#c7d2fe','■':'#94a3b8','▲':'#fbbf24','〇':'#fb923c','□':'#f87171'}[sym]||'#c7d2fe';
   var ownerInstruction = sd.ownerInstruction || '';
   var ownerInstructionNote = sd.ownerInstructionNote || '';
@@ -701,7 +774,7 @@ var html = '<div style="padding:16px;">'
     +'</div>'
     +'<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 14px;text-align:center;">'
     +'<div style="font-size:1rem;font-weight:700;color:'+(days>=30?'#fb923c':'#fbbf24')+';">'+days+'日</div>'
-    +'<div style="font-size:0.65rem;color:#cbd5e1;">更新から</div>'
+    +'<div style="font-size:0.65rem;color:#cbd5e1;">最終作業から</div>'
     +'</div>'
     +'</div>'
 
@@ -724,7 +797,7 @@ var html = '<div style="padding:16px;">'
     +'<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:14px;margin-bottom:16px;">'
     +'<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;">① 商品ページでいいね数を確認して入力</div>'
     +'<div style="display:flex;align-items:center;gap:8px;">'
-    +'<input type="number" id="sm-likes-'+esc(item.code)+'" min="0" value="0" style="width:70px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:6px 8px;font-size:0.95rem;text-align:center;">'
+    +'<input type="number" id="sm-likes-'+esc(item.code)+'" min="0" value="'+((typeof item.likes==='number'&&item.likes>=0)?item.likes:'')+'" placeholder="未確認" style="width:82px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#f1f5f9;border-radius:6px;padding:6px 8px;font-size:0.95rem;text-align:center;">'
     +'<span style="color:#d1d5db;font-size:0.82rem;">いいね</span>'
     +'<button onclick="smOnLikes(\''+esc(item.code)+'\')" style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;border-radius:7px;padding:7px 16px;font-size:0.83rem;cursor:pointer;font-weight:600;">アクション確認 →</button>'
     +'</div>'
@@ -788,9 +861,22 @@ function smSaveOwnerInstruction(code){
 // いいね数でアクション確定
 function smOnLikes(code){
   var inp = document.getElementById('sm-likes-'+code);
-  var likes = parseInt(inp ? inp.value : 0) || 0;
+  var rawLikes = inp ? String(inp.value).trim() : '';
+  if(rawLikes === ''){
+    alert('商品ページで現在のいいね数を確認し、0件の場合も「0」と入力してください。');
+    return;
+  }
+  var likes = parseInt(rawLikes, 10);
+  if(isNaN(likes) || likes < 0){
+    alert('いいね数は0以上の数字で入力してください。');
+    return;
+  }
   var item  = items.find(function(i){ return i.code===code; });
   if(!item) return;
+
+  // 報告生成でも同じ判定を使えるよう、確認したいいね数を商品データへ保存する。
+  item.likes = likes;
+  if(typeof save === 'function') save();
 
   var sd      = smGetItem(code);
   var sym     = sd.symbol||'●';
@@ -840,7 +926,7 @@ function smOnLikes(code){
   }
 
   if(!nextSym){
-    var baseDate = sd.reportedAt || item.shopsUpdatedAt;
+    var baseDate = sd.reportedAt || smWorkBaseDate(item,sd);
     var d = smDaysDiff(baseDate);
     var reportDays = typeof CONFIG !== 'undefined' ? CONFIG.REPORT_OVER_DAYS : 10;
     var html = '';
@@ -999,19 +1085,23 @@ function smAfterSale(code, nextSym, nextPrice, saleDate){
   // セール実施日（指定がなければ今日）
   var actualSaleDate = (saleDate && /^\d{4}-\d{2}-\d{2}$/.test(saleDate)) ? saleDate : today;
 
-  // Reset the base update date to セール実施日（スケジュールリセット基準）
-  var itemIndex = items.findIndex(function(i){ return i.code === code; });
-  if(itemIndex !== -1) {
-    items[itemIndex].shopsUpdatedAt = actualSaleDate + 'T00:00:00.000Z';
-  }
-
-  // 翌日戻すタスクのみ追加（実施日の翌日）
-  smAddTask(code,{
-    type:'revert_check', dueDate:smAddDays(actualSaleDate, 1),
-    desc:'価格を元に戻す＋メルカリのセールコメントを削除'
-  });
-
   var sd = smGetItem(code);
+  if(!sd.tasks) sd.tasks=[];
+  sd.symbol = nextSym;
+  sd.symbolChangedAt = actualSaleDate;
+  var pendingSymbol = sd.tasks.find(function(t){ return t.status==='pending' && t.type==='symbol_change'; });
+  if(pendingSymbol){
+    pendingSymbol.status='done';
+    pendingSymbol.completedAt=today;
+  }else{
+    sd.tasks.push({id:smGenId(),type:'sale',status:'done',dueDate:actualSaleDate,completedAt:today,desc:'セール設定＋記号を'+nextSym+'に変更'});
+  }
+  var revertDate = smAddDays(actualSaleDate, 1);
+  var duplicateRevert = sd.tasks.some(function(t){ return t.status==='pending' && t.type==='revert_check' && t.dueDate===revertDate; });
+  if(!duplicateRevert){
+    sd.tasks.push({id:smGenId(),type:'revert_check',status:'pending',dueDate:revertDate,desc:'価格を元に戻す＋メルカリのセールコメントを削除'});
+  }
+  sd.lastActionAt = actualSaleDate;
   smSetItem(code, sd);
 
   var msg = (actualSaleDate === today)
@@ -1027,14 +1117,18 @@ function smDoChange(code, newSym, newPrice){
   localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sd)), action:'doChange'}));
   sd.symbol = newSym;
   sd.symbolChangedAt = smTodayStr();
+  sd.lastActionAt = smTodayStr();
 
   // 設定日数後：500円値下げ
   if(!sd.tasks) sd.tasks=[];
-  sd.tasks.push({
-    id:smGenId(), type:'sym', status:'done',
-    dueDate:smTodayStr(),
-    desc: newSym + ' に記号変更'
-  });
+  var pendingSymbol = sd.tasks.find(function(t){ return t.status==='pending' && t.type==='symbol_change'; });
+  if(pendingSymbol){
+    pendingSymbol.status='done';
+    pendingSymbol.completedAt=smTodayStr();
+    pendingSymbol.desc=newSym+' に記号変更';
+  }else{
+    sd.tasks.push({id:smGenId(),type:'sym',status:'done',dueDate:smTodayStr(),completedAt:smTodayStr(),desc:newSym+' に記号変更'});
+  }
   sd.tasks.push({
     id:smGenId(), type:'price_discount'
 , status:'pending',
@@ -1054,6 +1148,7 @@ function smManualChange(code, sym){
   localStorage.setItem('sm_undo', JSON.stringify({code:code, data:JSON.parse(JSON.stringify(sd)), action:'manualChange'}));
   sd.symbol = sym;
   sd.symbolChangedAt = smTodayStr();
+  sd.lastActionAt = smTodayStr();
   smSetItem(code, sd);
   _smSelected = code;
   smRenderAll();
@@ -1386,6 +1481,7 @@ function smBatchCopyTasks() {
   var blockMaru = [];
   var blockShikaku = [];
   var blockHighSale = [];
+  var missingLikes = [];
 
   Object.keys(all).forEach(function(code){
     var sd = all[code];
@@ -1411,7 +1507,7 @@ function smBatchCopyTasks() {
     
     // 1. 規定日数超過 (最終記号で放置)
     if(candidate.kind === 'final') {
-       var baseDate = sd.reportedAt || pd.shopsUpdatedAt;
+       var baseDate = sd.reportedAt || smWorkBaseDate(pd,sd);
        var passedDays = smDaysDiff(baseDate);
        if(passedDays >= REPORT_OVER_DAYS) {
           blockOverdue.push({code: code, title: pd.title, price: pd.price, passedDays: passedDays, url: directUrl, reportKey:candidate.key, reportKind:candidate.kind});
@@ -1429,7 +1525,14 @@ function smBatchCopyTasks() {
       var nextSym = reportTask.nextSym || smNextSym(sd.symbol);
       var newPrice = nextSym ? smSymPrice(base, nextSym) : pd.price;
       var isHigh = (base >= HIGH_PRICE_ALERT);
-      var itemData = {code: code, title: pd.title, sym: sd.symbol, nextSym: nextSym, oldPrice: pd.price, newPrice: newPrice, overdueDays: over, url: directUrl, reportKey:candidate.key, reportKind:candidate.kind};
+      var needsOwnerReport = isHigh || nextSym === sym80 || nextSym === finalSym;
+      if(!needsOwnerReport) return;
+      var likesKnown = typeof pd.likes === 'number' && pd.likes >= 0;
+      if(!likesKnown){
+        missingLikes.push({code:code, title:pd.title});
+        return;
+      }
+      var itemData = {code: code, title: pd.title, sym: sd.symbol, nextSym: nextSym, oldPrice: pd.price, newPrice: newPrice, overdueDays: over, url: directUrl, reportKey:candidate.key, reportKind:candidate.kind, likes:pd.likes, hasSale:pd.likes>=SALE_MIN_LIKES};
 
       if (isHigh) {
         // 高額商品は、記号変更とセールを実行前に報告する。
@@ -1448,6 +1551,14 @@ function smBatchCopyTasks() {
       }
     }
   });
+
+  if(missingLikes.length > 0){
+    var missingText = missingLikes.slice(0,10).map(function(d){ return '・'+d.code+' '+(d.title||'').slice(0,28); }).join('\n');
+    if(missingLikes.length > 10) missingText += '\n・ほか'+(missingLikes.length-10)+'件';
+    alert('報告対象のうち、いいね数が未確認の商品が'+missingLikes.length+'件あります。\n\n先に各商品の「いいね数」を確認して入力し、「アクション確認」を押してください。\n0件の場合も0と入力します。\n\n'+missingText);
+    smSelectItem(missingLikes[0].code);
+    return;
+  }
 
   var totalCount = blockOverdue.length + blockHighPrice.length + blockMaru.length + blockShikaku.length + blockHighSale.length;
 
@@ -1484,17 +1595,17 @@ function smBatchCopyTasks() {
       copyText += '（※高額商品のため、オーナーの許可をいただいてから変更します）\n';
       blockHighPrice.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.nextSym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.nextSym + ' に変更（いいね'+d.likes+'件／' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
 
   if (blockMaru.length > 0) {
-      copyText += '■■ 【許可願い】▲ ⇒ 〇 への記号変更 ■■\n';
+      copyText += '■■ 【許可願い】▲ ⇒ 〇 へのセール・記号変更 ■■\n';
       copyText += '（※オーナーの許可をいただいてから変更します）\n';
       blockMaru.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.nextSym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '\n'+(d.hasSale?'セール実施＋':'')+'記号を ' + d.nextSym + ' に変更（いいね'+d.likes+'件／' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
@@ -1504,17 +1615,17 @@ function smBatchCopyTasks() {
       copyText += '（※実行前にオーナーの許可が必要です）\n';
       blockHighSale.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\nセール実施＋記号を ' + d.nextSym + ' に変更予定（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '\nセール実施＋記号を ' + d.nextSym + ' に変更予定（いいね'+d.likes+'件／' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }
 
   if (blockShikaku.length > 0) {
-      copyText += '■■ 【許可願い】〇 ⇒ □ への記号変更 ■■\n';
+      copyText += '■■ 【許可願い】〇 ⇒ □ へのセール・記号変更 ■■\n';
       copyText += '（※オーナーの許可をいただいてから変更します）\n';
       blockShikaku.forEach(function(d) {
           var n = getNum();
-          copyText += n.num + ' 管理番号: ' + d.code + '\n記号を ' + d.nextSym + ' に変更（' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
+          copyText += n.num + ' 管理番号: ' + d.code + '\n'+(d.hasSale?'セール実施＋':'')+'記号を ' + d.nextSym + ' に変更（いいね'+d.likes+'件／' + (d.oldPrice||0).toLocaleString() + '円 ⇒ ' + (d.newPrice||0).toLocaleString() + '円）\n' + d.title + '\n' + d.url + '\n\n';
           replyTemplateSym.push(n.num + ' ⇒ ');
       });
   }

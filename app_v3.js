@@ -645,12 +645,21 @@ function runImport(){
       });
     }
     if(ex){
+      // Shopsの最終更新日時は、ブランド・配送設定だけの修正でも変わる。
+      // 価格・記号の作業間隔は、それらの設定修正ではリセットしない。
+      var prevPrice = parseInt(ex.price,10)||0;
+      var nextPrice = parseInt(row.price,10)||0;
+      var prevSymbol = ex.actualSymbol||'';
+      var nextSymbol = row.actualSymbol||'';
+      if(!ex.saleBasisAt) ex.saleBasisAt = ex.shopsUpdatedAt || row.shopsUpdatedAt || ex.shopsRegDate || row.shopsRegDate || '';
+      var saleRelevantChanged = prevPrice !== nextPrice || (!!prevSymbol && !!nextSymbol && prevSymbol !== nextSymbol);
       ex.title=row.title; ex.price=row.price; ex.stock=row.stock; ex.status=row.status||'';
       if(row.shopsRegDate)  ex.shopsRegDate  = row.shopsRegDate;
       if(row.shopsUpdatedAt) ex.shopsUpdatedAt = row.shopsUpdatedAt;
       if(row.shopItemId) ex.shopItemId = row.shopItemId;
       if(row.category)   ex.category   = row.category;
 if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
+      if(saleRelevantChanged && row.shopsUpdatedAt) ex.saleBasisAt = row.shopsUpdatedAt;
       if(row.brandId !== undefined) ex.brandId = row.brandId;
       if(row.shippingMethod !== undefined) ex.shippingMethod = row.shippingMethod;
       if(row.shippingOrigin !== undefined) ex.shippingOrigin = row.shippingOrigin;
@@ -663,7 +672,7 @@ if(row.actualSymbol) ex.actualSymbol = row.actualSymbol;
     } else {
       var urls={};
       if(row.shopsUrl) urls['mercari_shops']=row.shopsUrl;
-      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',brandId:row.brandId||'',shippingMethod:row.shippingMethod||'',shippingOrigin:row.shippingOrigin||'',shippingDays:row.shippingDays||'',likes:row.likes>=0?row.likes:-1,views:row.views>=0?row.views:-1,createdAt:Date.now()});
+      items.unshift({id:genId(),code:row.code,title:row.title,price:row.price,stock:row.stock,status:row.status||'',memo:'',urls:urls,shopItemId:row.shopItemId||'',category:row.category||'',actualSymbol:row.actualSymbol||'',shopsRegDate:row.shopsRegDate||'',shopsUpdatedAt:row.shopsUpdatedAt||'',saleBasisAt:row.shopsUpdatedAt||row.shopsRegDate||'',brandId:row.brandId||'',shippingMethod:row.shippingMethod||'',shippingOrigin:row.shippingOrigin||'',shippingDays:row.shippingDays||'',likes:row.likes>=0?row.likes:-1,views:row.views>=0?row.views:-1,createdAt:Date.now()});
       added++;
     }
   });

@@ -213,7 +213,7 @@
           
           <div style="flex:1;display:flex;flex-direction:column;border-bottom:2px solid rgba(255,255,255,0.1);min-height:0;">
             <div style="padding:7px 12px;background:rgba(251,191,36,0.05);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.8rem;font-weight:700;color:#fbbf24;">
-              ⏰ 今日のタスク <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;margin-left:8px;"></span>
+              <span id="sm-task-heading">⏰ 今日のタスク</span> <span id="sm-task-count" style="font-size:0.72rem;color:#64748b;margin-left:8px;"></span>
             </div>
             <div id="sm-task-body" style="flex:1;overflow-y:auto;">
               <div id="sm-task-list"></div>
@@ -236,11 +236,11 @@
   </div>
 
   <!-- <script src="seed_data.js"></script> -->
-  <script src="app_v3.js"></script>
+  <script src="app_v3.js?v=20260915-1"></script>
   <script src="csv_import_patch_v1.js"></script>
   <script src="config_v2.js"></script>
   <script src="market_search.js?v=1788767195"></script>
-<script src="sale_manager_v7.js"></script>
+<script src="sale_manager_v7.js?v=20260915-1"></script>
 
   <!-- ===== 設定ロードマップモーダル ===== -->
   <div class="backdrop" id="sim-modal" onclick="if(event.target.id==='sim-modal')closeSimulatorModal()" style="display:none; align-items:center; justify-content:center;">
@@ -314,7 +314,6 @@
 
 </body>
 </html>
-
 
 
 
