@@ -184,13 +184,12 @@
           <button onclick="openSimulatorModal()" style="background:rgba(217,119,6,0.2);border:1px solid rgba(217,119,6,0.5);color:#fcd34d;border-radius:8px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:700;white-space:nowrap;margin-left:8px;">⚙️ 設定ロードマップ</button>
           <button onclick="smUndo()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:#e2e8f0;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">↩ 元に戻す</button>
           <button id="sm-drive-csv-btn" onclick="smLoadCsvFromDrive()" style="background:rgba(34,197,94,0.18);border:1px solid rgba(34,197,94,0.45);color:#86efac;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:600;">☁ Driveから最新CSV取り込み</button>
-          <button id="sm-sync-btn" onclick="smSyncFromDrive()" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#c7d2fe;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">☁ Drive同期</button>
           <button onclick="document.getElementById('sm-settings').style.display=document.getElementById('sm-settings').style.display==='none'?'block':'none'" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;border-radius:7px;padding:5px 12px;font-size:0.78rem;cursor:pointer;">⚙ 設定</button>
           <button class="mclose" onclick="closeSaleModal()">✕</button>
         </div>
       </div>
       <div id="sm-settings" style="display:none;flex-shrink:0;padding:10px 16px;background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(255,255,255,0.08);">
-        <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px;">☁ Google Drive 同期設定（GAS WebアプリのURL）</div>
+        <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px;">☁ 最新CSV取得設定（GAS WebアプリのURL）</div>
         <div style="display:flex;gap:8px;">
           <input id="sm-gas-url" type="text" placeholder="https://script.google.com/macros/s/..." value="" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#f1f5f9;border-radius:6px;padding:5px 10px;font-size:0.82rem;">
           <button onclick="smSaveGasUrl()" style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.5);color:#c7d2fe;border-radius:6px;padding:5px 14px;font-size:0.82rem;cursor:pointer;font-weight:600;">保存</button>
@@ -220,9 +219,12 @@
             </div>
           </div>
 
-          <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
-            <div style="padding:7px 12px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.8rem;font-weight:700;color:#60a5fa;">📋 10日以上経過した商品</div>
-            <div id="sm-item-list" style="flex:1;overflow-y:auto;"></div>
+          <div id="sm-overdue-section" style="flex:0 0 auto;display:flex;flex-direction:column;min-height:0;">
+            <button id="sm-overdue-toggle" onclick="smToggleOverdueList()" aria-expanded="false" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.04);border:0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;font-weight:700;color:#60a5fa;cursor:pointer;text-align:left;">
+              <span>📋 10日以上経過した商品</span>
+              <span><span id="sm-overdue-count" style="color:#94a3b8;font-size:.72rem;"></span> <span id="sm-overdue-arrow">▼</span></span>
+            </button>
+            <div id="sm-item-list" style="display:none;flex:1;overflow-y:auto;"></div>
           </div>
         </div>
         <div id="sm-action-panel" style="flex:1;overflow-y:auto;display:none;">
@@ -236,11 +238,11 @@
   </div>
 
   <!-- <script src="seed_data.js"></script> -->
-  <script src="app_v3.js?v=20260915-1"></script>
+  <script src="app_v3.js?v=20260915-2"></script>
   <script src="csv_import_patch_v1.js"></script>
   <script src="config_v2.js"></script>
   <script src="market_search.js?v=1788767195"></script>
-<script src="sale_manager_v7.js?v=20260915-1"></script>
+<script src="sale_manager_v7.js?v=20260915-2"></script>
 
   <!-- ===== 設定ロードマップモーダル ===== -->
   <div class="backdrop" id="sim-modal" onclick="if(event.target.id==='sim-modal')closeSimulatorModal()" style="display:none; align-items:center; justify-content:center;">

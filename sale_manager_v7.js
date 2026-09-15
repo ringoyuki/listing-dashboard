@@ -4,6 +4,8 @@
 
 // === Google Drive 同期設定 ===
 var SALE_GAS_URL = localStorage.getItem('saleGasUrl') || '';
+// 作業状態の自動同期は現在使用しない。GAS URLは最新CSV取得だけに使用する。
+var SALE_STATE_DRIVE_SYNC_ENABLED = false;
 
 // === 定数 ===
 var SALE_SYMBOLS   = typeof CONFIG !== 'undefined' && CONFIG.SALE_SYMBOLS ? CONFIG.SALE_SYMBOLS : ['●','■','▲','〇','□'];
@@ -150,8 +152,8 @@ function smSetItem(code, itemData){
   var d = smGetAll();
   d[code] = itemData;
   smSetAll(d);
-  // Google Drive に非同期同期
-  if(SALE_GAS_URL) smSyncItem(code, itemData);
+  // 作業状態のDrive同期を再開する場合だけ送信する。
+  if(SALE_STATE_DRIVE_SYNC_ENABLED && SALE_GAS_URL) smSyncItem(code, itemData);
 }
 
 // CSV上の更新日と、ツールで実施・登録した作業日を混同しない。
@@ -410,7 +412,7 @@ function smMarkCopiedOwnerReportSent(){
 function smCompleteTask(code, taskId, revertConfirmed){
   var sd = smGetItem(code);
   if (taskId.startsWith('REPORT_')) {
-      alert('最終価格の報告は、上部の「オーナーへの本日の報告をコピー」から行い、チャット送信後に「オーナーへ送信済みにする」を押してください。');
+      alert('最終価格の報告は、上部左の「本日の報告をコピー」から行い、チャット送信後に右の「送信済みにする」を押してください。');
       return;
   }
   var t = (sd.tasks||[]).find(function(x){ return x.id===taskId; });
@@ -492,7 +494,7 @@ function smGenSaleText(curPrice, salePrice, saleTime){
 function openSaleModal(){
   document.getElementById('sale-modal').classList.add('open');
   smRenderAll();
-  if(SALE_GAS_URL) smSyncFromDrive();
+  if(SALE_STATE_DRIVE_SYNC_ENABLED && SALE_GAS_URL) smSyncFromDrive();
 }
 
 function closeSaleModal(){
@@ -501,6 +503,20 @@ function closeSaleModal(){
 
 var _smSelected = null;
 var _smTaskViewDate = smTodayStr();
+var _smOverdueOpen = false;
+
+function smToggleOverdueList(){
+  _smOverdueOpen = !_smOverdueOpen;
+  var section = document.getElementById('sm-overdue-section');
+  var list = document.getElementById('sm-item-list');
+  var arrow = document.getElementById('sm-overdue-arrow');
+  var toggle = document.getElementById('sm-overdue-toggle');
+  if(section) section.style.flex = _smOverdueOpen ? '0 0 42%' : '0 0 auto';
+  if(list) list.style.display = _smOverdueOpen ? 'block' : 'none';
+  if(arrow) arrow.textContent = _smOverdueOpen ? '▲' : '▼';
+  if(toggle) toggle.setAttribute('aria-expanded', _smOverdueOpen ? 'true' : 'false');
+  smRenderList();
+}
 
 function smSetTaskViewDate(dateStr){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr||'')) return;
@@ -573,9 +589,7 @@ function smRenderTasks(){
   if(heading) heading.textContent = viewingToday ? '⏰ 今日のタスク' : '📅 '+smTaskDateLabel(viewDate)+'の予定';
   if(count) count.textContent = viewingToday ? '未完了 '+tasks.length+'件' : tasks.length+'件';
   var pendingOwnerReport = smGetPendingOwnerReport();
-  var sentButtonHTML = viewingToday && pendingOwnerReport && pendingOwnerReport.items && pendingOwnerReport.items.length
-    ? '<div style="padding:10px;"><button id="btn-mark-owner-report-sent" style="width:100%;padding:11px;background:#15803d;color:white;font-weight:bold;border:1px solid #22c55e;border-radius:5px;cursor:pointer;font-size:13px;">✅ チャット送信後：オーナーへ送信済みにする</button></div>'
-    : '';
+  var hasPendingOwnerReport = !!(pendingOwnerReport && pendingOwnerReport.items && pendingOwnerReport.items.length);
 
   var dateNavHTML = '<div style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(15,23,42,.78);">'
     +'<div style="display:grid;grid-template-columns:34px 1fr 34px;gap:6px;align-items:center;">'
@@ -584,23 +598,24 @@ function smRenderTasks(){
     +'<button onclick="smMoveTaskViewDate(1)" title="次の日" style="height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e2e8f0;cursor:pointer;">›</button>'
     +'</div>'
     +(viewingToday
-      ? '<div style="margin-top:6px;color:#fbbf24;font-size:.72rem;text-align:center;">期限超過を含む、今日中に終える作業です</div>'
+      ? '<div style="margin-top:6px;padding:6px 7px;border-radius:5px;background:rgba(239,68,68,.12);color:#fca5a5;font-size:.71rem;font-weight:700;text-align:center;">⚠ 左の未完了タスクを上から順に、今日中に必ず終わらせてください</div>'
       : '<button onclick="smSetTaskViewDate(smTodayStr())" style="width:100%;margin-top:6px;padding:6px;border-radius:6px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);color:#fbbf24;font-size:.72rem;cursor:pointer;">今日の未完了へ戻る</button>')
     +'</div>';
 
+  var reportActionsHTML = viewingToday ? '<div style="padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+    +'<button id="btn-batch-copy-tasks" style="min-width:0;padding:10px 4px;background:#e74c3c;color:white;font-weight:bold;border:none;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap;">📝 本日の報告をコピー</button>'
+    +(hasPendingOwnerReport
+      ? '<button id="btn-mark-owner-report-sent" style="min-width:0;padding:10px 4px;background:#15803d;color:white;font-weight:bold;border:1px solid #22c55e;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap;">✅ 送信済みにする</button>'
+      : '<button type="button" disabled title="報告をコピーしてチャット送信した後に押せます" style="min-width:0;padding:10px 4px;background:rgba(21,128,61,.18);color:#64748b;font-weight:bold;border:1px solid rgba(34,197,94,.18);border-radius:5px;font-size:11px;white-space:nowrap;">送信後に押す</button>')
+    +'</div>' : '<div style="padding:8px 12px;color:#94a3b8;font-size:.72rem;background:rgba(255,255,255,.025);">予定の確認画面です。完了操作は当日以降にできます。</div>';
+
   if(!tasks.length){
-    el.innerHTML = dateNavHTML + sentButtonHTML + '<div style="padding:14px 16px;color:#cbd5e1;font-size:0.82rem;">'
+    el.innerHTML = dateNavHTML + reportActionsHTML + '<div style="padding:14px 16px;color:#cbd5e1;font-size:0.82rem;">'
       +(viewingToday ? '✅ 今日までの未完了タスクはありません' : 'この日に予定されているタスクはありません')+'</div>';
     return;
   }
 
-  var copyBtnHTML = viewingToday ? '<div style="padding:10px;display:grid;gap:7px;">'
-    +'<button id="btn-batch-copy-tasks" style="width:100%;padding:12px;background:#e74c3c;color:white;font-weight:bold;border:none;border-radius:5px;cursor:pointer;font-size:14px;">📝 オーナーへの本日の報告をコピー</button>'
-    +(pendingOwnerReport && pendingOwnerReport.items && pendingOwnerReport.items.length
-      ? '<button id="btn-mark-owner-report-sent" style="width:100%;padding:11px;background:#15803d;color:white;font-weight:bold;border:1px solid #22c55e;border-radius:5px;cursor:pointer;font-size:13px;">✅ チャット送信後：オーナーへ送信済みにする</button>'
-      : '')
-    +'</div>' : '<div style="padding:8px 12px;color:#94a3b8;font-size:.72rem;background:rgba(255,255,255,.025);">予定の確認画面です。完了操作は当日以降にできます。</div>';
-  el.innerHTML = dateNavHTML + copyBtnHTML + tasks.map(function(t){
+  el.innerHTML = dateNavHTML + reportActionsHTML + tasks.map(function(t){
     var over = t.overdueDays>0;
     var today = t.dueDate===smTodayStr();
     var bg   = over ? 'rgba(239,68,68,0.10)' : today ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)';
@@ -636,6 +651,12 @@ function smRenderList(){
   var el = document.getElementById('sm-item-list');
   if(!el) return;
   var targets = smGetTargets();
+  var count = document.getElementById('sm-overdue-count');
+  if(count) count.textContent = targets.length+'件';
+  if(!_smOverdueOpen){
+    el.innerHTML = '';
+    return;
+  }
 
   if(!targets.length){
     el.innerHTML='<div style="padding:32px;text-align:center;color:#cbd5e1;"><div style="font-size:2rem;margin-bottom:8px;">✅</div><div>'+SALE_INTERVAL+'日以上経過した商品はありません</div></div>';
@@ -1196,8 +1217,7 @@ function smSaveGasUrl(){
 
   SALE_GAS_URL = url;
   localStorage.setItem('saleGasUrl', url);
-  showToast('✅ GAS URLを保存しました。同期を開始します...', 2000);
-  setTimeout(smSyncFromDrive, 800);
+  showToast('✅ 最新CSV取得用のGAS URLを保存しました', 2000);
 }
 
 // ==========================================
@@ -1654,7 +1674,7 @@ function smBatchCopyTasks() {
     });
     localStorage.setItem('sm_owner_report_copy_pending_v1', JSON.stringify({createdAt:new Date().toISOString(), items:copiedItems}));
     smRenderTasks();
-    alert('報告用テキストをコピーしました。\n\nチャットへ送信した後、ツールに戻って「オーナーへ送信済みにする」を押してください。');
+    alert('報告用テキストをコピーしました。\n\nチャットへ送信した後、ツールに戻って右の「送信済みにする」を押してください。');
   }).catch(function() {
     alert('コピーに失敗しました。');
   });
