@@ -154,7 +154,12 @@
    const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
   });
  }
- function render(){app.replaceChildren();const notice=node('p','この画面は記号・価格変更専用です。配布ファイルは担当者以外に渡さず、既存ツールで同じ商品を同時に操作しないでください。',app);notice.className='warn';
+ function render(){
+  const toolbar=document.getElementById('work-toolbar');toolbar.replaceChildren();
+  const w=state.work,total=w?w.jobs.length:0,completed=w?w.jobs.filter(j=>state.records&&state.records[j.code]).length:0;
+  const progress=node('strong',w?w.role+'画面：'+total+'件中 '+completed+'件完了 ／ 残り '+(total-completed)+'件':'A・B作業画面：担当ファイルを選択してください',toolbar);progress.setAttribute('role','status');
+  const back=button('× 戻る',async()=>{if(saveBlocked)throw Error('保存エラーがあります。作業結果を確認してから移動してください');await save();let previous=null;try{previous=new URL(document.referrer);}catch(e){}if(previous&&previous.origin===location.origin&&previous.pathname!==location.pathname&&history.length>1){history.back();}else{location.assign('index.html');}},toolbar);back.setAttribute('aria-label','作業画面を閉じて戻る');back.title='入力は保存したまま戻ります。戻り先がない場合は出品管理へ戻ります。';
+  app.replaceChildren();const notice=node('p','この画面は記号・価格変更専用です。配布ファイルは担当者以外に渡さず、既存ツールで同じ商品を同時に操作しないでください。',app);notice.className='warn';
   ownerSwitch(app);const staffBox=node('section',undefined,app);staff(staffBox);
   if(state.work)return;const ownerBox=node('details',undefined,app);node('summary','オーナー：設定・担当割り当て・結果統合',ownerBox);settings(ownerBox);owner(ownerBox);
  }
