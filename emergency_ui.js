@@ -136,7 +136,7 @@
     function showReport(){
      report.replaceChildren();
      if(!['missing','sold'].includes(d.status))return;
-     const text='管理番号：'+j.code+'\n販路：'+labels[p]+'\n'+(d.status==='missing'?'商品が見つかりません。掲載先の確認をお願いします。':'売却済みでした。ほかの販路の出品状況をご確認ください。');
+     const text='管理番号：'+j.code+'\n商品名：'+(j.baseItem.title||'（商品名未登録）')+'\n販路：'+labels[p]+'\n'+(d.status==='missing'?'商品が見つかりません。掲載先の確認をお願いします。':'売却済みでした。ほかの販路の出品状況をご確認ください。');
      node('p',text,report).style.whiteSpace='pre-wrap';
      copyButton('オーナーへの報告文をコピー',text,report);
      node('small','コピー後、チャットに貼り付けて送信してください。',report);
