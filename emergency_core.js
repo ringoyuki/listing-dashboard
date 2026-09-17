@@ -67,7 +67,8 @@
   assert(checks&&checks.shops&&(checks.shops.status==='done'||checks.shops.status==='sold'&&checks.shops.reported===true),'Shopsの作業確認が必要です');
   assert(checks&&Object.keys(job.platforms).every(p=>{
    const c=checks[p];if(!c)return false;
-   if(c.status==='missing')return p!=='shops';
+   if(c.status==='auction')return ['mercari','yahoo_auction'].includes(p);
+     if(c.status==='missing')return p!=='shops';
    if(c.status==='sold')return c.reported===true;
    if(c.status==='unlisted')return c.confirmed===true;
    return c.status==='done'&&c.confirmed===true&&job.platforms[p]!==null&&(c.declaredAction?(['price','symbol','both','none'].includes(c.declaredAction)):(Number.isSafeInteger(c.before)&&c.before>=300))&&c.price===job.platforms[p]&&c.symbolConfirmed===true;

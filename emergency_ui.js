@@ -127,13 +127,18 @@
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
     box.classList.add('platform-card','platform-'+p);
     const badge=node('small','',box);
-    function showPlatformState(){const finished=['done','unlisted'].includes(d.status),held=['missing','sold','error','owner_wait'].includes(d.status);box.classList.toggle('platform-finished',finished);box.classList.toggle('platform-held',held);badge.textContent=d.status==='sold'&&d.reported?'売却済み：オーナーへ報告済み':d.status==='missing'&&p!=='shops'?'対象外：見つからないためスキップ（変更件数には含めません）':finished?'✓ この販路は確認完了':held?'⚠ この販路は要確認（完了ではありません）':d.status==='working'?'作業中':'';}
+    function showPlatformState(){const finished=['done','unlisted','auction'].includes(d.status),held=['missing','sold','error','owner_wait'].includes(d.status);box.classList.toggle('platform-finished',finished);box.classList.toggle('platform-held',held);box.querySelectorAll('[data-copy]').forEach(el=>{el.disabled=d.status==='auction';});badge.textContent=d.status==='auction'?'✓ オークション中のためスキップ（入札者0人でも対象・変更件数には含めません）':d.status==='sold'&&d.reported?'売却済み：オーナーへ報告済み':d.status==='missing'&&p!=='shops'?'対象外：見つからないためスキップ（変更件数には含めません）':finished?'✓ この販路は確認完了':held?'⚠ この販路は要確認（完了ではありません）':d.status==='working'?'作業中':'';}
     showPlatformState();
     if(target!==null)copyButton('指定価格をコピー',String(target),box);copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
-    const options=[['pending','未着手'],['both','価格と記号を変更した'],['missing','商品が見つかりません'],['sold','売却済み'],['working','作業中'],['price','価格だけ変更した'],['symbol','記号だけ変更した'],['none','もともと指定どおりだった（確認のみ）'],...(d.status==='done'&&!d.declaredAction?[['done','記録済み（旧方式）']]:[]),...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
-    const descriptions={pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'指定価格・記号に揃っていることを確認し、実際に行った作業だけを記録します。変更しなかったものは数えません。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:p==='shops'?'Shopsの商品が見つからない場合はオーナーへ確認してください。':'この販路はスキップします。他の販路の確認後、商品全体を完了できます。報告コピーは任意です。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
+    const options=[['pending','未着手'],['both','価格と記号を変更した'],['missing','商品が見つかりません'],['sold','売却済み'],['working','作業中'],...(['mercari','yahoo_auction'].includes(p)?[['auction','オークション中のためスキップ']]:[]),['price','価格だけ変更した'],['symbol','記号だけ変更した'],['none','もともと指定どおりだった（確認のみ）'],...(d.status==='done'&&!d.declaredAction?[['done','記録済み（旧方式）']]:[]),...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
+    const descriptions={auction:'入札者が0人でも、オークション中の商品はスキップします。価格・記号は変更せず、ほかの販路の確認を続けてください。',pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'指定価格・記号に揃っていることを確認し、実際に行った作業だけを記録します。変更しなかったものは数えません。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:p==='shops'?'Shopsの商品が見つからない場合はオーナーへ確認してください。':'この販路はスキップします。他の販路の確認後、商品全体を完了できます。報告コピーは任意です。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
     const status=select(options,d.status==='done'?(d.declaredAction||'done'):d.status,box),help=node('small',descriptions[d.status]||'',box);
+    if(['mercari','yahoo_auction'].includes(p)){
+     button('オークション中のためスキップ',async()=>{status.value='auction';await status.onchange();},box);
+     node('small','入札者が0人でもスキップします。オークション中かどうかは商品ページで確認してください。',box);
+    }
+    showPlatformState();
     const report=node('div',undefined,box);
     function showReport(){
      report.replaceChildren();
