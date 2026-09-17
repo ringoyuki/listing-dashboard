@@ -56,6 +56,7 @@
     const c=conflict(code,t);if(c)throw new Error(c);
   }
   function setup(code) {
+    if(window.OPERATIONS_CONFIG && !window.OPERATIONS_CONFIG.salesEnabled)throw Error('新しいセールはOFFです。終了・取消確認だけ行ってください');
     if(!activePeriod())throw new Error('新規の試験作業は10月4日までです');
     const i=itemFor(code),sd=smGetItem(code);if(!eligible(i))throw new Error('販売中・在庫ありの商品を選んでください');
     if(get(code))throw new Error('この商品は登録済みです。追加値下げは作成しません');
@@ -81,13 +82,15 @@
   }
   function updateCheck(code,platform,key,value) {const t=clone(get(code)),r=t.rows.find(x=>x.platform===platform);r.checks[key]=value;put(code,t);}
   function change(code,platform) {
+    if(window.OPERATIONS_CONFIG && !window.OPERATIONS_CONFIG.salesEnabled)throw Error('新しいセールはOFFです。終了・取消確認だけ行ってください');
     const t=clone(get(code)),r=t.rows.find(x=>x.platform===platform);guard(code,t);
     if(today()>t.timing.end)throw new Error('セール期限を過ぎています。価格変更を始めないでください');
     if(r.phase!=='ready'||!r.checks.changed)throw new Error('指定価格への変更後、商品画面を確認してください');
     if(t.base>=30000&&!r.checks.ownerApproved)throw new Error('高額商品のセールは、オーナーの事前承認を確認してください');
     r.phase=r.commentEnabled?'changed':'posted';r.changedAt=new Date().toISOString();put(code,t);render();
   }
-  function posted(code,platform) {const t=clone(get(code)),r=t.rows.find(x=>x.platform===platform);guard(code,t);if(today()>t.timing.end)throw new Error('期限を過ぎています');if(r.phase!=='changed'||!r.checks.posted)throw new Error('正しいコメントを投稿したことを確認してください');r.phase='posted';put(code,t);render();}
+  function posted(code,platform) {
+    if(window.OPERATIONS_CONFIG && !window.OPERATIONS_CONFIG.salesEnabled)throw Error('新しいセールはOFFです。終了・取消確認だけ行ってください');const t=clone(get(code)),r=t.rows.find(x=>x.platform===platform);guard(code,t);if(today()>t.timing.end)throw new Error('期限を過ぎています');if(r.phase!=='changed'||!r.checks.posted)throw new Error('正しいコメントを投稿したことを確認してください');r.phase='posted';put(code,t);render();}
   function close(code,platform,current,likes,sold) {
     const t=clone(get(code)),r=t.rows.find(x=>x.platform===platform);
     if(!['ready','changed','posted','cancelling'].includes(r.phase))throw new Error('既に終了しています');

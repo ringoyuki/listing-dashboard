@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿// ==========================================
+﻿﻿﻿﻿﻿﻿// ==========================================
 // sale_manager.js - セール管理システム v1.0
 // ==========================================
 
@@ -98,14 +98,9 @@ function smGenId(){
 // ==========================================
 function smBasePrice(symbol, price){
   var p = parseInt(price) || 0;
-  if(symbol==='●') return p;
-  if(symbol==='■') return Math.round(p/0.95);
-  if(symbol==='▲') return Math.round(p/0.90);
-  if(symbol==='〇') return Math.round(p/0.80);
-  if(symbol==='□') return Math.round(p/0.81);
-  return p;
+  var rates = typeof CONFIG !== 'undefined' && CONFIG.SYMBOL_RATES ? CONFIG.SYMBOL_RATES : {'●':1,'■':0.95,'▲':0.90,'〇':0.80,'□':0.72};
+  return rates[symbol] > 0 ? Math.round(p / rates[symbol]) : p;
 }
-
 function smSymPrice(base, sym){
   var rates = typeof CONFIG !== "undefined" && CONFIG.SYMBOL_RATES ? CONFIG.SYMBOL_RATES : {'●':1.0, '■':0.95, '▲':0.90, '〇':0.80, '□':0.75};
   var rate = rates[sym] || 1.0;
@@ -114,7 +109,7 @@ function smSymPrice(base, sym){
 
 function smBoxPrice(maruPrice){
   // Calculate base from maruPrice (which is 80%), then multiply by 72%
-  var base = maruPrice / 0.80;
+  var base = maruPrice / (typeof CONFIG !== 'undefined' && CONFIG.SYMBOL_RATES ? CONFIG.SYMBOL_RATES['〇'] : 0.80);
   var rates = typeof CONFIG !== "undefined" && CONFIG.SYMBOL_RATES ? CONFIG.SYMBOL_RATES : {'□':0.75};
   return Math.floor((base * rates['□']) / 100) * 100;
 }
@@ -174,7 +169,7 @@ function smWorkBaseDate(item, sd){
 }
 
 // 〇から次の□へ進む期限は「〇になった日」から数える。
-// 途中の500円値下げや、その結果CSVの更新日時が変わっても、
+// 途中の通常値下げや、その結果CSVの更新日時が変わっても、
 // 〇の滞在期間をリセットして報告を先送りしない。
 function smTaskBaseDate(item, sd){
   if(sd && sd.symbol === '〇' && sd.symbolChangedAt && !isNaN(new Date(sd.symbolChangedAt).getTime())){
@@ -931,7 +926,7 @@ function smOnLikes(code){
 
 
   if(nextTask && nextTask.type === 'price_discount'){
-    var targetPrice = price - SALE_DISC_AMT;
+    var targetPrice = price - smConfiguredDiscount(price);
     if(targetPrice < 0) targetPrice = 0;
     var yaAdd = targetPrice < 10000 ? 1000 : (targetPrice < 20000 ? 1500 : 2000);
     var yaSokketu = targetPrice + yaAdd;
@@ -940,7 +935,7 @@ function smOnLikes(code){
       : '<span style="font-size:0.85em;color:#94a3b8;">定額:</span> <b style="color:#fdba74;font-size:1.15em;">¥'+targetPrice.toLocaleString()+'</b>'+cbtn(targetPrice);
 
     html += '<div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.25);border-radius:10px;padding:14px;margin-bottom:12px;">'
-      +'<div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:6px;">💡 500円値下げアクション（タスク対応）</div>'
+      +'<div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:6px;">💡 通常値下げアクション（タスク対応）</div>'
       +'<div style="display:grid; grid-template-columns:230px 1fr; row-gap:10px; align-items:center; font-size:0.95rem; color:#e2e8f0; margin-bottom:12px;">'
       +'<div style="color:#cbd5e1;font-size:0.85rem;">メルカリShops、ラクマ</div>'
       +'<div><span style="color:#94a3b8;text-decoration:line-through;">¥'+price.toLocaleString()+'</span> → <b style="color:#86efac;font-size:1.15em;">¥'+targetPrice.toLocaleString()+'</b>'+cbtn(targetPrice)+'</div>'
@@ -1152,7 +1147,7 @@ function smDoChange(code, newSym, newPrice){
   sd.symbolChangedAt = smTodayStr();
   sd.lastActionAt = smTodayStr();
 
-  // 設定日数後：500円値下げ
+  // 設定日数後：通常値下げ
   if(!sd.tasks) sd.tasks=[];
   var pendingSymbol = sd.tasks.find(function(t){ return t.status==='pending' && t.type==='symbol_change'; });
   if(pendingSymbol){
@@ -1166,7 +1161,7 @@ function smDoChange(code, newSym, newPrice){
     id:smGenId(), type:'price_discount'
 , status:'pending',
     dueDate:shiftDateToSaleDay(smAddDays(smTodayStr(), SALE_HALF_DAYS)),
-    desc:'500円値下げ → ¥'+(newPrice-SALE_DISC_AMT).toLocaleString()+'に変更'
+    desc:'通常値下げ → ¥'+(newPrice-smConfiguredDiscount(newPrice)).toLocaleString()+'に変更'
   });
 
   smSetItem(code, sd);
@@ -1386,7 +1381,7 @@ function openSimulatorModal() {
   // Show current config
   var html = '';
   html += '<div><b>サイクル:</b> ' + (CONFIG.SALE_INTERVAL||10) + '日 / ' + (CONFIG.SALE_HALF_DAYS||5) + '日 (中間値下げ)</div>';
-  html += '<div><b>値引額:</b> ' + (CONFIG.SALE_DISC_AMT||500) + '円</div>';
+  html += '<div><b>値引額:</b> ' + (window.OPERATIONS_CONFIG&&OPERATIONS_CONFIG.discountMode==='percent'?OPERATIONS_CONFIG.discountValue+'％':(CONFIG.SALE_DISC_AMT||500)+'円') + '</div>';
   html += '<div><b>記号:</b> ' + (CONFIG.SALE_SYMBOLS||[]).join('→') + '</div>';
   var rates = CONFIG.SYMBOL_RATES || {};
   var rateStrs = [];
@@ -1444,6 +1439,7 @@ function runSimulation() {
         
         // 5日目値下げ
         var dDate = addD(curDate, half);
+        disc = smConfiguredDiscount(curPrice);
         curPrice -= disc;
         html += '<div><b>' + fmtD(dDate) + '</b>: '+disc+'円値下げ ⇒ ' + curPrice.toLocaleString() + '</div>';
         
@@ -1568,7 +1564,7 @@ function smBatchCopyTasks() {
 
       if (isHigh) {
         // 高額商品は、記号変更とセールを実行前に報告する。
-        // 途中の500円値下げは報告対象外。
+        // 途中の通常値下げは報告対象外。
         if ((pd.likes || 0) >= SALE_MIN_LIKES) {
           blockHighSale.push(itemData);
         } else {
@@ -1693,7 +1689,7 @@ function smBatchCopyTasks() {
 }
 
 function smExecMercariComment(code, price) {
-  var nextPrice = price - (typeof CONFIG !== 'undefined' ? CONFIG.SALE_DISC_AMT : 500);
+  var nextPrice = price - smConfiguredDiscount(price);
   if (nextPrice < 0) nextPrice = 0;
   var comment = "本日限定！" + nextPrice.toLocaleString() + "円にお値下げいたします！\n購入希望の方は「購入希望」とコメントをお願いします！";
   navigator.clipboard.writeText(comment).then(function() {
@@ -1701,3 +1697,4 @@ function smExecMercariComment(code, price) {
     window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(code), '_blank');
   });
 }
+
