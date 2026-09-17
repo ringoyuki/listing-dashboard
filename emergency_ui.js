@@ -1,5 +1,7 @@
 (async function(){
- 'use strict';const R=EmergencyCore,KEY='listing_ab_workspace_v1';let state;
+ 'use strict';
+ await OwnerSimpleLogin.enter();
+ const R=EmergencyCore,KEY='listing_ab_workspace_v1';let state;
  const db=await new Promise((resolve,reject)=>{const req=indexedDB.open(KEY,1);req.onupgradeneeded=()=>req.result.createObjectStore('state');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
  state=await new Promise((resolve,reject)=>{const req=db.transaction('state').objectStore('state').get('current');req.onsuccess=()=>resolve(req.result||{});req.onerror=()=>reject(req.error);});
  let writes=Promise.resolve(),saveBlocked=false,pendingWrites=0;
