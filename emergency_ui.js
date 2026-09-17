@@ -65,9 +65,33 @@
  }
  const labels={shops:'メルカリShops',mercari:'メルカリ',rakuma:'ラクマ',yahoo_flea:'Yahoo!フリマ',yahoo_auction:'ヤフオク'};
  function resultFile(w){return {format:'listing-ab-result-v1',id:w.id,role:w.role,exportedAt:now(),records:Object.values(state.records||{}).filter(r=>w.jobs.some(j=>j.code===r.code)),activity:Object.values(state.activity||{}).filter(e=>e.batch===w.id&&e.role===w.role),followups:w.jobs.flatMap(j=>Object.entries((state.drafts||{})[j.code]||{}).filter(([p,d])=>labels[p]&&['missing','sold','error','owner_wait'].includes(d.status)).map(([p,d])=>({code:j.code,platform:p,status:d.status,updatedAt:d.updatedAt||null,note:state.drafts[j.code].note||''}))),resume:{work:clone(w),drafts:clone(state.drafts||{}),updatedAt:state.workUpdatedAt||now()}};}
+ function ownerSwitch(parent){
+  if(new URLSearchParams(location.search).get('ownerSwitch')!=='1')return;
+  const box=node('details',undefined,parent);node('summary','オーナー専用：説明用の担当切り替え',box);
+  node('p','途中状態をこのブラウザに退避します。スタッフのPCとは同期しません。このURLはスタッフに渡さないでください。アクセス認証ではなく、通常画面での誤操作を防ぐ機能です。',box);
+  if(state.work)button('現在の結果を保存し、担当選択へ戻る',async()=>{
+   if(!confirm(state.work.role+'さんの途中状態を退避し、担当選択へ戻ります。作業結果JSONもダウンロードします。よろしいですか？'))return;
+   const result=resultFile(state.work);
+   download(result.role+'作業結果_切替前_'+now().slice(0,16).replace(/:/g,'')+'.json',result);
+   const previous=clone(state);
+   state.ownerParked=state.ownerParked||{};
+   state.ownerParked[JSON.stringify([state.work.id,state.work.role])]={work:clone(state.work),records:clone(state.records||{}),drafts:clone(state.drafts||{}),activity:clone(state.activity||{}),savedAt:now()};
+   delete state.work;state.records={};state.drafts={};state.activity={};
+   try{await save();}catch(e){state=previous;throw e;}
+   render();window.scrollTo(0,0);msg('途中状態を退避しました。ダウンロードも確認してください。別の担当ファイルを選ぶか、退避した担当へ戻れます。');
+  },box);
+  if(!state.work)Object.entries(state.ownerParked||{}).forEach(([key,parked])=>{
+   button(parked.work.role+'さんの途中状態に戻る（'+parked.savedAt+'）',async()=>{
+    R.validateWork(parked.work);const previous=clone(state);
+    state.work=clone(parked.work);state.records=clone(parked.records);state.drafts=clone(parked.drafts);state.activity=clone(parked.activity);delete state.ownerParked[key];
+    try{await save();}catch(e){state=previous;throw e;}
+    render();window.scrollTo(0,0);
+   },box);
+  });
+ }
  function staff(parent){node('h2','スタッフ：A用／B用ファイルを読み込む',parent);
   node('p','初回は下の「担当の配布ファイル」でA作業用またはB作業用JSONを選びます。従来画面のインポートには入れません。',parent);
-  upload('担当の配布ファイル',raw=>{if(raw.format!=='listing-ab-work-v1'||!['A','B'].includes(raw.role)||!Array.isArray(raw.jobs)||raw.jobs.some(j=>j.role!==raw.role))throw Error('担当別の配布ファイルではありません');if(state.work&&state.work.id!==raw.id&&Object.keys(state.records||{}).length)throw Error('前の作業結果を保存し、別のブラウザプロファイルで新しい配布を開始してください');if(state.work&&state.work.id===raw.id&&state.work.role!==raw.role)throw Error('同じ保存領域でA・Bを切り替えないでください');R.validateWork(raw);if(state.work&&state.work.id!==raw.id)throw Error('別の配布が開いています。結果を保存してオーナーへ確認してください');if(state.work)for(const j of state.work.jobs){const next=raw.jobs.find(n=>n.code===j.code);if(next&&R.stable(next)!==R.stable(j))throw Error('配布済み商品の指示が変わっています。オーナーへ確認してください');if(!next&&!state.records[j.code])throw Error('未完了の商品が新しい配布から欠落しています');}state.work=raw;state.records=state.records||{};state.drafts=state.drafts||{};},parent);
+  upload('担当の配布ファイル',raw=>{if(raw.format!=='listing-ab-work-v1'||!['A','B'].includes(raw.role)||!Array.isArray(raw.jobs)||raw.jobs.some(j=>j.role!==raw.role))throw Error('担当別の配布ファイルではありません');if(state.work&&state.work.id!==raw.id&&Object.keys(state.records||{}).length)throw Error('前の作業結果を保存し、別のブラウザプロファイルで新しい配布を開始してください');if(state.work&&state.work.id===raw.id&&state.work.role!==raw.role)throw Error('同じ保存領域でA・Bを切り替えないでください');R.validateWork(raw);if(!state.work&&state.ownerParked&&state.ownerParked[JSON.stringify([raw.id,raw.role])])throw Error('この担当の途中状態が退避されています。オーナー専用URLの「途中状態に戻る」を使用してください');if(state.work&&state.work.id!==raw.id)throw Error('別の配布が開いています。結果を保存してオーナーへ確認してください');if(state.work)for(const j of state.work.jobs){const next=raw.jobs.find(n=>n.code===j.code);if(next&&R.stable(next)!==R.stable(j))throw Error('配布済み商品の指示が変わっています。オーナーへ確認してください');if(!next&&!state.records[j.code])throw Error('未完了の商品が新しい配布から欠落しています');}state.work=raw;state.records=state.records||{};state.drafts=state.drafts||{};},parent);
   const recovery=node('details',undefined,parent);node('summary','復元が必要なときだけ（オーナーの案内で使用）',recovery);node('p','通常は開く必要はありません。同じPC・同じブラウザではそのまま続きから作業できます。',recovery);
   upload('前回の作業結果から途中入力も復元する',raw=>{if(raw.format!=='listing-ab-result-v1'||!raw.resume||raw.resume.work.id!==raw.id||raw.resume.work.role!==raw.role)throw Error('復元用の作業結果ではありません');if(state.work&&(state.work.id!==raw.id||state.work.role!==raw.role))throw Error('別の担当・配布データが開いています');if(state.work&&state.workUpdatedAt&&raw.resume.updatedAt<state.workUpdatedAt)throw Error('現在より古い保存結果です。上書きしません');const work=R.validateWork(raw.resume.work);if(!Array.isArray(raw.records)||new Set(raw.records.map(r=>r.code)).size!==raw.records.length)throw Error('完了記録が不正です');for(const r of raw.records){const j=work.jobs.find(j=>j.code===r.code);if(!j||r.role!==raw.role)throw Error('担当外の記録があります');R.record(j,r.checks,r.completedAt);}WorkCounts.entries(raw);state.activity=Object.fromEntries((raw.activity||[]).map(e=>[e.id,e]));state.work=work;state.records=Object.fromEntries(raw.records.map(r=>[r.code,r]));state.drafts=raw.resume.drafts||{};},recovery);
   const w=state.work;if(!w)return;node('p','価格・記号をコピー → 販売先で指定どおりに保存・確認 → 実際に行った作業を選択。変更前後の金額・記号の入力は不要です。',parent);node('h2',w.role+'画面：担当'+w.jobs.length+'件／完了'+w.jobs.filter(j=>state.records&&state.records[j.code]).length+'件',parent);node('p','記号・価格変更のみ。再出品・セールは行いません。価格は高くても安くても各販路の指定価格へ揃えます。売却済み・商品不一致は変更しないでください。',parent);
@@ -112,7 +136,7 @@
   });
  }
  function render(){app.replaceChildren();const notice=node('p','この画面は記号・価格変更専用です。配布ファイルは担当者以外に渡さず、既存ツールで同じ商品を同時に操作しないでください。',app);notice.className='warn';
-  const staffBox=node('section',undefined,app);staff(staffBox);
+  ownerSwitch(app);const staffBox=node('section',undefined,app);staff(staffBox);
   if(state.work)return;const ownerBox=node('details',undefined,app);node('summary','オーナー：設定・担当割り当て・結果統合',ownerBox);settings(ownerBox);owner(ownerBox);
  }
  render();
