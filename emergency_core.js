@@ -64,10 +64,11 @@
  function pack(master,role){assert(['A','B'].includes(role),'担当を確認してください');return {format:'listing-ab-work-v1',id:master.id,createdAt:master.createdAt,role,settings:clone(master.settings),jobs:master.jobs.filter(j=>j.role===role&&!master.applied[j.code]).map(j=>({code:j.code,role:j.role,kind:j.kind,symbol:j.symbol,price:j.price,platforms:clone(j.platforms),baseItem:{code:j.code,title:j.baseItem.title,price:j.baseItem.price,shopItemId:j.baseItem.shopItemId,shopsUrl:j.baseItem.urls&&j.baseItem.urls.mercari_shops}}))};}
  function record(job,checks,at){
   assert(Number.isFinite(Date.parse(at)),'完了日時が不正です');
-  assert(checks&&checks.shops&&(checks.shops.status==='done'||checks.shops.status==='sold'&&checks.shops.reported===true),'Shopsの作業確認が必要です');
+  assert(checks&&checks.shops&&(['done','owner_csv'].includes(checks.shops.status)||checks.shops.status==='sold'&&checks.shops.reported===true),'Shopsの作業確認が必要です');
   assert(checks&&Object.keys(job.platforms).every(p=>{
    const c=checks[p];if(!c)return false;
-   if(c.status==='auction')return ['mercari','yahoo_auction'].includes(p);
+   if(c.status==='owner_csv')return p==='shops'&&c.price===job.price&&c.symbol===job.symbol&&c.productId===job.baseItem.shopItemId;
+     if(c.status==='auction')return ['mercari','yahoo_auction'].includes(p);
      if(c.status==='missing')return p!=='shops';
    if(c.status==='sold')return c.reported===true;
    if(c.status==='unlisted')return c.confirmed===true;
@@ -121,7 +122,7 @@
    }
    next.emergencyLastResult=clone(r);snap.data[r.code]=next;
    // Shops was actually changed; do not assert stock or other platforms' live state.
-   if(r.checks.shops.status==='done'){i.price=job.price;i.actualSymbol=job.symbol;i.saleBasisAt=day;}
+   if(['done','owner_csv'].includes(r.checks.shops.status)){i.price=job.price;i.actualSymbol=job.symbol;i.saleBasisAt=day;}
    out.applied[r.code]=clone(r);applied.push(r.code);
   }
   snap.raw.listing_mgr_v5=JSON.stringify(snap.items);snap.raw.sale_data_v1=JSON.stringify(snap.data);out.raw=snap.raw;
@@ -131,5 +132,19 @@
   assert(w&&w.format==='listing-ab-work-v1'&&typeof w.id==='string'&&['A','B'].includes(w.role)&&Array.isArray(w.jobs),'担当別の配布ファイルではありません');settings(w.settings);
   const seen=new Set();for(const j of w.jobs){assert(typeof j.code==='string'&&!seen.has(j.code)&&j.role===w.role,'担当・管理番号を確認してください');seen.add(j.code);assert(j.baseItem&&j.baseItem.code===j.code&&symbols.includes(j.symbol)&&['symbol_change','price_discount'].includes(j.kind),'商品データを確認してください');assert(same(j.platforms,prices(j.price)),'販路の指定価格が不一致です');}return w;
  }
- const api={defaults,settings,snapshot,propose,create,pack,record,merge,prices,stable,simpleCandidates,appendSimple,validateWork};if(typeof module!=='undefined')module.exports=api;else root.EmergencyCore=api;
+ function applyOwnerCsv(state,receipt){
+  assert(state.work&&receipt.format==='listing-owner-csv-applied-v1'&&receipt.id===state.work.id&&receipt.role===state.work.role,'担当・配布が一致する変更済みファイルを選んでください');
+  assert(Array.isArray(receipt.items)&&receipt.items.length>0&&new Set(receipt.items.map(x=>x.code)).size===receipt.items.length&&Number.isFinite(Date.parse(receipt.verifiedAt)),'変更済みファイルが不正です');
+  const next=clone(state);next.drafts=next.drafts||{};
+  for(const item of receipt.items){
+   const j=state.work.jobs.find(j=>j.code===item.code);
+   assert(j&&item.productId===j.baseItem.shopItemId&&item.price===j.price&&item.symbol===j.symbol,'商品IDまたは指定内容が一致しません');
+   const draft=next.drafts[j.code]||(next.drafts[j.code]={});
+   const eventId=JSON.stringify([state.work.id,state.work.role,j.code,'shops']);
+   if(state.records?.[j.code]||state.activity?.[eventId]||draft.shops&& !['pending','owner_csv'].includes(draft.shops.status))continue;
+   draft.shops={status:'owner_csv',productId:item.productId,price:item.price,symbol:item.symbol,updatedAt:receipt.verifiedAt};
+  }
+  return next;
+ }
+ const api={defaults,settings,snapshot,propose,create,pack,record,merge,prices,stable,simpleCandidates,appendSimple,validateWork,applyOwnerCsv};if(typeof module!=='undefined')module.exports=api;else root.EmergencyCore=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -7,7 +7,7 @@
   if(raw?.format==='listing-ab-master-v1'){jobs=raw.jobs;done=new Set(Object.keys(raw.applied||{}));}
   else if(raw?.format==='listing-ab-work-v1')jobs=raw.jobs;
   else if(raw?.format==='listing-ab-result-v1'&&raw.resume?.work){jobs=raw.resume.work.jobs;done=new Set((raw.records||[]).map(r=>r.code));
-   for(const [code,checks]of Object.entries(raw.resume.drafts||{}))if(['done','sold','missing','unlisted'].includes(checks?.shops?.status))done.add(code);
+   for(const [code,checks]of Object.entries(raw.resume.drafts||{}))if(['done','sold','missing','unlisted','owner_csv'].includes(checks?.shops?.status))done.add(code);
   }else throw Error('A・B配布JSON、作業結果JSON、またはオーナー管理元JSONを選んでください');
   check(Array.isArray(jobs)&&jobs.length>0,'指定商品がありません');const seen=new Set();
   for(const j of jobs){check(j&&typeof j.code==='string'&&j.code.length>0&&j.code.trim()===j.code&&!seen.has(j.code),'管理番号が重複または不正です');seen.add(j.code);
