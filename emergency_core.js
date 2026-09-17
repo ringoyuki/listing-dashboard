@@ -68,7 +68,7 @@
   assert(checks&&Object.keys(job.platforms).every(p=>{
    const c=checks[p];if(!c)return false;
    if(c.status==='unlisted')return c.confirmed===true;
-   return c.status==='done'&&c.confirmed===true&&job.platforms[p]!==null&&Number.isSafeInteger(c.before)&&c.before>=300&&c.price===job.platforms[p]&&c.symbolConfirmed===true;
+   return c.status==='done'&&c.confirmed===true&&job.platforms[p]!==null&&(c.declaredAction?(['price','symbol','both','none'].includes(c.declaredAction)&&(p!=='yahoo_auction'||['price','none'].includes(c.declaredAction))):(Number.isSafeInteger(c.before)&&c.before>=300))&&c.price===job.platforms[p]&&c.symbolConfirmed===true;
   }),'各販路で商品・指定価格・記号を確認してください。見つからないだけで未出品にしないでください');
   return {code:job.code,role:job.role,status:'done',checks:clone(checks),completedAt:at};
  }

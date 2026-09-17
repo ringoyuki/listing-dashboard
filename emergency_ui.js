@@ -70,7 +70,7 @@
   upload('担当の配布ファイル',raw=>{if(raw.format!=='listing-ab-work-v1'||!['A','B'].includes(raw.role)||!Array.isArray(raw.jobs)||raw.jobs.some(j=>j.role!==raw.role))throw Error('担当別の配布ファイルではありません');if(state.work&&state.work.id!==raw.id&&Object.keys(state.records||{}).length)throw Error('前の作業結果を保存し、別のブラウザプロファイルで新しい配布を開始してください');if(state.work&&state.work.id===raw.id&&state.work.role!==raw.role)throw Error('同じ保存領域でA・Bを切り替えないでください');R.validateWork(raw);if(state.work&&state.work.id!==raw.id)throw Error('別の配布が開いています。結果を保存してオーナーへ確認してください');if(state.work)for(const j of state.work.jobs){const next=raw.jobs.find(n=>n.code===j.code);if(next&&R.stable(next)!==R.stable(j))throw Error('配布済み商品の指示が変わっています。オーナーへ確認してください');if(!next&&!state.records[j.code])throw Error('未完了の商品が新しい配布から欠落しています');}state.work=raw;state.records=state.records||{};state.drafts=state.drafts||{};},parent);
   const recovery=node('details',undefined,parent);node('summary','復元が必要なときだけ（オーナーの案内で使用）',recovery);node('p','通常は開く必要はありません。同じPC・同じブラウザではそのまま続きから作業できます。',recovery);
   upload('前回の作業結果から途中入力も復元する',raw=>{if(raw.format!=='listing-ab-result-v1'||!raw.resume||raw.resume.work.id!==raw.id||raw.resume.work.role!==raw.role)throw Error('復元用の作業結果ではありません');if(state.work&&(state.work.id!==raw.id||state.work.role!==raw.role))throw Error('別の担当・配布データが開いています');if(state.work&&state.workUpdatedAt&&raw.resume.updatedAt<state.workUpdatedAt)throw Error('現在より古い保存結果です。上書きしません');const work=R.validateWork(raw.resume.work);if(!Array.isArray(raw.records)||new Set(raw.records.map(r=>r.code)).size!==raw.records.length)throw Error('完了記録が不正です');for(const r of raw.records){const j=work.jobs.find(j=>j.code===r.code);if(!j||r.role!==raw.role)throw Error('担当外の記録があります');R.record(j,r.checks,r.completedAt);}WorkCounts.entries(raw);state.activity=Object.fromEntries((raw.activity||[]).map(e=>[e.id,e]));state.work=work;state.records=Object.fromEntries(raw.records.map(r=>[r.code,r]));state.drafts=raw.resume.drafts||{};},recovery);
-  const w=state.work;if(!w)return;node('p','各販路で変更前の実価格・記号を入力 → 指定価格をコピー → 販売先で保存 →「指定価格・記号に変更済み」を選択。変更後価格の入力と確認チェックは不要です。',parent);node('h2',w.role+'画面：担当'+w.jobs.length+'件／完了'+w.jobs.filter(j=>state.records&&state.records[j.code]).length+'件',parent);node('p','記号・価格変更のみ。再出品・セールは行いません。価格は高くても安くても各販路の指定価格へ揃えます。売却済み・商品不一致は変更しないでください。',parent);
+  const w=state.work;if(!w)return;node('p','価格・記号をコピー → 販売先で指定どおりに保存・確認 → 実際に行った作業を選択。変更前後の金額・記号の入力は不要です。',parent);node('h2',w.role+'画面：担当'+w.jobs.length+'件／完了'+w.jobs.filter(j=>state.records&&state.records[j.code]).length+'件',parent);node('p','記号・価格変更のみ。再出品・セールは行いません。価格は高くても安くても各販路の指定価格へ揃えます。売却済み・商品不一致は変更しないでください。',parent);
   button('作業結果を保存して渡す',()=>download(w.role+'作業結果_'+now().slice(0,16).replace(/:/g,'')+'_'+w.id+'.json',resultFile(w)),parent);
   const finishGuide=node('section',undefined,parent);
   node('h3','今日の作業を終えるとき',finishGuide);
@@ -84,38 +84,27 @@
   if(w.jobs.length&&w.jobs.every(j=>state.records[j.code]))button('全件完了：結果を保存して次の配布へ',()=>{download(w.role+'作業結果_'+w.id+'.json',resultFile(w));state.archives=state.archives||[];state.archives.push({work:state.work,records:state.records,drafts:state.drafts,activity:state.activity});delete state.work;state.records={};state.drafts={};state.activity={};save();render();},parent);
   w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.className='product-card '+(index%2?'product-alternate':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
-   const draft=state.drafts[j.code]||(state.drafts[j.code]={});const symbolInputs={};
+   const draft=state.drafts[j.code]||(state.drafts[j.code]={});
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3',p==='yahoo_auction'?'記号の変更なし（価格のみ）':'変更後の記号： '+j.symbol,box);
     const q=encodeURIComponent(j.code),qt=encodeURIComponent(j.baseItem.title||j.code),search={mercari:'https://jp.mercari.com/search?keyword='+q,rakuma:'https://fril.jp/s?query='+q,yahoo_flea:'https://paypayfleamarket.yahoo.co.jp/search/'+q+'?page=1',yahoo_auction:'https://auctions.yahoo.co.jp/search/search?p='+qt};
     let href=p==='shops'?j.baseItem.shopsUrl:search[p];if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',p==='shops'?'Shops管理画面を開く':'商品を検索する',box);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}
     const identity=node('p','商品ページを開いたら、管理番号が「'+j.code+'」と一致することを確認してから、価格・記号を変更してください。',box);identity.className='identity-check';
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
-    let beforeSymbol;if(p!=='yahoo_auction'){node('label','変更前の実際の記号',box);beforeSymbol=select([['','選択してください'],...['●','■','▲','〇','□','なし'].map(x=>[x,x])],d.beforeSymbol||'',box);symbolInputs[p]=beforeSymbol;
-    if(p==='shops')node('small','ここで選ぶと、ほかの販路の未入力の記号にも反映します。実物と違う販路だけ選び直してください（ヤフオク除外）。',box);
-    else node('small','Shopsの記号を初期入力します。商品ページと違う場合は、この販路の実際の記号へ選び直してください。',box);
-    beforeSymbol.onchange=()=>{d.beforeSymbol=beforeSymbol.value;
-     if(p==='shops'&&d.beforeSymbol){for(const other of ['mercari','rakuma','yahoo_flea']){
-      const inputEl=symbolInputs[other],otherDraft=draft[other],eventKey=JSON.stringify([w.id,w.role,j.code,other]);
-      if(inputEl&&otherDraft&&!otherDraft.beforeSymbol&&!state.records[j.code]&&!(state.activity||{})[eventKey]&&!['done','unlisted'].includes(otherDraft.status)){
-       otherDraft.beforeSymbol=d.beforeSymbol;inputEl.value=d.beforeSymbol;
-      }
-     }}save();};}
-    node('label','変更前の実価格（この販路の商品ページで確認）',box);const before=input('number',d.before,box);before.placeholder='変更前の商品ページの実価格';before.oninput=()=>{d.before=before.value===''?null:Number(before.value);save();};
     if(target!==null)copyButton('指定価格をコピー',String(target),box);if(p!=='yahoo_auction')copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
-    const options=[['pending','未着手'],['working','作業中'],['done','指定価格・記号に変更済み'],...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['missing','商品が見つかりません'],['sold','売却済み'],['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
-    const descriptions={pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'実際の商品ページで指定価格・記号を保存し、確認できた場合に選びます。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:'検索しても見つかりません。いったん次の商品へ進めます。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
-    const status=select(options,d.status,box),help=node('small',descriptions[d.status]||'',box);
+    const options=[['pending','未着手'],['working','作業中'],['price','価格だけ変更した'],...(p==='yahoo_auction'?[]:[['symbol','記号だけ変更した'],['both','価格と記号を変更した']]),['none','もともと指定どおりだった（確認のみ）'],...(d.status==='done'&&!d.declaredAction?[['done','記録済み（旧方式）']]:[]),...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['missing','商品が見つかりません'],['sold','売却済み'],['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
+    const descriptions={pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'指定価格・記号に揃っていることを確認し、実際に行った作業だけを記録します。変更しなかったものは数えません。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:'検索しても見つかりません。いったん次の商品へ進めます。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
+    const status=select(options,d.status==='done'?(d.declaredAction||'done'):d.status,box),help=node('small',descriptions[d.status]||'',box);
     const eventId=JSON.stringify([w.id,w.role,j.code,p]);
     status.onchange=async()=>{const old=clone(d);try{
-     d.status=status.value;d.updatedAt=now();
+     const selected=status.value;d.declaredAction=['price','symbol','both','none'].includes(selected)?selected:null;d.status=d.declaredAction?'done':selected;d.updatedAt=now();
      if(d.status==='done'||d.status==='unlisted'){
       d.price=d.status==='done'?target:null;d.confirmed=true;d.symbolConfirmed=d.status==='done';
       const e=WorkCounts.event(w.id,w.role,j,p,d,now());state.activity=state.activity||{};state.activity[e.id]=e;
       await save();box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','この販路は記録済みです。誤りがあれば管理番号・販路をオーナーへ連絡してください。',box);
      }else{d.confirmed=false;d.symbolConfirmed=false;await save();}
      help.textContent=descriptions[d.status];
-    }catch(e){Object.assign(d,old);status.value=d.status;msg(e.message);}};
+    }catch(e){Object.assign(d,old);status.value=d.status==='done'?(d.declaredAction||'done'):d.status;msg(e.message);}};
     if(state.records[j.code]||(state.activity&&state.activity[eventId])){box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','記録済み：入力内容を保持しています',box);}
    });
    const note=input('text',draft.note||'',section);note.placeholder='保留理由・オーナーへの確認事項';note.oninput=()=>{draft.note=note.value;save();};
