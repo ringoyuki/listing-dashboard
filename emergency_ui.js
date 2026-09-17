@@ -125,12 +125,12 @@
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
     box.classList.add('platform-card','platform-'+p);
     const badge=node('small','',box);
-    function showPlatformState(){const finished=['done','unlisted'].includes(d.status),held=['missing','sold','error','owner_wait'].includes(d.status);box.classList.toggle('platform-finished',finished);box.classList.toggle('platform-held',held);badge.textContent=finished?'✓ この販路は確認完了':held?'⚠ この販路は要確認（完了ではありません）':d.status==='working'?'作業中':'';}
+    function showPlatformState(){const finished=['done','unlisted'].includes(d.status),held=['missing','sold','error','owner_wait'].includes(d.status);box.classList.toggle('platform-finished',finished);box.classList.toggle('platform-held',held);badge.textContent=d.status==='sold'&&d.reported?'売却済み：オーナーへ報告済み':d.status==='missing'&&p!=='shops'?'対象外：見つからないためスキップ（変更件数には含めません）':finished?'✓ この販路は確認完了':held?'⚠ この販路は要確認（完了ではありません）':d.status==='working'?'作業中':'';}
     showPlatformState();
     if(target!==null)copyButton('指定価格をコピー',String(target),box);copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
     const options=[['pending','未着手'],['both','価格と記号を変更した'],['missing','商品が見つかりません'],['sold','売却済み'],['working','作業中'],['price','価格だけ変更した'],['symbol','記号だけ変更した'],['none','もともと指定どおりだった（確認のみ）'],...(d.status==='done'&&!d.declaredAction?[['done','記録済み（旧方式）']]:[]),...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
-    const descriptions={pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'指定価格・記号に揃っていることを確認し、実際に行った作業だけを記録します。変更しなかったものは数えません。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:'検索しても見つかりません。いったん次の商品へ進めます。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
+    const descriptions={pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'指定価格・記号に揃っていることを確認し、実際に行った作業だけを記録します。変更しなかったものは数えません。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:p==='shops'?'Shopsの商品が見つからない場合はオーナーへ確認してください。':'この販路はスキップします。他の販路の確認後、商品全体を完了できます。報告コピーは任意です。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
     const status=select(options,d.status==='done'?(d.declaredAction||'done'):d.status,box),help=node('small',descriptions[d.status]||'',box);
     const report=node('div',undefined,box);
     function showReport(){
@@ -140,12 +140,16 @@
      node('p',text,report).style.whiteSpace='pre-wrap';
      copyButton('オーナーへの報告文をコピー',text,report);
      node('small','コピー後、チャットに貼り付けて送信してください。',report);
+     if(d.status==='sold'){
+      const warning=node('p','⚠ 売却済み：各プラットフォームの販売取り下げが必要です。必ずオーナーへ報告してください。報告後はこの商品の確認を完了できます。',report);warning.className='sold-warning';
+      check('オーナーへチャットで報告しました',d.reported,async value=>{d.reported=value;try{await save();showPlatformState();}catch(e){msg(e.message);}},report);
+     }
     }
     showReport();
     const eventId=JSON.stringify([w.id,w.role,j.code,p]);
     status.onchange=async()=>{const old=clone(d);try{
      if(['price','symbol','both','none','unlisted'].includes(status.value)&&!confirm('管理番号：'+j.code+'\n販路：'+labels[p]+'\n「'+options.find(o=>o[0]===status.value)[1]+'」で記録しますか？\n販売サイトでの確認が終わった場合のみOKを押してください。確定後はこの画面で変更できません。')){status.value=d.status==='done'?(d.declaredAction||'done'):d.status;return;}
-     const selected=status.value;d.declaredAction=['price','symbol','both','none'].includes(selected)?selected:null;d.status=d.declaredAction?'done':selected;d.updatedAt=now();
+     const selected=status.value;if(selected!==d.status)d.reported=false;d.declaredAction=['price','symbol','both','none'].includes(selected)?selected:null;d.status=d.declaredAction?'done':selected;d.updatedAt=now();
      if(d.status==='done'||d.status==='unlisted'){
       d.price=d.status==='done'?target:null;d.confirmed=true;d.symbolConfirmed=d.status==='done';
       const e=WorkCounts.event(w.id,w.role,j,p,d,now());state.activity=state.activity||{};state.activity[e.id]=e;
@@ -163,7 +167,7 @@
     if(next){next.open=true;next.scrollIntoView({block:'start',behavior:'auto'});}else section.scrollIntoView({block:'start',behavior:'auto'});
     msg('管理番号 '+j.code+' を要確認として保存しました。完了件数には含めません。報告文または作業結果JSONをオーナーへ渡してください。');
    },section);hold.disabled=!!state.records[j.code];
-   const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');if(Object.keys(j.platforms).some(p=>draft[p]&&['missing','sold','error','owner_wait'].includes(draft[p].status))){msg('要確認の販路があります。「要確認として保存して次へ」を押してください。');return;}const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
+   const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');if(Object.keys(j.platforms).some(p=>draft[p]&&(['error','owner_wait'].includes(draft[p].status)||(draft[p].status==='sold'&&!draft[p].reported)||(p==='shops'&&draft[p].status==='missing')))){msg('要確認の販路があります。「要確認として保存して次へ」を押してください。');return;}const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
   });
  }
  function render(){

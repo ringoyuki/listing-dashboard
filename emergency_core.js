@@ -64,9 +64,11 @@
  function pack(master,role){assert(['A','B'].includes(role),'担当を確認してください');return {format:'listing-ab-work-v1',id:master.id,createdAt:master.createdAt,role,settings:clone(master.settings),jobs:master.jobs.filter(j=>j.role===role&&!master.applied[j.code]).map(j=>({code:j.code,role:j.role,kind:j.kind,symbol:j.symbol,price:j.price,platforms:clone(j.platforms),baseItem:{code:j.code,title:j.baseItem.title,price:j.baseItem.price,shopItemId:j.baseItem.shopItemId,shopsUrl:j.baseItem.urls&&j.baseItem.urls.mercari_shops}}))};}
  function record(job,checks,at){
   assert(Number.isFinite(Date.parse(at)),'完了日時が不正です');
-  assert(checks&&checks.shops&&checks.shops.status==='done','Shopsの作業確認が必要です');
+  assert(checks&&checks.shops&&(checks.shops.status==='done'||checks.shops.status==='sold'&&checks.shops.reported===true),'Shopsの作業確認が必要です');
   assert(checks&&Object.keys(job.platforms).every(p=>{
    const c=checks[p];if(!c)return false;
+   if(c.status==='missing')return p!=='shops';
+   if(c.status==='sold')return c.reported===true;
    if(c.status==='unlisted')return c.confirmed===true;
    return c.status==='done'&&c.confirmed===true&&job.platforms[p]!==null&&(c.declaredAction?(['price','symbol','both','none'].includes(c.declaredAction)):(Number.isSafeInteger(c.before)&&c.before>=300))&&c.price===job.platforms[p]&&c.symbolConfirmed===true;
   }),'各販路で商品・指定価格・記号を確認してください。見つからないだけで未出品にしないでください');
@@ -108,6 +110,7 @@
    if(previous){assert(same(previous,r),'同じ商品の異なる結果です。確認が必要です');duplicates.push(r.code);continue;}
    const i=snap.items.find(i=>i.code===r.code),sd=snap.data[r.code]||{};
    if(!same(i,job.baseItem)||!same(sd,job.baseData)){conflicts.push(r.code);continue;}
+   if(Object.values(r.checks).some(c=>c&&c.status==='sold')){snap.data[r.code]={...clone(sd),emergencyLastResult:clone(r),emergencyReview:{reason:'売却済み報告あり：各販路の販売取り下げを確認してください',reportedAt:r.completedAt,role:r.role}};out.applied[r.code]=clone(r);applied.push(r.code);continue;}
    const day=r.completedAt.slice(0,10),next=clone(sd);next.symbol=job.symbol;next.symbolChangedAt=job.kind==='symbol_change'?day:next.symbolChangedAt;next.lastActionAt=day;
    next.tasks=next.tasks||[];next.tasks.forEach(t=>{if(t.status==='pending'&&t.type===job.kind&&(!t.dueDate||t.dueDate<=day)){t.status='done';t.completedAt=day;t.emergencyBatch=master.id;}});
    next.tasks.push({id:master.id+'_'+r.code,type:'emergency_change',status:'done',dueDate:day,completedAt:day,desc:job.symbol+'／指定価格 '+job.price+'円',emergencyBatch:master.id,staffRole:job.role});
