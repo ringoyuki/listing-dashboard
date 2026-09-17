@@ -14,6 +14,12 @@
  }
  function node(tag,text,parent){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e;}
  function button(text,fn,parent){const b=node('button',text,parent);b.onclick=async()=>{try{await writes;await fn();await writes;}catch(e){msg(e.message);}};return b;}
+ function copyButton(label,value,parent){
+  const b=node('button',label,parent);b.dataset.copy='true';const feedback=node('small','',parent);
+  const success=()=>{feedback.textContent='コピーしました：'+value;b.textContent='✓ コピー済み：'+value;};
+  function fallback(){const field=node('textarea',String(value),parent);field.readOnly=true;field.setAttribute('aria-label','コピーする内容');field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(e){}if(copied){field.remove();success();}else{feedback.textContent='自動コピーできませんでした。選択された内容を Ctrl+C でコピーしてください。';}}
+  b.onclick=()=>{try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(String(value)).then(success,fallback);}else fallback();}catch(e){fallback();}};return b;
+ }
  function select(options,value,parent){const e=node('select',undefined,parent);options.forEach(([v,t])=>{const o=node('option',t,e);o.value=v;});e.value=value;return e;}
  function input(type,value,parent){const e=node('input',undefined,parent);e.type=type;e.value=value??'';return e;}
  function check(text,value,fn,parent){const l=node('label',undefined,parent),i=input('checkbox','',l);i.checked=!!value;node('span',text,l);i.onchange=()=>{try{fn(i.checked);}catch(e){msg(e.message);}};return i;}
@@ -94,7 +100,7 @@
       }
      }}save();};}
     node('label','変更前の実価格（この販路の商品ページで確認）',box);const before=input('number',d.before,box);before.placeholder='変更前の商品ページの実価格';before.oninput=()=>{d.before=before.value===''?null:Number(before.value);save();};
-    if(target!==null)button('指定価格をコピー',async()=>{await navigator.clipboard.writeText(String(target));msg('指定価格 '+target.toLocaleString()+' をコピーしました。販売先で保存した後に「指定価格・記号に変更済み」を選んでください。');},box);
+    if(target!==null)copyButton('指定価格をコピー',String(target),box);if(p!=='yahoo_auction')copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
     const options=[['pending','未着手'],['working','作業中'],['done','指定価格・記号に変更済み'],...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['missing','商品が見つかりません'],['sold','売却済み'],['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
     const descriptions={pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'実際の商品ページで指定価格・記号を保存し、確認できた場合に選びます。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:'検索しても見つかりません。いったん次の商品へ進めます。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
@@ -105,11 +111,11 @@
      if(d.status==='done'||d.status==='unlisted'){
       d.price=d.status==='done'?target:null;d.confirmed=true;d.symbolConfirmed=d.status==='done';
       const e=WorkCounts.event(w.id,w.role,j,p,d,now());state.activity=state.activity||{};state.activity[e.id]=e;
-      await save();box.querySelectorAll('input,select,button').forEach(el=>el.disabled=true);node('small','この販路は記録済みです。誤りがあれば管理番号・販路をオーナーへ連絡してください。',box);
+      await save();box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','この販路は記録済みです。誤りがあれば管理番号・販路をオーナーへ連絡してください。',box);
      }else{d.confirmed=false;d.symbolConfirmed=false;await save();}
      help.textContent=descriptions[d.status];
     }catch(e){Object.assign(d,old);status.value=d.status;msg(e.message);}};
-    if(state.records[j.code]||(state.activity&&state.activity[eventId])){box.querySelectorAll('input,select,button').forEach(el=>el.disabled=true);node('small','記録済み：入力内容を保持しています',box);}
+    if(state.records[j.code]||(state.activity&&state.activity[eventId])){box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','記録済み：入力内容を保持しています',box);}
    });
    const note=input('text',draft.note||'',section);note.placeholder='保留理由・オーナーへの確認事項';note.oninput=()=>{draft.note=note.value;save();};
    const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();},section);done.disabled=!!state.records[j.code];
