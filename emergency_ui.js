@@ -16,7 +16,7 @@
  function button(text,fn,parent){const b=node('button',text,parent);b.onclick=async()=>{try{await writes;await fn();await writes;}catch(e){msg(e.message);}};return b;}
  function copyButton(label,value,parent){
   const b=node('button',label,parent);b.dataset.copy='true';const feedback=node('small','',parent);
-  const success=()=>{feedback.textContent='コピーしました：'+value;b.textContent='✓ コピー済み：'+value;};
+  const success=()=>{parent.querySelectorAll('.copy-selected').forEach(el=>el.classList.remove('copy-selected'));b.classList.add('copy-selected');feedback.textContent='コピーしました：'+value;b.textContent='✓ コピー済み：'+value;};
   function fallback(){const field=node('textarea',String(value),parent);field.readOnly=true;field.setAttribute('aria-label','コピーする内容');field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(e){}if(copied){field.remove();success();}else{feedback.textContent='自動コピーできませんでした。選択された内容を Ctrl+C でコピーしてください。';}}
   b.onclick=()=>{try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(String(value)).then(success,fallback);}else fallback();}catch(e){fallback();}};return b;
  }
@@ -123,6 +123,10 @@
     if(p==='yahoo_auction')node('small','管理番号で探す場合は、検索先の「条件指定」で「タイトルと商品説明」を選択してください。説明文の検索対象は冒頭1,000文字までです。',box);
     const identity=node('p','商品ページを開いたら、管理番号が「'+j.code+'」と一致することを確認してから、価格・記号を変更してください。',box);identity.className='identity-check';
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
+    box.classList.add('platform-card','platform-'+p);
+    const badge=node('small','',box);
+    function showPlatformState(){const finished=['done','unlisted'].includes(d.status),held=['missing','sold','error','owner_wait'].includes(d.status);box.classList.toggle('platform-finished',finished);box.classList.toggle('platform-held',held);badge.textContent=finished?'✓ この販路は確認完了':held?'⚠ この販路は要確認（完了ではありません）':d.status==='working'?'作業中':'';}
+    showPlatformState();
     if(target!==null)copyButton('指定価格をコピー',String(target),box);copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
     const options=[['pending','未着手'],['both','価格と記号を変更した'],['missing','商品が見つかりません'],['sold','売却済み'],['working','作業中'],['price','価格だけ変更した'],['symbol','記号だけ変更した'],['none','もともと指定どおりだった（確認のみ）'],...(d.status==='done'&&!d.declaredAction?[['done','記録済み（旧方式）']]:[]),...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
@@ -140,18 +144,26 @@
     showReport();
     const eventId=JSON.stringify([w.id,w.role,j.code,p]);
     status.onchange=async()=>{const old=clone(d);try{
+     if(['price','symbol','both','none','unlisted'].includes(status.value)&&!confirm('管理番号：'+j.code+'\n販路：'+labels[p]+'\n「'+options.find(o=>o[0]===status.value)[1]+'」で記録しますか？\n販売サイトでの確認が終わった場合のみOKを押してください。確定後はこの画面で変更できません。')){status.value=d.status==='done'?(d.declaredAction||'done'):d.status;return;}
      const selected=status.value;d.declaredAction=['price','symbol','both','none'].includes(selected)?selected:null;d.status=d.declaredAction?'done':selected;d.updatedAt=now();
      if(d.status==='done'||d.status==='unlisted'){
       d.price=d.status==='done'?target:null;d.confirmed=true;d.symbolConfirmed=d.status==='done';
       const e=WorkCounts.event(w.id,w.role,j,p,d,now());state.activity=state.activity||{};state.activity[e.id]=e;
       await save();box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','この販路は記録済みです。誤りがあれば管理番号・販路をオーナーへ連絡してください。',box);
      }else{d.confirmed=false;d.symbolConfirmed=false;await save();}
-     help.textContent=descriptions[d.status];showReport();
+     help.textContent=descriptions[d.status];showReport();showPlatformState();
     }catch(e){Object.assign(d,old);status.value=d.status==='done'?(d.declaredAction||'done'):d.status;msg(e.message);}};
     if(state.records[j.code]||(state.activity&&state.activity[eventId])){box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','記録済み：入力内容を保持しています',box);}
    });
    const note=input('text',draft.note||'',section);note.placeholder='保留理由・オーナーへの確認事項';note.oninput=()=>{draft.note=note.value;save();};
-   const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
+   const hold=button('要確認として保存して次へ',async()=>{
+    if(!Object.keys(j.platforms).some(p=>draft[p]&&['missing','sold','error','owner_wait'].includes(draft[p].status)))throw Error('見つからない・売却済み・エラー・オーナー確認待ちの販路がある場合に使います');
+    await save();section.open=false;section.classList.add('product-held');
+    const cards=Array.from(app.querySelectorAll('[data-product-code]'));const next=cards[cards.indexOf(section)+1];
+    if(next){next.open=true;next.scrollIntoView({block:'start',behavior:'auto'});}else section.scrollIntoView({block:'start',behavior:'auto'});
+    msg('管理番号 '+j.code+' を要確認として保存しました。完了件数には含めません。報告文または作業結果JSONをオーナーへ渡してください。');
+   },section);hold.disabled=!!state.records[j.code];
+   const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');if(Object.keys(j.platforms).some(p=>draft[p]&&['missing','sold','error','owner_wait'].includes(draft[p].status))){msg('要確認の販路があります。「要確認として保存して次へ」を押してください。');return;}const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
   });
  }
  function render(){
