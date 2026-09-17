@@ -7,8 +7,8 @@ function event(batch,role,job,platform,c,at){
  if(!c||!c.confirmed||!['done','unlisted'].includes(c.status)||platform==='shops'&&c.status==='unlisted')throw Error('この販路の商品と作業結果を確認してください');
  const e={id:JSON.stringify([batch,role,job.code,platform]),batch,role,code:job.code,platform,completedAt:at,status:c.status,priceChanged:false,symbolChanged:false};
  if(c.status==='done'&&c.declaredAction){
-  if(!['price','symbol','both','none'].includes(c.declaredAction)||platform==='yahoo_auction'&&!['price','none'].includes(c.declaredAction)||!c.symbolConfirmed||!Number.isSafeInteger(c.price)||c.price<300||c.price!==job.platforms[platform])throw Error('実際に行った作業と指定価格を確認してください');
-  return {...e,source:'staff_action',action:c.declaredAction,afterPrice:c.price,afterSymbol:platform==='yahoo_auction'?null:job.symbol,priceChanged:['price','both'].includes(c.declaredAction),symbolChanged:['symbol','both'].includes(c.declaredAction)};
+  if(!['price','symbol','both','none'].includes(c.declaredAction)||!c.symbolConfirmed||!Number.isSafeInteger(c.price)||c.price<300||c.price!==job.platforms[platform])throw Error('実際に行った作業と指定価格を確認してください');
+  return {...e,source:'staff_action',action:c.declaredAction,afterPrice:c.price,afterSymbol:job.symbol,priceChanged:['price','both'].includes(c.declaredAction),symbolChanged:['symbol','both'].includes(c.declaredAction)};
  }
  if(c.status==='done'){
   if(!Number.isSafeInteger(c.before)||c.before<300||c.price!==job.platforms[platform]||!c.symbolConfirmed)throw Error('変更前後の価格・記号の確認が必要です');
@@ -24,7 +24,7 @@ function entries(file){
  for(const e of file.activity||[]){
   if(e.batch!==file.id||e.role!==file.role||!channels.includes(e.platform)||e.id!==JSON.stringify([e.batch,e.role,e.code,e.platform])||!Number.isFinite(Date.parse(e.completedAt)))throw Error('作業記録が不正です');
   if(e.status==='done'&&e.source==='staff_action'){
-   if(!['price','symbol','both','none'].includes(e.action)||!Number.isSafeInteger(e.afterPrice)||e.afterPrice<300||e.priceChanged!==['price','both'].includes(e.action)||e.symbolChanged!==['symbol','both'].includes(e.action)||e.platform==='yahoo_auction'&&e.symbolChanged||e.platform!=='yahoo_auction'&&!symbols.includes(e.afterSymbol))throw Error('選択方式の作業記録が不正です');
+   if(!['price','symbol','both','none'].includes(e.action)||!Number.isSafeInteger(e.afterPrice)||e.afterPrice<300||e.priceChanged!==['price','both'].includes(e.action)||e.symbolChanged!==['symbol','both'].includes(e.action)||(!symbols.includes(e.afterSymbol)&&!(e.platform==='yahoo_auction'&&e.afterSymbol===null&&!e.symbolChanged)))throw Error('選択方式の作業記録が不正です');
    result.push(e);continue;
   }
   if(e.status==='done'){
