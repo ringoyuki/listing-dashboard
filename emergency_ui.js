@@ -64,6 +64,12 @@
   button('統合後の通常JSONを保存',()=>{download('shuppin_data_AB統合_'+now().slice(0,10)+'.json',state.master.raw);msg('通常ツールへの取り込み前に既存JSONを保存してください。未取り込みの結果や競合は反映されていません。');},section);
  }
  const labels={shops:'メルカリShops',mercari:'メルカリ',rakuma:'ラクマ',yahoo_flea:'Yahoo!フリマ',yahoo_auction:'ヤフオク'};
+ function searchUrl(platform,mode,code,title){
+  let term=String(mode==='code'?code:(title||code)).trim();
+  if(platform==='rakuma'&&mode==='title'&&Array.from(term).length>40){const cut=Array.from(term).slice(0,40).join('');const at=cut.lastIndexOf(' ');term=at>0?cut.slice(0,at):cut;}
+  const q=encodeURIComponent(term);
+  return {mercari:'https://jp.mercari.com/search?keyword='+q,rakuma:'https://fril.jp/s?query='+q,yahoo_flea:'https://paypayfleamarket.yahoo.co.jp/search/'+q+'?page=1',yahoo_auction:'https://auctions.yahoo.co.jp/search/search?p='+q}[platform];
+ }
  function resultFile(w){return {format:'listing-ab-result-v1',id:w.id,role:w.role,exportedAt:now(),records:Object.values(state.records||{}).filter(r=>w.jobs.some(j=>j.code===r.code)),activity:Object.values(state.activity||{}).filter(e=>e.batch===w.id&&e.role===w.role),followups:w.jobs.flatMap(j=>Object.entries((state.drafts||{})[j.code]||{}).filter(([p,d])=>labels[p]&&['missing','sold','error','owner_wait'].includes(d.status)).map(([p,d])=>({code:j.code,platform:p,status:d.status,updatedAt:d.updatedAt||null,note:state.drafts[j.code].note||''}))),resume:{work:clone(w),drafts:clone(state.drafts||{}),updatedAt:state.workUpdatedAt||now()}};}
  function ownerSwitch(parent){
   if(new URLSearchParams(location.search).get('ownerSwitch')!=='1')return;
@@ -110,8 +116,11 @@
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
    const draft=state.drafts[j.code]||(state.drafts[j.code]={});
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3','変更後の記号： '+j.symbol,box);
-    const q=encodeURIComponent(j.code),qt=encodeURIComponent(j.baseItem.title||j.code),search={mercari:'https://jp.mercari.com/search?keyword='+q,rakuma:'https://fril.jp/s?query='+q,yahoo_flea:'https://paypayfleamarket.yahoo.co.jp/search/'+q+'?page=1',yahoo_auction:'https://auctions.yahoo.co.jp/search/search?p='+qt};
-    let href=p==='shops'?j.baseItem.shopsUrl:search[p];if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',p==='shops'?'Shops管理画面を開く':'商品を検索する',box);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}
+    const searches=p==='shops'?[['Shops管理画面を開く',j.baseItem.shopsUrl]]:(p==='yahoo_auction'?['title']:['code','title']).map(mode=>[mode==='code'?'管理番号で検索':'タイトルで検索',searchUrl(p,mode,j.code,j.baseItem.title)]);
+    const searchLinks=node('p',undefined,box);searchLinks.style.display='flex';searchLinks.style.flexWrap='wrap';searchLinks.style.gap='18px';
+    for(const [label,href] of searches){if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',label,searchLinks);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}}
+    if(p==='rakuma')node('small','タイトル検索は長い場合に40文字以内へ短縮します。',box);
+    if(p==='yahoo_auction')node('small','管理番号で探す場合は、検索先の「条件指定」で「タイトルと商品説明」を選択してください。説明文の検索対象は冒頭1,000文字までです。',box);
     const identity=node('p','商品ページを開いたら、管理番号が「'+j.code+'」と一致することを確認してから、価格・記号を変更してください。',box);identity.className='identity-check';
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
     if(target!==null)copyButton('指定価格をコピー',String(target),box);copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
