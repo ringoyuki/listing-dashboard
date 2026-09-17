@@ -2,7 +2,7 @@
   const $=id=>document.getElementById(id);let result=null,busy=false,data=null,preview=null,selected=new Set();
   const kinds=['product','registration','update'];
   function resetPreview(){preview=null;selected.clear();$('sale-preview').hidden=true;$('sale-confirm').checked=false;$('export-sale').disabled=true;}
-  function clear(){result=null;data=null;$('result').hidden=true;$('sale').hidden=true;resetPreview();}
+  function clear(){result=null;data=null;$('result').hidden=true;$('sale').hidden=true;resetPreview();window.ShopsPriceUi?.setData(null);}
   kinds.forEach(k=>$(k).addEventListener('change',()=>{clear();$('message').textContent='ファイルが変わりました。「3つのCSVを照合する」を押してください。';}));
   async function read(file){const b=await file.arrayBuffer();try{return new TextDecoder('utf-8',{fatal:true}).decode(b);}catch{return new TextDecoder('shift_jis',{fatal:true}).decode(b);}}
   $('run').onclick=async()=>{
@@ -11,6 +11,7 @@
     busy=true;$('run').disabled=true;kinds.forEach(k=>$(k).disabled=true);
     try{data=await Promise.all(files.map(async(f,i)=>ShopsCsvReview.parse(await read(f),kinds[i])));
       result=ShopsCsvReview.analyze(...data);result.sources=files.map((f,i)=>({kind:kinds[i],name:f.name,lastModified:f.lastModified}));
+      window.ShopsPriceUi?.setData(data);
       const c=result.counts;$('summary').textContent=`商品 ${c.products}件 ／ 候補 ${c.candidates}件 ／ 対象外 ${c.excluded}件 ／ 照合不能 ${c.unmatched}件`;
       $('message').textContent=`照合しました。未設定 ${c.registration}件・設定済み ${c.update}件。\n`+files.map(f=>f.name).join('\n');$('result').hidden=false;$('sale').hidden=false;render();
     }catch(e){clear();$('message').textContent='照合を中止しました：'+e.message;}finally{busy=false;$('run').disabled=false;kinds.forEach(k=>$(k).disabled=false);}

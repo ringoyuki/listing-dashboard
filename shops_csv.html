@@ -3,6 +3,16 @@
 <main><a href="index.html">← 出品管理に戻る</a><h1>オーナー用：Shops CSV照合</h1>
 <p>3つのCSVを選んで照合します。商品IDが一致する出品だけを扱います。販売先の価格・在庫や、A・Bさんの作業記録は変更しません。</p>
 <section><label>① 最新の商品CSV <input id="product" type="file" accept=".csv"></label><label>② 未設定のタイムセールCSV <input id="registration" type="file" accept=".csv"></label><label>③ 設定済みのタイムセールCSV（0件でも選択） <input id="update" type="file" accept=".csv"></label><button id="run">3つのCSVを照合する</button><p id="message" role="status">ファイルはこのブラウザ内で処理します。再読み込み後は選び直してください。</p></section>
+<section id="price-tool" hidden><h2>Shopsの価格・記号を一括変更する</h2>
+<p>A・B配布ファイル、最新の作業結果、またはオーナー管理元JSONにある指定価格・記号を使います。新しい値下げ計算はしません。</p>
+<label>指示JSON <input id="price-json" type="file" accept=".json"></label><button id="preview-price">指定価格・記号の変更一覧を作る</button><p id="price-message" role="status"></p>
+<div id="price-preview" hidden><button id="price-all">変更可能な商品をすべて選択</button> <button id="price-none">選択を解除</button><p id="price-selected"></p>
+<div class="table"><table><thead><tr><th>出力</th><th>商品・担当</th><th>価格</th><th>記号</th><th>判定</th></tr></thead><tbody id="price-rows"></tbody></table></div>
+<label><input id="price-confirm" type="checkbox"> 最新CSVと変更内容を確認し、対象商品のShops作業をスタッフと同時に行わないよう調整しました</label><div id="price-files"></div>
+<p>保存したCSVはShopsの「商品 → CSVで一括変更」で使います。タイムセール用の画面には入れません。画像・在庫・公開状態は変更しません。</p>
+<p>保存だけでは完了になりません。Shopsで変更後、最新CSVを再取得して同じJSONで照合すると「すでに指定価格・記号です」と確認できます。他販路の作業やスタッフ件数は自動で完了・加算しません。</p></div>
+<small>空欄で商品説明を消さないよう、価格のみ・記号のみ・両方の変更でCSVを分けます。<a href="https://support.mercari-shops.com/hc/ja/articles/60017371839513" target="_blank" rel="noopener">公式：商品一括変更CSV</a></small>
+</section>
 <section id="result" hidden><h2 id="summary"></h2><p>「候補」は、この3ファイルで照合できた商品です。セール開始・予約の確定ではありません。実施前に最新CSVで再確認します。</p><p>いいね・閲覧数はShopsの値です。未確認は「—」、確認できたゼロは「0」と表示します。別IDには引き継ぎません。</p><label>表示 <select id="filter"><option value="候補">セール候補</option><option value="対象外">対象外（理由付き）</option><option value="照合不能">商品IDを照合できない</option><option value="all">すべて</option></select></label><label>管理番号・商品名・IDで絞り込み <input id="search" type="search"></label><button id="save">照合結果を保存（確認用JSON）</button><small>このJSONは照合結果専用です。A・B作業画面には取り込まないでください。販売先へアップロードするCSVではありません。</small><p id="shown"></p><div class="table"><table><thead><tr><th>管理番号・商品ID</th><th>商品名</th><th>現在価格／在庫</th><th>Shopsの反応</th><th>判定・理由</th></tr></thead><tbody id="rows"></tbody></table></div></section>
 <section id="sale" hidden><h2>タイムセール予約CSVを準備する</h2>
 <p>ここでCSVを保存してもセールは始まりません。現在のセールOFF設定も変わりません。A・Bさんが価格変更中の商品は対象から外してください。</p>
@@ -16,4 +26,4 @@
 <p>Shopsへアップロードすると確認画面なしで設定処理が始まります。保存しただけでは作業完了にせず、Shopsの設定履歴で成功・失敗を確認してください。</p></div>
 <small><a href="https://support.mercari-shops.com/hc/ja/articles/15364969249945" target="_blank" rel="noopener">公式：タイムセールCSVの作り方</a> ／ <a href="https://support.mercari-shops.com/hc/ja/articles/11184556973849" target="_blank" rel="noopener">設定条件</a></small>
 </section>
-</main><script src="shops_csv_core.js?v=20260917-2"></script><script src="shops_sale_core.js?v=20260917-1"></script><script src="shops_csv_ui.js?v=20260917-2"></script></html>
+</main><script src="shops_csv_core.js?v=20260917-2"></script><script src="shops_sale_core.js?v=20260917-1"></script><script src="shops_price_core.js?v=20260917-1"></script><script src="shops_price_ui.js?v=20260917-1"></script><script src="shops_csv_ui.js?v=20260917-price1"></script></html>
