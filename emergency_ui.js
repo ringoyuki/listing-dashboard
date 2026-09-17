@@ -78,12 +78,21 @@
   if(w.jobs.length&&w.jobs.every(j=>state.records[j.code]))button('全件完了：結果を保存して次の配布へ',()=>{download(w.role+'作業結果_'+w.id+'.json',resultFile(w));state.archives=state.archives||[];state.archives.push({work:state.work,records:state.records,drafts:state.drafts,activity:state.activity});delete state.work;state.records={};state.drafts={};state.activity={};save();render();},parent);
   w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.className='product-card '+(index%2?'product-alternate':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
-   const draft=state.drafts[j.code]||(state.drafts[j.code]={});
+   const draft=state.drafts[j.code]||(state.drafts[j.code]={});const symbolInputs={};
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3',p==='yahoo_auction'?'記号の変更なし（価格のみ）':'変更後の記号： '+j.symbol,box);
     const q=encodeURIComponent(j.code),qt=encodeURIComponent(j.baseItem.title||j.code),search={mercari:'https://jp.mercari.com/search?keyword='+q,rakuma:'https://fril.jp/s?query='+q,yahoo_flea:'https://paypayfleamarket.yahoo.co.jp/search/'+q+'?page=1',yahoo_auction:'https://auctions.yahoo.co.jp/search/search?p='+qt};
     let href=p==='shops'?j.baseItem.shopsUrl:search[p];if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',p==='shops'?'Shops管理画面を開く':'商品を検索する',box);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
-    let beforeSymbol;if(p!=='yahoo_auction'){node('label','変更前の実際の記号',box);beforeSymbol=select([['','選択してください'],...['●','■','▲','〇','□','なし'].map(x=>[x,x])],d.beforeSymbol||'',box);beforeSymbol.onchange=()=>{d.beforeSymbol=beforeSymbol.value;save();};}
+    let beforeSymbol;if(p!=='yahoo_auction'){node('label','変更前の実際の記号',box);beforeSymbol=select([['','選択してください'],...['●','■','▲','〇','□','なし'].map(x=>[x,x])],d.beforeSymbol||'',box);symbolInputs[p]=beforeSymbol;
+    if(p==='shops')node('small','ここで選ぶと、ほかの販路の未入力の記号にも反映します。実物と違う販路だけ選び直してください（ヤフオク除外）。',box);
+    else node('small','Shopsの記号を初期入力します。商品ページと違う場合は、この販路の実際の記号へ選び直してください。',box);
+    beforeSymbol.onchange=()=>{d.beforeSymbol=beforeSymbol.value;
+     if(p==='shops'&&d.beforeSymbol){for(const other of ['mercari','rakuma','yahoo_flea']){
+      const inputEl=symbolInputs[other],otherDraft=draft[other],eventKey=JSON.stringify([w.id,w.role,j.code,other]);
+      if(inputEl&&otherDraft&&!otherDraft.beforeSymbol&&!state.records[j.code]&&!(state.activity||{})[eventKey]&&!['done','unlisted'].includes(otherDraft.status)){
+       otherDraft.beforeSymbol=d.beforeSymbol;inputEl.value=d.beforeSymbol;
+      }
+     }}save();};}
     node('label','変更前の実価格（この販路の商品ページで確認）',box);const before=input('number',d.before,box);before.placeholder='変更前の商品ページの実価格';before.oninput=()=>{d.before=before.value===''?null:Number(before.value);save();};
     if(target!==null)button('指定価格をコピー',async()=>{await navigator.clipboard.writeText(String(target));msg('指定価格 '+target.toLocaleString()+' をコピーしました。販売先で保存した後に「指定価格・記号に変更済み」を選んでください。');},box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
