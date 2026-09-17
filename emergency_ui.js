@@ -26,7 +26,7 @@
  function input(type,value,parent){const e=node('input',undefined,parent);e.type=type;e.value=value??'';return e;}
  function check(text,value,fn,parent){const l=node('label',undefined,parent),i=input('checkbox','',l);i.checked=!!value;node('span',text,l);i.onchange=()=>{try{fn(i.checked);}catch(e){msg(e.message);}};return i;}
  function download(name,obj){const text=typeof obj==='string'?obj:JSON.stringify(obj,null,2),url=URL.createObjectURL(new Blob([text],{type:'application/json;charset=utf-8'}));const a=node('a',undefined,document.body);a.href=url;a.download=name;a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}
- function upload(label,fn,parent){const l=node('label',label,parent),i=input('file','',l);i.accept='.json';i.onchange=async()=>{try{await writes;if(!i.files[0])return;const raw=JSON.parse(await i.files[0].text());await fn(raw,i.files[0].name);await save();render();}catch(e){msg(e.message);}};}
+ function upload(label,fn,parent){const l=node('label',label,parent),i=input('file','',l);i.accept='.json';i.onchange=async()=>{try{await writes;if(!i.files[0])return;const raw=JSON.parse(await i.files[0].text());await fn(raw,i.files[0].name);await syncOwnerCsv();await save();render();}catch(e){msg(e.message);}};}
  function settings(parent){const box=node('details',undefined,parent);node('summary','オーナー用：運用設定と公開用ファイル',box);node('p','ここでの編集は配布用設定です。公開済みのスタッフ画面は「設定を公開」の操作後に再読み込みして反映します。配布済みの仕事は、その配布時点の指定価格を保持します。',box);
   check('新しいセールをON（OFFでも終了・取消確認は必要）',config.salesEnabled,v=>config.salesEnabled=v,box);
   check('A・B分担をON（OFFは次の配布からAのみ。配布済みの担当は維持）',config.splitEnabled,v=>config.splitEnabled=v,box);
@@ -196,5 +196,24 @@
   staff(staffBox);
   if(state.work)return;const ownerBox=node('details',undefined,app);node('summary','オーナー：設定・担当割り当て・結果統合',ownerBox);settings(ownerBox);owner(ownerBox);
  }
+ let syncingOwner=false;
+ async function syncOwnerCsv(){
+  if(syncingOwner||!state.work||saveBlocked)return false;
+  syncingOwner=true;
+  try{
+   const response=await fetch('owner_csv_applied.json',{cache:'no-store'});
+   if(!response.ok)throw Error('変更済み情報を取得できません');
+   const feed=await response.json(),work=state.work;
+   const receipt=await OwnerCsvSync.receipt(work,feed);
+   if(state.work!==work||!receipt)return false;
+   const next=R.applyOwnerCsv(state,receipt);
+   if(JSON.stringify(next.drafts)===JSON.stringify(state.drafts||{}))return false;
+   state.drafts=next.drafts;await save();return true;
+  }catch(e){msg('オーナーCSV変更済み情報の自動確認ができませんでした。再読み込みしてください。'+e.message);return false;}
+  finally{syncingOwner=false;}
+ }
+ await syncOwnerCsv();
+ window.addEventListener('focus',async()=>{if(await syncOwnerCsv())render();});
+ document.addEventListener('visibilitychange',async()=>{if(!document.hidden&&await syncOwnerCsv())render();});
  render();
 })().catch(e=>{document.getElementById('message').hidden=false;document.getElementById('message').textContent='画面を開始できません：'+e.message;});
