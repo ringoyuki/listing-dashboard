@@ -10,7 +10,7 @@
    for(const [code,checks]of Object.entries(raw.resume.drafts||{}))if(['done','sold','missing','unlisted'].includes(checks?.shops?.status))done.add(code);
   }else throw Error('A・B配布JSON、作業結果JSON、またはオーナー管理元JSONを選んでください');
   check(Array.isArray(jobs)&&jobs.length>0,'指定商品がありません');const seen=new Set();
-  for(const j of jobs){check(j&&typeof j.code==='string'&&!seen.has(j.code),'管理番号が重複または不正です');seen.add(j.code);
+  for(const j of jobs){check(j&&typeof j.code==='string'&&j.code.length>0&&j.code.trim()===j.code&&!seen.has(j.code),'管理番号が重複または不正です');seen.add(j.code);
    check(['A','B'].includes(j.role)&&symbols.includes(j.symbol)&&['symbol_change','price_discount'].includes(j.kind),'担当・記号・作業種別が不正です');
    check(Number.isSafeInteger(j.price)&&j.price>=300&&j.price<=9999999&&j.platforms?.shops===j.price,'指定価格が不正です');
    check(j.baseItem?.code===j.code,'指示と元商品の管理番号が違います');
