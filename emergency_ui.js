@@ -88,6 +88,7 @@
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3',p==='yahoo_auction'?'記号の変更なし（価格のみ）':'変更後の記号： '+j.symbol,box);
     const q=encodeURIComponent(j.code),qt=encodeURIComponent(j.baseItem.title||j.code),search={mercari:'https://jp.mercari.com/search?keyword='+q,rakuma:'https://fril.jp/s?query='+q,yahoo_flea:'https://paypayfleamarket.yahoo.co.jp/search/'+q+'?page=1',yahoo_auction:'https://auctions.yahoo.co.jp/search/search?p='+qt};
     let href=p==='shops'?j.baseItem.shopsUrl:search[p];if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',p==='shops'?'Shops管理画面を開く':'商品を検索する',box);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}
+    const identity=node('p','商品ページを開いたら、管理番号が「'+j.code+'」と一致することを確認してから、価格・記号を変更してください。',box);identity.className='identity-check';
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
     let beforeSymbol;if(p!=='yahoo_auction'){node('label','変更前の実際の記号',box);beforeSymbol=select([['','選択してください'],...['●','■','▲','〇','□','なし'].map(x=>[x,x])],d.beforeSymbol||'',box);symbolInputs[p]=beforeSymbol;
     if(p==='shops')node('small','ここで選ぶと、ほかの販路の未入力の記号にも反映します。実物と違う販路だけ選び直してください（ヤフオク除外）。',box);
