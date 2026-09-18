@@ -115,7 +115,15 @@
   node('small','「前回の作業結果から途中入力も復元する」は別PCや復旧時に最新の作業結果JSONを選びます。「担当の配布ファイル」は初回・追加配布時に使います。毎日元の配布ファイルを読み直す必要はありません。ブラウザのデータ削除・シークレットモードでは保存が失われる場合があるため、終了時のJSON保存も必ず行ってください。',finishGuide);
 
   if(w.jobs.length&&w.jobs.every(j=>state.records[j.code]))button('全件完了：結果を保存して次の配布へ',()=>{download(w.role+'作業結果_'+w.id+'.json',resultFile(w));state.archives=state.archives||[];state.archives.push({work:state.work,records:state.records,drafts:state.drafts,activity:state.activity});delete state.work;state.records={};state.drafts={};state.activity={};save();render();},parent);
-  w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.dataset.productCode=j.code;section.className='product-card '+(index%2?'product-alternate':'')+(state.records[j.code]?' product-complete':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
+  const findBox=node('section',undefined,parent);node('h3','担当商品を探す',findBox);
+  const filterLabel=node('label','管理番号・商品名',findBox),filter=input('search','',filterLabel);
+  filter.placeholder='番号や商品名の一部を入力';
+  let unfinishedOnly=false;const visibleCount=node('small','',findBox);
+  const cards=[];
+  const normalize=s=>String(s||'').normalize('NFKC').toLowerCase();
+  function filterCards(){const terms=normalize(filter.value).trim().split(/\s+/).filter(Boolean);let count=0;cards.forEach(({section,j})=>{section.hidden=(unfinishedOnly&&!!state.records[j.code])||!terms.every(t=>normalize(j.code+' '+j.baseItem.title).includes(t));if(!section.hidden)count++;});visibleCount.textContent='表示 '+count+'件 ／ 担当 '+w.jobs.length+'件';}
+  check('未完了だけ表示',false,v=>{unfinishedOnly=v;filterCards();},findBox);filter.oninput=filterCards;
+  w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.dataset.productCode=j.code;cards.push({section,j});section.className='product-card '+(index%2?'product-alternate':'')+(state.records[j.code]?' product-complete':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
    const draft=state.drafts[j.code]||(state.drafts[j.code]={});
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3','変更後の記号： '+j.symbol,box);
@@ -123,6 +131,9 @@
     const searchLinks=node('p',undefined,box);searchLinks.style.display='flex';searchLinks.style.flexWrap='wrap';searchLinks.style.gap='18px';
     for(const [label,href] of searches){if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',label,searchLinks);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}}
     if(p==='rakuma')node('small','タイトル検索は長い場合に40文字以内へ短縮します。',box);
+    const searchCopy=node('details',undefined,box);node('summary','販売先の検索欄に貼り付ける',searchCopy);
+    copyButton('管理番号をコピー',j.code,searchCopy);
+    if(j.baseItem.title)copyButton('商品名をコピー',j.baseItem.title,searchCopy);
     if(p==='yahoo_auction')node('small','管理番号で探す場合は、検索先の「条件指定」で「タイトルと商品説明」を選択してください。説明文の検索対象は冒頭1,000文字までです。',box);
     const identity=node('p','商品ページを開いたら、管理番号が「'+j.code+'」と一致することを確認してから、価格・記号を変更してください。',box);identity.className='identity-check';
     const d=draft[p]||(draft[p]={status:'pending',confirmed:false,symbolConfirmed:false});
@@ -178,6 +189,7 @@
    },section);hold.disabled=!!state.records[j.code];
    const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');if(Object.keys(j.platforms).some(p=>draft[p]&&(['error','owner_wait'].includes(draft[p].status)||(draft[p].status==='sold'&&!draft[p].reported)||(p==='shops'&&draft[p].status==='missing')))){msg('要確認の販路があります。「要確認として保存して次へ」を押してください。');return;}const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
   });
+  filterCards();
  }
  function render(){
   const toolbar=document.getElementById('work-toolbar');toolbar.replaceChildren();
