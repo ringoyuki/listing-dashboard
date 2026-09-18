@@ -13,5 +13,10 @@
   for(const j of work.jobs){const at=entries.get(await fingerprint(work,j));if(!at)continue;items.push({code:j.code,productId:j.baseItem.shopItemId,price:j.price,symbol:j.symbol});if(at>verifiedAt)verifiedAt=at;}
   return items.length?{format:'listing-owner-csv-applied-v1',id:work.id,role:work.role,verifiedAt,items}:null;
  }
- const api={fingerprint,receipt};if(typeof module!=='undefined')module.exports=api;else root.OwnerCsvSync=api;
+ async function markReviews(work){
+  if(!work)return;
+  const held=new Set(['e9212594af46bd1d312e40cfd193f82c50aaf59c616bc9131f00d9fe9e7df6ca','6a09b362e4b92913773d2ffc4e489306374a0232fd210cea1fe34c2b9ada3ed0']);
+  for(const job of work.jobs)if(held.has(await fingerprint(work,job)))job.emergencyReview='現在の△を読み取れずに作られた指示です。価格・記号は変更せず、オーナー確認待ちとして他の商品を進めてください。';
+ }
+ const api={fingerprint,receipt,markReviews};if(typeof module!=='undefined')module.exports=api;else root.OwnerCsvSync=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -124,6 +124,7 @@
   function filterCards(){const terms=normalize(filter.value).trim().split(/\s+/).filter(Boolean);let count=0;cards.forEach(({section,j})=>{section.hidden=(unfinishedOnly&&!!state.records[j.code])||!terms.every(t=>normalize(j.code+' '+j.baseItem.title).includes(t));if(!section.hidden)count++;});visibleCount.textContent='表示 '+count+'件 ／ 担当 '+w.jobs.length+'件';}
   check('未完了だけ表示',false,v=>{unfinishedOnly=v;filterCards();},findBox);filter.oninput=filterCards;
   w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.dataset.productCode=j.code;cards.push({section,j});section.className='product-card '+(index%2?'product-alternate':'')+(state.records[j.code]?' product-complete':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
+   if(j.emergencyReview){section.querySelector('h2').textContent='オーナー確認待ち：変更指示を保留中';node('p',j.emergencyReview,section).className='sold-warning';return;}
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
    const draft=state.drafts[j.code]||(state.drafts[j.code]={});
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3','変更後の記号： '+j.symbol,box);
@@ -226,6 +227,7 @@
   if(syncingOwner||!state.work||saveBlocked)return false;
   syncingOwner=true;
   try{
+   await OwnerCsvSync.markReviews(state.work);
    const response=await fetch('owner_csv_applied.json',{cache:'no-store'});
    if(!response.ok)throw Error('変更済み情報を取得できません');
    const feed=await response.json(),work=state.work;

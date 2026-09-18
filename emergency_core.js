@@ -28,7 +28,8 @@
  function prices(base){assert(Number.isSafeInteger(base)&&base>=300,'指定価格は300円以上の整数です');return {shops:base,mercari:base+1000,rakuma:base,yahoo_flea:Math.floor(base/1000)*1000||null,yahoo_auction:base};}
  function active(sd){return (sd.tasks||[]).some(t=>t.type==='revert_check'&&t.status==='pending')||!!(sd.trial20261004&&!sd.trial20261004.legacyReleased);}
  function propose(item,sd,s){
-  settings(s);sd=sd||{};const sym=sd.symbol||item.actualSymbol||'●',idx=symbols.indexOf(sym),price=Number(item.price);
+  settings(s);sd=sd||{};const sym=sd.symbol||item.actualSymbol,idx=symbols.indexOf(sym),price=Number(item.price);
+  assert(symbols.includes(sym),'現在の記号が未確認、または対象外です。●として扱わず、オーナー確認にしてください');
   assert(!['stop','relist'].includes(sd.ownerInstruction),'停止・再出品指示の商品は個別確認です');
   assert(!/対応済|作業不要/.test(sd.ownerInstructionNote||''),'対応済み・作業不要の指示があります');
   assert(!item.emergencyReview,'CSV変更等の確認が必要です：'+(item.emergencyReview||''));
@@ -63,6 +64,7 @@
  }
  function pack(master,role){assert(['A','B'].includes(role),'担当を確認してください');return {format:'listing-ab-work-v1',id:master.id,createdAt:master.createdAt,role,settings:clone(master.settings),jobs:master.jobs.filter(j=>j.role===role&&!master.applied[j.code]).map(j=>({code:j.code,role:j.role,kind:j.kind,symbol:j.symbol,price:j.price,platforms:clone(j.platforms),baseItem:{code:j.code,title:j.baseItem.title,price:j.baseItem.price,shopItemId:j.baseItem.shopItemId,shopsUrl:j.baseItem.urls&&j.baseItem.urls.mercari_shops}}))};}
  function record(job,checks,at){
+  assert(!job.emergencyReview,'記号の指示を確認中です。価格・記号は変更しないでください');
   assert(Number.isFinite(Date.parse(at)),'完了日時が不正です');
   assert(checks&&checks.shops&&(['done','owner_csv'].includes(checks.shops.status)||checks.shops.status==='sold'&&checks.shops.reported===true),'Shopsの作業確認が必要です');
   assert(checks&&Object.keys(job.platforms).every(p=>{
