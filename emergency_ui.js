@@ -167,17 +167,30 @@
     }
     showReport();
     const eventId=JSON.stringify([w.id,w.role,j.code,p]);
+    function showUndo(){
+     if(box.querySelector('[data-undo]')||state.records[j.code]||!(state.activity||{})[eventId]||!['done','unlisted'].includes(d.status))return;
+     const undo=button('この記録を取り消して選び直す',async()=>{
+      if(state.records[j.code])throw Error('商品全体が完了済みです。オーナーへ訂正を連絡してください');
+      if(!['done','unlisted'].includes(d.status))throw Error('状態が更新されています。画面を再読み込みしてください');
+      delete state.activity[eventId];
+      Object.assign(d,{status:'working',declaredAction:null,confirmed:false,symbolConfirmed:false,reported:false,updatedAt:now()});
+      await save();render();
+      const card=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);
+      if(card){card.open=true;card.scrollIntoView({block:'start',behavior:'auto'});}
+      msg(labels[p]+'の作業記録を取り消しました。販売サイトの変更は戻りません。実際に行った作業を選び直してください。');
+     },box);undo.dataset.undo='true';
+    }
     status.onchange=async()=>{const old=clone(d);try{
-     if(['price','symbol','both','none','unlisted'].includes(status.value)&&!confirm('管理番号：'+j.code+'\n販路：'+labels[p]+'\n「'+options.find(o=>o[0]===status.value)[1]+'」で記録しますか？\n販売サイトでの確認が終わった場合のみOKを押してください。確定後はこの画面で変更できません。')){status.value=d.status==='done'?(d.declaredAction||'done'):d.status;return;}
      const selected=status.value;if(selected!==d.status)d.reported=false;d.declaredAction=['price','symbol','both','none'].includes(selected)?selected:null;d.status=d.declaredAction?'done':selected;d.updatedAt=now();
      if(d.status==='done'||d.status==='unlisted'){
       d.price=d.status==='done'?target:null;d.confirmed=true;d.symbolConfirmed=d.status==='done';
       const e=WorkCounts.event(w.id,w.role,j,p,d,now());state.activity=state.activity||{};state.activity[e.id]=e;
-      await save();box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','この販路は記録済みです。誤りがあれば管理番号・販路をオーナーへ連絡してください。',box);
+      await save();box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});showUndo();
      }else{d.confirmed=false;d.symbolConfirmed=false;await save();}
      help.textContent=descriptions[d.status];showReport();showPlatformState();
     }catch(e){Object.assign(d,old);status.value=d.status==='done'?(d.declaredAction||'done'):d.status;msg(e.message);}};
     if(state.records[j.code]||(state.activity&&state.activity[eventId])){box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','記録済み：入力内容を保持しています',box);}
+    showUndo();
    });
    const note=input('text',draft.note||'',section);note.placeholder='保留理由・オーナーへの確認事項';note.oninput=()=>{draft.note=note.value;save();};
    const hold=button('要確認として保存して次へ',async()=>{
