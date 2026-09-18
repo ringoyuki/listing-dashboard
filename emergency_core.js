@@ -29,6 +29,7 @@
  function active(sd){return (sd.tasks||[]).some(t=>t.type==='revert_check'&&t.status==='pending')||!!(sd.trial20261004&&!sd.trial20261004.legacyReleased);}
  function propose(item,sd,s){
   settings(s);sd=sd||{};const sym=sd.symbol||item.actualSymbol,idx=symbols.indexOf(sym),price=Number(item.price);
+  assert(sym!=='△'&&item.actualSymbol!=='△','△は通常変更対象外です。個別設定価格を維持し、セール終了後も売れ残った場合は特価販売の判断をお願いします、と報告してください');
   assert(symbols.includes(sym),'現在の記号が未確認、または対象外です。●として扱わず、オーナー確認にしてください');
   assert(!['stop','relist'].includes(sd.ownerInstruction),'停止・再出品指示の商品は個別確認です');
   assert(!/対応済|作業不要/.test(sd.ownerInstructionNote||''),'対応済み・作業不要の指示があります');

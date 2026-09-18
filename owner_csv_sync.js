@@ -16,7 +16,10 @@
  async function markReviews(work){
   if(!work)return;
   const held=new Set(['e9212594af46bd1d312e40cfd193f82c50aaf59c616bc9131f00d9fe9e7df6ca','6a09b362e4b92913773d2ffc4e489306374a0232fd210cea1fe34c2b9ada3ed0']);
-  for(const job of work.jobs)if(held.has(await fingerprint(work,job)))job.emergencyReview='現在の△を読み取れずに作られた指示です。価格・記号は変更せず、オーナー確認待ちとして他の商品を進めてください。';
+  for(const job of work.jobs){const hash=await fingerprint(work,job);if(held.has(hash)){
+   job.emergencyReview='△はオーナーが個別に価格を決めた段階です。通常の価格・記号変更はスキップします。タイムセール・コメントセールは実施可能です。セール終了後も売れ残っている場合は、特価販売の判断をお願いします、と報告してください。';
+   job.triangleSaleEnd=hash==='e9212594af46bd1d312e40cfd193f82c50aaf59c616bc9131f00d9fe9e7df6ca'?'2026-09-21T23:00:00+09:00':'2026-09-20T23:00:00+09:00';
+  }}
  }
  const api={fingerprint,receipt,markReviews};if(typeof module!=='undefined')module.exports=api;else root.OwnerCsvSync=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -124,7 +124,13 @@
   function filterCards(){const terms=normalize(filter.value).trim().split(/\s+/).filter(Boolean);let count=0;cards.forEach(({section,j})=>{section.hidden=(unfinishedOnly&&!!state.records[j.code])||!terms.every(t=>normalize(j.code+' '+j.baseItem.title).includes(t));if(!section.hidden)count++;});visibleCount.textContent='表示 '+count+'件 ／ 担当 '+w.jobs.length+'件';}
   check('未完了だけ表示',false,v=>{unfinishedOnly=v;filterCards();},findBox);filter.oninput=filterCards;
   w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.dataset.productCode=j.code;cards.push({section,j});section.className='product-card '+(index%2?'product-alternate':'')+(state.records[j.code]?' product-complete':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
-   if(j.emergencyReview){section.querySelector('h2').textContent='オーナー確認待ち：変更指示を保留中';node('p',j.emergencyReview,section).className='sold-warning';return;}
+   if(j.emergencyReview){section.querySelector('h2').textContent=j.triangleSaleEnd?'△：通常変更なし／セール後に報告':'オーナー確認待ち：変更指示を保留中';node('p',j.emergencyReview,section).className='sold-warning';
+    if(j.triangleSaleEnd){
+     const ended=Date.now()>=Date.parse(j.triangleSaleEnd);
+     node('p','今回のShopsセール終了：'+j.triangleSaleEnd.slice(0,16).replace('T',' ')+'（日本時間）',section);
+     node('p',ended?'売れ残りを確認してから、報告文をコピーしてオーナーへ送信してください。':'セール終了後も売れ残っている場合に報告します。通常の変更指示は実行せず、他の商品を進めてください。',section);
+     if(ended)copyButton('特価販売の判断依頼をコピー','管理番号：'+j.code+'\n商品名：'+j.baseItem.title+'\n△の商品です。セール終了後も売れ残っています。特価販売の判断をお願いします。',section);
+    }return;}
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
    const draft=state.drafts[j.code]||(state.drafts[j.code]={});
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3','変更後の記号： '+j.symbol,box);
