@@ -89,8 +89,8 @@ function parseCsv(text){
     var desc = COL.DESC >= 0 && cols[COL.DESC] ? cols[COL.DESC].trim() : '';
     var catM = desc.match(/#[^\s\u3000\r\n,、。！？#]+/);
     var category = catM ? catM[0] : '';
-    var symMatch = desc.match(/([●■▲〇□])管理番号/);
-    var actualSymbol = symMatch ? symMatch[1] : '';
+    var symbolRead = ManagementSymbol.read(desc,code);
+    var actualSymbol = symbolRead.symbol;
     var shopsRegAt = COL.REG_DATE >= 0 && cols[COL.REG_DATE] ? cols[COL.REG_DATE].trim() : '';
     var shopsUpdAt = COL.UPD_DATE >= 0 && cols[COL.UPD_DATE] ? cols[COL.UPD_DATE].trim() : '';
 
