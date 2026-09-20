@@ -103,7 +103,7 @@
   const recovery=node('details',undefined,parent);node('summary','復元が必要なときだけ（オーナーの案内で使用）',recovery);node('p','通常は開く必要はありません。同じPC・同じブラウザではそのまま続きから作業できます。',recovery);
   upload('前回の作業結果から途中入力も復元する',raw=>{if(raw.format!=='listing-ab-result-v1'||!raw.resume||raw.resume.work.id!==raw.id||raw.resume.work.role!==raw.role)throw Error('復元用の作業結果ではありません');if(state.work&&(state.work.id!==raw.id||state.work.role!==raw.role))throw Error('別の担当・配布データが開いています');if(state.work&&state.workUpdatedAt&&raw.resume.updatedAt<state.workUpdatedAt)throw Error('現在より古い保存結果です。上書きしません');const work=R.validateWork(raw.resume.work);if(!Array.isArray(raw.records)||new Set(raw.records.map(r=>r.code)).size!==raw.records.length)throw Error('完了記録が不正です');for(const r of raw.records){const j=work.jobs.find(j=>j.code===r.code);if(!j||r.role!==raw.role)throw Error('担当外の記録があります');R.record(j,r.checks,r.completedAt);}WorkCounts.entries(raw);state.activity=Object.fromEntries((raw.activity||[]).map(e=>[e.id,e]));state.work=work;state.records=Object.fromEntries(raw.records.map(r=>[r.code,r]));state.drafts=raw.resume.drafts||{};},recovery);
   const w=state.work;if(!w)return;
-  upload('オーナーCSV変更済みファイルを反映',raw=>{const next=R.applyOwnerCsv(state,raw);state.drafts=next.drafts;msg('Shopsの変更済み情報を反映しました。他販路の記録は保持しています。');},parent);node('p','価格・記号をコピー → 販売先で指定どおりに保存・確認 → 実際に行った作業を選択。変更前後の金額・記号の入力は不要です。',parent);node('h2',w.role+'画面：担当'+w.jobs.length+'件／完了'+w.jobs.filter(j=>state.records&&state.records[j.code]).length+'件',parent);node('p','記号・価格変更のみ。再出品・セールは行いません。価格は高くても安くても各販路の指定価格へ揃えます。売却済み・商品不一致は変更しないでください。',parent);
+  upload('オーナーCSV変更済みファイルを反映',raw=>{const next=R.applyOwnerCsv(state,raw);state.drafts=next.drafts;msg('Shopsの変更済み情報を反映しました。他販路の記録は保持しています。');},parent);node('p','記号 → 価格の順にコピー → 販売先で指定どおりに保存・確認 → 実際に行った作業を選択。変更前後の金額・記号の入力は不要です。',parent);node('h2',w.role+'画面：担当'+w.jobs.length+'件／完了'+w.jobs.filter(j=>state.records&&state.records[j.code]).length+'件',parent);node('p','記号・価格変更のみ。再出品・セールは行いません。価格は高くても安くても各販路の指定価格へ揃えます。売却済み・商品不一致は変更しないでください。',parent);
   button('作業結果を保存して渡す',()=>download(w.role+'作業結果_'+now().slice(0,16).replace(/:/g,'')+'_'+w.id+'.json',resultFile(w)),parent);
   const finishGuide=node('section',undefined,parent);
   node('h3','今日の作業を終えるとき',finishGuide);
@@ -149,7 +149,7 @@
     const badge=node('small','',box);
     function showPlatformState(){const finished=['done','unlisted','auction'].includes(d.status),held=['missing','sold','error','owner_wait'].includes(d.status);box.classList.toggle('platform-finished',finished);box.classList.toggle('platform-held',held);box.querySelectorAll('[data-copy]').forEach(el=>{el.disabled=d.status==='auction';});badge.textContent=d.status==='auction'?'✓ オークション中のためスキップ（入札者0人でも対象・変更件数には含めません）':d.status==='sold'&&d.reported?'売却済み：オーナーへ報告済み':d.status==='missing'&&p!=='shops'?'対象外：見つからないためスキップ（変更件数には含めません）':finished?'✓ この販路は確認完了':held?'⚠ この販路は要確認（完了ではありません）':d.status==='working'?'作業中':'';}
     showPlatformState();
-    if(target!==null)copyButton('指定価格をコピー',String(target),box);copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);
+    copyButton('記号 '+j.symbol+' をコピー',j.symbol,box);if(target!==null)copyButton('指定価格をコピー',String(target),box);
     node('p','変更後の価格：'+(target===null?'確認が必要':target.toLocaleString()+'円（自動表示・再入力不要）'),box);
     const options=[['pending','未着手'],['both','価格と記号を変更した'],['missing','商品が見つかりません'],['sold','売却済み'],['working','作業中'],...(['mercari','yahoo_auction'].includes(p)?[['auction','オークション中のためスキップ']]:[]),['price','価格だけ変更した'],['symbol','記号だけ変更した'],['none','もともと指定どおりだった（確認のみ）'],...(d.status==='done'&&!d.declaredAction?[['done','記録済み（旧方式）']]:[]),...(p==='shops'?[]:[['unlisted','未出品と確認済み']]),['error','変更できません（エラー）'],['owner_wait','オーナー確認待ち']];
     const descriptions={auction:'入札者が0人でも、オークション中の商品はスキップします。価格・記号は変更せず、ほかの販路の確認を続けてください。',pending:'まだこの販路の作業を始めていません。',working:'変更・確認の途中です。',done:'指定価格・記号に揃っていることを確認し、実際に行った作業だけを記録します。変更しなかったものは数えません。',unlisted:'この販路に出品していないと確認できた場合です。見つからないだけなら下の項目を選びます。',missing:p==='shops'?'Shopsの商品が見つからない場合はオーナーへ確認してください。':'この販路はスキップします。他の販路の確認後、商品全体を完了できます。報告コピーは任意です。',sold:'売却済みを確認しました。結果JSONに記録し、オーナーがチェックします。',error:'保存できないなどの予期せぬエラーです。下の欄に理由を記入してください。',owner_wait:'指示や承認の確認が必要です。下の欄に理由を記入してください。'};
@@ -199,6 +199,22 @@
     if(state.records[j.code]||(state.activity&&state.activity[eventId])){box.querySelectorAll('input,select,button').forEach(el=>{if(!el.dataset.copy)el.disabled=true;});node('small','記録済み：入力内容を保持しています',box);}
     showUndo();
    });
+   if(state.records[j.code]){
+    const correction=node('details',undefined,section);node('summary','完了した作業結果を訂正する',correction);
+    node('p','間違えた販路の記録だけ訂正します。販売サイトの価格は変わりません。Shops・売却済み報告の訂正はオーナーへ連絡してください。',correction);
+    const channel=select(Object.keys(j.platforms).filter(p=>p!=='shops'&&state.records[j.code].checks[p]?.status!=='sold').map(p=>[p,labels[p]]),'',correction);
+    const action=select([['','正しい作業結果を選択'],['price','価格だけ変更した'],['symbol','記号だけ変更した'],['both','価格と記号を変更した'],['none','変更せず指定どおりと確認した'],['auction','オークション中のためスキップ'],['missing','商品が見つかりません'],['unlisted','未出品と確認した']],'',correction);
+    const reason=input('text','',correction);reason.placeholder='訂正理由（例：選択間違い）';
+    button('この内容で訂正を保存',async()=>{
+     const at=now(),next=R.correctCompleted(state,j.code,channel.value,action.value,reason.value,at);
+     const id=JSON.stringify([w.id,w.role,j.code,channel.value]),prior=(state.activity||{})[id];
+     const event=WorkCounts.event(w.id,w.role,j,channel.value,next.records[j.code].checks[channel.value],at);
+     event.correctedAt=at;event.completedAt=prior?.completedAt||state.records[j.code].completedAt;
+     if(prior)event.correctionHistory=[...(prior.correctionHistory||[]),clone(prior)];
+     next.activity=next.activity||{};next.activity[id]=event;state=next;await save();render();
+     msg('訂正を保存しました。最新の作業結果JSONをオーナーへ渡してください。');
+    },correction);
+   }
    const note=input('text',draft.note||'',section);note.placeholder='保留理由・オーナーへの確認事項';note.oninput=()=>{draft.note=note.value;save();};
    const hold=button('要確認として保存して次へ',async()=>{
     if(!Object.keys(j.platforms).some(p=>draft[p]&&['missing','sold','error','owner_wait'].includes(draft[p].status)))throw Error('見つからない・売却済み・エラー・オーナー確認待ちの販路がある場合に使います');

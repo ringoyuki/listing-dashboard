@@ -47,7 +47,10 @@ function entries(file){
 function summarize(files){
  const map=new Map(),conflicts=new Set();let duplicates=0;
  for(const f of files)for(const e of entries(f)){
-  if(map.has(e.id)){if(JSON.stringify(map.get(e.id))!==JSON.stringify(e)){conflicts.add(e.id);}else duplicates++;}else map.set(e.id,e);
+  if(map.has(e.id)){const old=map.get(e.id);if(JSON.stringify(old)!==JSON.stringify(e)){
+   const matches=(a,b)=>(a.correctionHistory||[]).some(x=>JSON.stringify(x)===JSON.stringify(b));
+   if(matches(e,old))map.set(e.id,e);else if(!matches(old,e))conflicts.add(e.id);
+  }else duplicates++;}else map.set(e.id,e);
  }
  const rows=[...map.values()].filter(e=>!conflicts.has(e.id));const groups={};
  for(const e of rows){const day=new Date(Date.parse(e.completedAt)+9*3600000).toISOString().slice(0,10),key=day+' '+e.role;

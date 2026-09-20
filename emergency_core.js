@@ -112,7 +112,14 @@
    const job=master.jobs.find(j=>j.code===r.code&&j.role===result.role);assert(job&&r.role===result.role,'担当外の商品が含まれます');
    record(job,r.checks,r.completedAt);assert(r.status==='done'&&Number.isFinite(Date.parse(r.completedAt)),'完了記録が不正です');
    const previous=out.applied[r.code];
-   if(previous){assert(same(previous,r),'同じ商品の異なる結果です。確認が必要です');duplicates.push(r.code);continue;}
+   if(previous){
+    if(same(previous,r)){duplicates.push(r.code);continue;}
+    const history=r.corrections||[];
+    const correction=history.find(c=>same(c.before,previous));
+    const sd=snap.data[r.code]||{};
+    if(!correction||!same(sd.emergencyLastResult,previous)||!same(previous.checks.shops,r.checks.shops)){conflicts.push(r.code);continue;}
+    snap.data[r.code]={...sd,emergencyLastResult:clone(r)};out.applied[r.code]=clone(r);applied.push(r.code);continue;
+   }
    const i=snap.items.find(i=>i.code===r.code),sd=snap.data[r.code]||{};
    if(!same(i,job.baseItem)||!same(sd,job.baseData)){conflicts.push(r.code);continue;}
    if(Object.values(r.checks).some(c=>c&&c.status==='sold')){snap.data[r.code]={...clone(sd),emergencyLastResult:clone(r),emergencyReview:{reason:'売却済み報告あり：各販路の販売取り下げを確認してください',reportedAt:r.completedAt,role:r.role}};out.applied[r.code]=clone(r);applied.push(r.code);continue;}
@@ -149,5 +156,20 @@
   }
   return next;
  }
- const api={defaults,settings,snapshot,propose,create,pack,record,merge,prices,stable,simpleCandidates,appendSimple,validateWork,applyOwnerCsv};if(typeof module!=='undefined')module.exports=api;else root.EmergencyCore=api;
+ function correctCompleted(state,code,platform,action,reason,at){
+  const job=state.work?.jobs.find(j=>j.code===code),before=state.records?.[code];
+  assert(job&&before,'完了済みの商品を選んでください');
+  assert(platform!=='shops'&&Object.hasOwn(job.platforms,platform),'Shopsの反映記録はオーナーへ確認してください');
+  assert(before.checks[platform]?.status!=='sold','売却済み報告の訂正はオーナーへ確認してください');
+  assert(String(reason||'').trim(),'訂正理由を入力してください');
+  assert(['price','symbol','both','none','auction','missing','unlisted'].includes(action),'訂正内容を選んでください');
+  const checks=clone(before.checks),done=['price','symbol','both','none'].includes(action);
+  checks[platform]={status:done?'done':action,declaredAction:done?action:null,price:done?job.platforms[platform]:null,confirmed:done||action==='unlisted',symbolConfirmed:done,updatedAt:at};
+  const next=record(job,checks,at);
+  next.completedAt=before.completedAt;
+  next.corrections=[...(before.corrections||[]),{platform,reason:String(reason).trim(),at,role:state.work.role,before:clone(before)}];
+  const out=clone(state);out.records[code]=next;out.drafts=out.drafts||{};out.drafts[code]=checks;
+  return out;
+ }
+ const api={defaults,settings,snapshot,propose,create,pack,record,merge,prices,stable,simpleCandidates,appendSimple,validateWork,applyOwnerCsv,correctCompleted};if(typeof module!=='undefined')module.exports=api;else root.EmergencyCore=api;
 })(typeof window!=='undefined'?window:globalThis);
