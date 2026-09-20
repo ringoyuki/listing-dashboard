@@ -159,7 +159,8 @@
  function correctCompleted(state,code,platform,action,reason,at){
   const job=state.work?.jobs.find(j=>j.code===code),before=state.records?.[code];
   assert(job&&before,'完了済みの商品を選んでください');
-  assert(platform!=='shops'&&Object.hasOwn(job.platforms,platform),'Shopsの反映記録はオーナーへ確認してください');
+  assert(platform&&Object.hasOwn(job.platforms,platform),'訂正する販路を選択してください');
+  assert(platform!=='shops','Shopsの反映記録はオーナーへ確認してください');
   assert(before.checks[platform]?.status!=='sold','売却済み報告の訂正はオーナーへ確認してください');
   assert(String(reason||'').trim(),'訂正理由を入力してください');
   assert(['price','symbol','both','none','auction','missing','unlisted'].includes(action),'訂正内容を選んでください');
@@ -168,7 +169,7 @@
   const next=record(job,checks,at);
   next.completedAt=before.completedAt;
   next.corrections=[...(before.corrections||[]),{platform,reason:String(reason).trim(),at,role:state.work.role,before:clone(before)}];
-  const out=clone(state);out.records[code]=next;out.drafts=out.drafts||{};out.drafts[code]=checks;
+  const out=clone(state);out.records[code]=next;out.drafts=out.drafts||{};out.drafts[code]={...(out.drafts[code]||{}),...checks};
   return out;
  }
  const api={defaults,settings,snapshot,propose,create,pack,record,merge,prices,stable,simpleCandidates,appendSimple,validateWork,applyOwnerCsv,correctCompleted};if(typeof module!=='undefined')module.exports=api;else root.EmergencyCore=api;

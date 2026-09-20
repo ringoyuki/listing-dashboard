@@ -104,25 +104,25 @@
   upload('前回の作業結果から途中入力も復元する',raw=>{if(raw.format!=='listing-ab-result-v1'||!raw.resume||raw.resume.work.id!==raw.id||raw.resume.work.role!==raw.role)throw Error('復元用の作業結果ではありません');if(state.work&&(state.work.id!==raw.id||state.work.role!==raw.role))throw Error('別の担当・配布データが開いています');if(state.work&&state.workUpdatedAt&&raw.resume.updatedAt<state.workUpdatedAt)throw Error('現在より古い保存結果です。上書きしません');const work=R.validateWork(raw.resume.work);if(!Array.isArray(raw.records)||new Set(raw.records.map(r=>r.code)).size!==raw.records.length)throw Error('完了記録が不正です');for(const r of raw.records){const j=work.jobs.find(j=>j.code===r.code);if(!j||r.role!==raw.role)throw Error('担当外の記録があります');R.record(j,r.checks,r.completedAt);}WorkCounts.entries(raw);state.activity=Object.fromEntries((raw.activity||[]).map(e=>[e.id,e]));state.work=work;state.records=Object.fromEntries(raw.records.map(r=>[r.code,r]));state.drafts=raw.resume.drafts||{};},recovery);
   const w=state.work;if(!w)return;
   upload('オーナーCSV変更済みファイルを反映',raw=>{const next=R.applyOwnerCsv(state,raw);state.drafts=next.drafts;msg('Shopsの変更済み情報を反映しました。他販路の記録は保持しています。');},parent);node('p','記号 → 価格の順にコピー → 販売先で指定どおりに保存・確認 → 実際に行った作業を選択。変更前後の金額・記号の入力は不要です。',parent);node('h2',w.role+'画面：担当'+w.jobs.length+'件／完了'+w.jobs.filter(j=>state.records&&state.records[j.code]).length+'件',parent);node('p','記号・価格変更のみ。再出品・セールは行いません。価格は高くても安くても各販路の指定価格へ揃えます。売却済み・商品不一致は変更しないでください。',parent);
-  button('作業結果を保存して渡す',()=>download(w.role+'作業結果_'+now().slice(0,16).replace(/:/g,'')+'_'+w.id+'.json',resultFile(w)),parent);
+  button('作業結果を保存して渡す',()=>download(w.role+'さん_作業結果_'+now().slice(0,16).replace('T','_').replace(/:/g,'')+'_'+w.jobs.filter(j=>state.records?.[j.code]).length+'件完了_残り'+w.jobs.filter(j=>!state.records?.[j.code]).length+'件.json',resultFile(w)),parent);
   const finishGuide=node('section',undefined,parent);
   node('h3','今日の作業を終えるとき',finishGuide);
   node('p','① 上のボタンで作業結果JSONをダウンロード → ② 下のDriveフォルダーを開く → ③ ダウンロードしたJSONをアップロードしてください。自動ではアップロードされません。全件終わっていなくても毎日の終了時に保存します。',finishGuide);
   const driveLink=node('a','📁 作業結果JSONの保存先（Google Drive）を開く',finishGuide);
   driveLink.href='https://drive.google.com/drive/folders/1JHkLM9rVcMcGPOWTCHLZABur7hxcEN0K';driveLink.target='_blank';driveLink.rel='noopener';
-  node('p','ファイル名のA/B・日付・配布IDはそのまま残してください。アップロードできない場合は、ダウンロードしたJSONをオーナーへファイル添付で送ってください。',finishGuide);
+  node('p','ファイル名の担当・日時・件数はそのまま残してください。アップロードできない場合は、ダウンロードしたJSONをオーナーへファイル添付で送ってください。',finishGuide);
   node('p','翌日：同じPC・同じブラウザなら、このページを開いて続きから再開します。通常の再読み込みでも自動保存した入力は残ります。保存中の警告が出たら画面を閉じずに待ってください。',finishGuide);
   node('small','「前回の作業結果から途中入力も復元する」は別PCや復旧時に最新の作業結果JSONを選びます。「担当の配布ファイル」は初回・追加配布時に使います。毎日元の配布ファイルを読み直す必要はありません。ブラウザのデータ削除・シークレットモードでは保存が失われる場合があるため、終了時のJSON保存も必ず行ってください。',finishGuide);
 
   if(w.jobs.length&&w.jobs.every(j=>state.records[j.code]))button('全件完了：結果を保存して次の配布へ',()=>{download(w.role+'作業結果_'+w.id+'.json',resultFile(w));state.archives=state.archives||[];state.archives.push({work:state.work,records:state.records,drafts:state.drafts,activity:state.activity});delete state.work;state.records={};state.drafts={};state.activity={};save();render();},parent);
   const findBox=node('section',undefined,parent);node('h3','担当商品を探す',findBox);
   const filterLabel=node('label','管理番号・商品名',findBox),filter=input('search','',filterLabel);
-  filter.placeholder='番号や商品名の一部を入力';
+  filter.placeholder='番号や商品名の一部を入力';filter.dataset.staffSearch='true';
   let unfinishedOnly=false;const visibleCount=node('small','',findBox);
   const cards=[];
   const normalize=s=>String(s||'').normalize('NFKC').toLowerCase();
   function filterCards(){const terms=normalize(filter.value).trim().split(/\s+/).filter(Boolean);let count=0;cards.forEach(({section,j})=>{section.hidden=(unfinishedOnly&&!!state.records[j.code])||!terms.every(t=>normalize(j.code+' '+j.baseItem.title).includes(t));if(!section.hidden)count++;});visibleCount.textContent='表示 '+count+'件 ／ 担当 '+w.jobs.length+'件';}
-  check('未完了だけ表示',false,v=>{unfinishedOnly=v;filterCards();},findBox);filter.oninput=filterCards;
+  const unfinishedCheck=check('未完了だけ表示',false,v=>{unfinishedOnly=v;filterCards();},findBox);unfinishedCheck.dataset.staffUnfinished='true';filter.oninput=filterCards;
   w.jobs.forEach((j,index)=>{const section=node('details',undefined,parent);section.dataset.productCode=j.code;cards.push({section,j});section.className='product-card '+(index%2?'product-alternate':'')+(state.records[j.code]?' product-complete':'');node('summary',(state.records[j.code]?'完了：':'未完了：')+j.code+' ／ '+j.baseItem.title,section);node('h2','変更後の記号：'+j.symbol+' ／ Shops指定価格 '+j.price.toLocaleString()+'円',section);
    if(j.emergencyReview){section.querySelector('h2').textContent=j.triangleSaleEnd?'△：通常変更なし／セール後に報告':'オーナー確認待ち：変更指示を保留中';node('p',j.emergencyReview,section).className='sold-warning';
     if(j.triangleSaleEnd){
@@ -203,7 +203,7 @@
    if(state.records[j.code]){
     const correction=node('details',undefined,section);node('summary','完了した作業結果を訂正する',correction);
     node('p','間違えた販路の記録だけ訂正します。販売サイトの価格は変わりません。Shops・売却済み報告の訂正はオーナーへ連絡してください。',correction);
-    const channel=select(Object.keys(j.platforms).filter(p=>p!=='shops'&&state.records[j.code].checks[p]?.status!=='sold').map(p=>[p,labels[p]]),'',correction);
+    const channel=select([['','訂正する販路を選択'],...Object.keys(j.platforms).filter(p=>p!=='shops'&&state.records[j.code].checks[p]?.status!=='sold').map(p=>[p,labels[p]])],'',correction);
     const action=select([['','正しい作業結果を選択'],['price','価格だけ変更した'],['symbol','記号だけ変更した'],['both','価格と記号を変更した'],['none','変更せず指定どおりと確認した'],['auction','オークション中のためスキップ'],['missing','商品が見つかりません'],['unlisted','未出品と確認した']],'',correction);
     const reason=input('text','',correction);reason.placeholder='訂正理由（例：選択間違い）';
     button('この内容で訂正を保存',async()=>{
@@ -224,11 +224,14 @@
     if(next){next.open=true;next.scrollIntoView({block:'start',behavior:'auto'});}else section.scrollIntoView({block:'start',behavior:'auto'});
     msg('管理番号 '+j.code+' を要確認として保存しました。完了件数には含めません。報告文または作業結果JSONをオーナーへ渡してください。');
    },section);hold.disabled=!!state.records[j.code];
-   const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');if(Object.keys(j.platforms).some(p=>draft[p]&&(['error','owner_wait'].includes(draft[p].status)||(draft[p].status==='sold'&&!draft[p].reported)||(p==='shops'&&draft[p].status==='missing')))){msg('要確認の販路があります。「要確認として保存して次へ」を押してください。');return;}const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
+   const done=button('各販路の確認を終えて完了にする',async()=>{if(state.records[j.code])throw Error('すでに完了しています');if(Object.keys(j.platforms).some(p=>draft[p]&&(['error','owner_wait'].includes(draft[p].status)||(draft[p].status==='sold'&&!draft[p].reported)||(p==='shops'&&draft[p].status==='missing')))){msg('要確認の販路があります。「要確認として保存して次へ」を押してください。');return;}const finished=R.record(j,draft,now());const additions=Object.keys(j.platforms).filter(p=>!(state.activity||{})[JSON.stringify([w.id,w.role,j.code,p])]).map(p=>WorkCounts.event(w.id,w.role,j,p,draft[p],now()));state.activity=state.activity||{};additions.forEach(e=>state.activity[e.id]=e);state.records[j.code]=finished;await save();render();const completedCard=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>el.dataset.productCode===j.code);if(completedCard?.hidden){const next=Array.from(app.querySelectorAll('[data-product-code]')).find(el=>!el.hidden&&!state.records[el.dataset.productCode]);if(next){next.open=true;next.scrollIntoView({block:'start',behavior:'auto'});}}else if(completedCard){completedCard.scrollIntoView({block:'start',behavior:'auto'});const heading=completedCard.querySelector('summary');if(heading)heading.focus({preventScroll:true});}},section);done.disabled=!!state.records[j.code];
   });
   filterCards();
  }
  function render(){
+  const previousSearch=app.querySelector('[data-staff-search]')?.value||'';
+  const previousUnfinished=!!app.querySelector('[data-staff-unfinished]')?.checked;
+  const openCodes=new Set(Array.from(app.querySelectorAll('[data-product-code]')).filter(el=>el.open).map(el=>el.dataset.productCode));
   const toolbar=document.getElementById('work-toolbar');toolbar.replaceChildren();
   const w=state.work,total=w?w.jobs.length:0,completed=w?w.jobs.filter(j=>state.records&&state.records[j.code]).length:0;
   const progress=node('strong',w?w.role+'画面：'+total+'件中 '+completed+'件完了 ／ 残り '+(total-completed)+'件':'A・B作業画面：担当ファイルを選択してください',toolbar);progress.setAttribute('role','status');
@@ -243,6 +246,10 @@
    staffBox.ontoggle=()=>{ownerWorkExpanded=staffBox.open;};
   }
   staff(staffBox);
+  const search=app.querySelector('[data-staff-search]'),unfinished=app.querySelector('[data-staff-unfinished]');
+  if(search){search.value=previousSearch;search.oninput();}
+  if(unfinished){unfinished.checked=previousUnfinished;unfinished.onchange();}
+  app.querySelectorAll('[data-product-code]').forEach(el=>{el.open=openCodes.has(el.dataset.productCode);});
   if(state.work)return;const ownerBox=node('details',undefined,app);node('summary','オーナー：設定・担当割り当て・結果統合',ownerBox);settings(ownerBox);owner(ownerBox);
  }
  let syncingOwner=false;
