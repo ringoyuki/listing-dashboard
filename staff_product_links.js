@@ -1,0 +1,8 @@
+(function(root){'use strict';
+ const paths={mercari:['jp.mercari.com',/^\/item\/m\d+$/],rakuma:['item.fril.jp',/^\/[a-f0-9]{32}$/],yahoo_auction:['auctions.yahoo.co.jp',/^\/jp\/auction\/[a-z0-9]+$/],yahoo_flea:['paypayfleamarket.yahoo.co.jp',/^\/item\/z\d+$/]};
+ function safeUrl(platform,value){try{const u=new URL(value),rule=paths[platform];if(!rule||u.protocol!=='https:'||u.hostname!==rule[0]||u.username||u.password||u.port||!rule[1].test(u.pathname))return null;return u.origin+u.pathname;}catch(e){return null;}}
+ function recent(date,now=Date.now()){if(!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return false;const t=Date.parse(date+'T00:00:00+09:00'),today=Date.parse(new Date(now+9*3600000).toISOString().slice(0,10)+'T00:00:00+09:00');return t<=today&&t>=today-31*86400000;}
+ async function hash(code){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');}
+ async function resolve(jobs,feed,now=Date.now()){const out={};if(feed?.format!=='staff-product-links-v1'||!Array.isArray(feed.entries))return out;const indexed=new Map(),duplicates=new Set();for(const e of feed.entries){if(indexed.has(e.hash))duplicates.add(e.hash);indexed.set(e.hash,e);}for(const j of jobs||[]){const h=await hash(j.code),e=indexed.get(h);if(!e||duplicates.has(h)||!recent(e.listedAt,now))continue;const links={};for(const p of Object.keys(paths)){const url=safeUrl(p,e.links?.[p]);if(url)links[p]=url;}out[j.code]=links;}return out;}
+ const api={safeUrl,recent,hash,resolve};if(typeof module!=='undefined')module.exports=api;else root.StaffProductLinks=api;
+})(typeof globalThis!=='undefined'?globalThis:this);

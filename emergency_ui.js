@@ -1,7 +1,7 @@
 (async function(){
  'use strict';
  await OwnerSimpleLogin.enter();
- const R=EmergencyCore,KEY='listing_ab_workspace_v1';let state,ownerWorkExpanded=false;
+ const R=EmergencyCore,KEY='listing_ab_workspace_v1';let state,ownerWorkExpanded=false,directLinks={};
  const db=await new Promise((resolve,reject)=>{const req=indexedDB.open(KEY,1);req.onupgradeneeded=()=>req.result.createObjectStore('state');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
  state=await new Promise((resolve,reject)=>{const req=db.transaction('state').objectStore('state').get('current');req.onsuccess=()=>resolve(req.result||{});req.onerror=()=>reject(req.error);});
  let writes=Promise.resolve(),saveBlocked=false,pendingWrites=0;
@@ -134,6 +134,8 @@
    const shopid=j.baseItem.shopItemId;if(shopid){const a=node('a','Shops商品ページ',section);a.href='https://jp.mercari.com/shops/product/'+encodeURIComponent(shopid);a.target='_blank';a.rel='noopener';}
    const draft=state.drafts[j.code]||(state.drafts[j.code]={});
    Object.keys(j.platforms).forEach(p=>{const box=node('section',undefined,section),target=j.platforms[p];node('small','管理番号：'+j.code,box);node('h3',labels[p]+'：'+(target===null?'オーナー確認':target.toLocaleString()+'円に合わせる'),box);node('h3','変更後の記号： '+j.symbol,box);
+    const directHref=directLinks[j.code]?.[p];
+    if(directHref){const direct=node('p',undefined,box),a=node('a','商品を直接開く',direct);a.href=directHref;a.target='_blank';a.rel='noopener';node('small','出品展開リストと管理番号が一致したリンクです。開いた商品の管理番号も確認してください。',box);node('small','開けない・商品が違う場合は、下の検索を使ってください。',box);}
     const searches=p==='shops'?[['Shops管理画面を開く',j.baseItem.shopsUrl]]:(p==='yahoo_auction'?['title']:['code','title']).map(mode=>[mode==='code'?'管理番号で検索':'タイトルで検索',searchUrl(p,mode,j.code,j.baseItem.title)]);
     const searchLinks=node('p',undefined,box);searchLinks.style.display='flex';searchLinks.style.flexWrap='wrap';searchLinks.style.gap='18px';
     for(const [label,href] of searches){if(href){try{const u=new URL(href);if(u.protocol==='https:'&&['mercari-shops.com','jp.mercari.com','fril.jp','paypayfleamarket.yahoo.co.jp','auctions.yahoo.co.jp'].includes(u.hostname)){const a=node('a',label,searchLinks);a.href=u.href;a.target='_blank';a.rel='noopener';}}catch(e){}}}
@@ -256,17 +258,20 @@
  async function syncOwnerCsv(){
   if(syncingOwner||!state.work||saveBlocked)return false;
   syncingOwner=true;
+  const linkWork=state.work,previousLinks=JSON.stringify(directLinks);directLinks={};
+  try{const response=await fetch('staff_product_links.json',{cache:'no-store'});if(response.ok){const links=await StaffProductLinks.resolve(linkWork.jobs,await response.json());if(state.work===linkWork)directLinks=links;}}catch(e){/* Search remains available when link data is unavailable. */}
+  const linksChanged=previousLinks!==JSON.stringify(directLinks);
   try{
    await OwnerCsvSync.markReviews(state.work);
    const response=await fetch('owner_csv_applied.json',{cache:'no-store'});
    if(!response.ok)throw Error('変更済み情報を取得できません');
    const feed=await response.json(),work=state.work;
    const receipt=await OwnerCsvSync.receipt(work,feed);
-   if(state.work!==work||!receipt)return false;
+   if(state.work!==work||!receipt)return linksChanged;
    const next=R.applyOwnerCsv(state,receipt);
-   if(JSON.stringify(next.drafts)===JSON.stringify(state.drafts||{}))return false;
+   if(JSON.stringify(next.drafts)===JSON.stringify(state.drafts||{}))return linksChanged;
    state.drafts=next.drafts;await save();return true;
-  }catch(e){msg('オーナーCSV変更済み情報の自動確認ができませんでした。再読み込みしてください。'+e.message);return false;}
+  }catch(e){msg('オーナーCSV変更済み情報の自動確認ができませんでした。再読み込みしてください。'+e.message);return linksChanged;}
   finally{syncingOwner=false;}
  }
  await syncOwnerCsv();
