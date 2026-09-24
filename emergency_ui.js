@@ -166,7 +166,10 @@
     function showReport(){
      report.replaceChildren();
      if(!['missing','sold'].includes(d.status))return;
-     const text='管理番号：'+j.code+'\n商品名：'+(j.baseItem.title||'（商品名未登録）')+'\n販路：'+labels[p]+'\n'+(d.status==='missing'?'商品が見つかりません。掲載先の確認をお願いします。':'売却済みでした。ほかの販路の出品状況をご確認ください。');
+     let shopsReportUrl='';
+     try{const u=new URL(j.baseItem.shopsUrl);if(u.protocol==='https:'&&u.hostname==='mercari-shops.com'&&/^\/seller\/shops\/[^/]+\/products\/[^/]+\/?$/.test(u.pathname)&&!u.username&&!u.password)shopsReportUrl=u.origin+u.pathname;}catch(e){}
+     if(!shopsReportUrl&&j.baseItem.shopItemId)shopsReportUrl='https://jp.mercari.com/shops/product/'+encodeURIComponent(j.baseItem.shopItemId);
+     const text='管理番号：'+j.code+'\n商品名：'+(j.baseItem.title||'（商品名未登録）')+'\n販路：'+labels[p]+'\n'+(d.status==='missing'?'商品が見つかりません。掲載先の確認をお願いします。':'売却済みでした。ほかの販路の出品状況をご確認ください。')+'\n\nメルカリShops：\n'+(shopsReportUrl||'（商品リンク未登録）');
      node('p',text,report).style.whiteSpace='pre-wrap';
      copyButton('オーナーへの報告文をコピー',text,report);
      node('small','コピー後、チャットに貼り付けて送信してください。',report);
