@@ -1,6 +1,6 @@
 (function(root){'use strict';
 // This module selects approved instructions only; it never calculates discounts.
-const LIMIT=5, SCREEN=10, CLOSED=new Set(['done','unchanged','sold']);
+const LIMIT=null, SCREEN=null, CLOSED=new Set(['done','unchanged','sold']);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const stamp=t=>new Date(t).toISOString();
 function weekKey(now){const d=new Date(now+9*3600000);d.setUTCHours(0,0,0,0);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
@@ -18,12 +18,13 @@ function eligible(r,state,now){
 }
 function prepare(state,now=Date.now()){
  const next=copy(state);next.saleRounds=next.saleRounds||{};const key=weekKey(now);
- if(next.saleRounds[key])return next;
- const seen=new Set();const ids=[];
+ 
+ const batch=next.saleRounds[key]||{createdAt:stamp(now),ids:[],checks:{},started:[]};
+ const seen=new Set();const ids=batch.ids;for(const id of ids){const old=next.jobs.find(r=>r.id===id);if(old){seen.add(old.spec.productId);seen.add("code:"+old.spec.code);}}
  const rows=next.jobs.filter(r=>eligible(r,next,now)).sort((a,b)=>Date.parse(a.spec.startAt)-Date.parse(b.spec.startAt)||a.id.localeCompare(b.id));
- for(const r of rows){if(seen.has(r.spec.productId)||seen.has('code:'+r.spec.code))continue;seen.add(r.spec.productId);seen.add('code:'+r.spec.code);ids.push(r.id);if(ids.length===SCREEN)break;}
- // Empty feeds must not consume the week's selection. Once selected, never refill it.
- if(ids.length)next.saleRounds[key]={createdAt:stamp(now),ids,checks:{},started:[]};
+ for(const r of rows){if(seen.has(r.spec.productId)||seen.has('code:'+r.spec.code))continue;seen.add(r.spec.productId);seen.add('code:'+r.spec.code);ids.push(r.id);}
+ // Preserve prior checks and starts, append eligible instructions without a quantity cap.
+ if(ids.length)next.saleRounds[key]=batch;
  return next;
 }
 function round(state,now){return state.saleRounds?.[weekKey(now)];}
@@ -46,9 +47,7 @@ function gate(state,id,items,now=Date.now(),legacy=[]){
  if(state.jobs.some(x=>x.id===id+':restore'))return '終了処理が残っています。再開始せずオーナーへ連絡してください';
  if(overdue(state,now,legacy))return '終了処理の未完了があるため、新規セールを止めています';
  const b=round(state,now);if(!b?.ids.includes(id))return '今週の指定候補外です。代わりの商品探しは不要です';
- if(startedIds(state,now).length>=LIMIT)return '今週の開始上限5件に達しました';
  const active=activeSales(state);
- if(active.length+legacy.length>=LIMIT)return '同時進行の上限5件です。終了処理後に確認してください';
  if(active.some(x=>x.spec.productId===r.spec.productId||x.spec.code===r.spec.code))return '同じ商品が他のセールで進行中です';
  if(legacy.some(x=>x.code===r.spec.code||x.productId===r.spec.productId))return '同じ商品の旧セール終了処理が残っています';
  if(state.jobs.some(x=>x.id!==id&&x.status==='pending'&&x.spec.kind==='price'&&(x.spec.productId===r.spec.productId||x.spec.code===r.spec.code)&&x.spec.platform===r.spec.platform))return 'この商品の通常価格変更が未処理です';
@@ -73,7 +72,6 @@ function nominateEmergency(state,id,now=Date.now()){
  next.saleRounds=next.saleRounds||{};const key=weekKey(now);
  const b=next.saleRounds[key]||(next.saleRounds[key]={createdAt:stamp(now),ids:[],checks:{},started:[]});
  if(b.ids.includes(id))return next;
- if(b.ids.length>=SCREEN)throw Error('今週の確認上限10件です。緊急登録でも上限は増やしません');
  if(b.ids.some(other=>next.jobs.some(x=>x.id===other&&(x.spec.productId===r.spec.productId||x.spec.code===r.spec.code))))throw Error('同じ商品が今週の候補にあります');
  b.ids.push(id);return next;
 }
@@ -82,7 +80,7 @@ function validateMeta(state){
  if(!rounds||typeof rounds!=='object'||Array.isArray(rounds)||!pauses||typeof pauses!=='object'||Array.isArray(pauses))throw Error('候補・休止の保存形式が不正です');
  const ids=new Set(state.jobs.map(r=>r.id));
  for(const [key,b] of Object.entries(rounds)){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(key)||!b||Object.keys(b).some(k=>!['createdAt','ids','checks','started'].includes(k))||!Number.isFinite(Date.parse(b.createdAt))||!Array.isArray(b.ids)||b.ids.length>SCREEN||new Set(b.ids).size!==b.ids.length||b.ids.some(id=>!ids.has(id))||!Array.isArray(b.started)||new Set(b.started).size!==b.started.length||b.started.some(id=>!b.ids.includes(id))||!b.checks||typeof b.checks!=='object'||Array.isArray(b.checks))throw Error('候補履歴が不正です');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(key)||!b||Object.keys(b).some(k=>!['createdAt','ids','checks','started'].includes(k))||!Number.isFinite(Date.parse(b.createdAt))||!Array.isArray(b.ids)||new Set(b.ids).size!==b.ids.length||b.ids.some(id=>!ids.has(id))||!Array.isArray(b.started)||new Set(b.started).size!==b.started.length||b.started.some(id=>!b.ids.includes(id))||!b.checks||typeof b.checks!=='object'||Array.isArray(b.checks))throw Error('候補履歴が不正です');
   for(const [id,c] of Object.entries(b.checks))if(!b.ids.includes(id)||!c||Object.keys(c).some(k=>!['at','currentPrice','likes','reason'].includes(k))||!Number.isFinite(Date.parse(c.at))||!Number.isSafeInteger(c.currentPrice)||c.currentPrice<300||(c.likes!==null&&(!Number.isSafeInteger(c.likes)||c.likes<0))||typeof c.reason!=='string')throw Error('実価格の確認履歴が不正です');
  }
  for(const [platform,p] of Object.entries(pauses))if(!['mercari','rakuma','yahoo_flea'].includes(platform)||!p||Object.keys(p).some(k=>!['at','until'].includes(k))||!Number.isFinite(Date.parse(p.at))||!Number.isFinite(Date.parse(p.until)))throw Error('休止記録が不正です');
