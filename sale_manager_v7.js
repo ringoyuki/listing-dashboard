@@ -1231,51 +1231,30 @@ function smSaveGasUrl(){
 // Google Drive CSV自動取り込み
 // ==========================================
 function smLoadCsvFromDrive(){
-  if(!SALE_GAS_URL){
-    showToast('⚠️ GAS URLが設定されていません。設定画面でURLを入力してください', 3000);
-    return;
-  }
-  var btn = document.getElementById('sm-drive-csv-btn');
-  if(btn){ btn.textContent='☁ 取り込み中...'; btn.disabled=true; btn.style.opacity='0.5'; }
-
-  fetch(SALE_GAS_URL+'?action=csv')
-    .then(function(r){ return r.json(); })
-    .then(function(res){
-      if(res.error){
-        showToast('⚠️ '+res.error, 3000);
-        if(btn){ btn.textContent='☁ Driveから最新CSV取り込み'; btn.disabled=false; btn.style.opacity='1'; }
-        return;
-      }
-      // CSVテキストをapp.jsのparseCsvに渡す
-      if(typeof parseCsv === 'function'){
-        parseCsv(res.csv);
-        // pendingRowsが準備できたら自動インポート
-        if(window.pendingRows && window.pendingRows.length > 0){
-          runImport();
-          showToast('✅ '+res.fileName+' から '+window.pendingRows.length+'件 取り込みました', 3000);
-          // ファイル名と更新日時を保存
-          localStorage.setItem('csv_filename', res.fileName);
-          var now = new Date();
-          var ts = now.getFullYear()+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+('0'+now.getDate()).slice(-2)+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
-          var updText = '📄 '+res.fileName+' ／ '+ts+' 取り込み';
-          localStorage.setItem('csv_updated_at', updText);
-          var si = document.getElementById('seed-info');
-          if(si) si.textContent = '📄 '+res.fileName;
-          var ua = document.getElementById('csv-updated-at');
-          if(ua) ua.textContent = updText;
-        } else {
-          showToast('⚠️ CSVのパースに失敗しました', 3000);
-        }
-      } else {
-        showToast('⚠️ parseCsv関数が見つかりません', 3000);
-      }
-      if(btn){ btn.textContent='☁ Driveから最新CSV取り込み'; btn.disabled=false; btn.style.opacity='1'; }
-      smRenderAll();
-    })
-    .catch(function(e){
-      showToast('⚠️ CSV取得に失敗: '+e.message, 3000);
-      if(btn){ btn.textContent='☁ Driveから最新CSV取り込み'; btn.disabled=false; btn.style.opacity='1'; }
-    });
+  var url=localStorage.getItem('saleGasUrl')||SALE_GAS_URL;
+  var btn=document.getElementById('sm-drive-csv-btn');
+  function fail(message){showToast('⚠️ '+message,6000);return {ok:false,message:message};}
+  if(!url)return Promise.resolve(fail('Drive連携先が未設定です。取り込み済みデータか、CSVファイル取り込みを使用してください。'));
+  if(btn){btn.textContent='☁ 取り込み中...';btn.disabled=true;}
+  var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},20000);
+  var imported=false,count=0;
+  return Promise.resolve().then(function(){var target=new URL(url);target.searchParams.set('action','csv');return fetch(target.href,{signal:controller.signal,redirect:'follow'});})
+    .then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
+    .then(async function(res){
+      if(res.error)throw Error(String(res.error));
+      if(typeof res.csv!=='string'||!res.csv.trim())throw Error('取得結果にCSVが含まれていません');
+      window._csvFileName=typeof res.fileName==='string'?res.fileName:'';
+      if(!window._csvFileName)throw Error('取得結果にファイル名がありません');
+      pendingRows=[];if(await parseCsv(res.csv)===false)return {ok:false,message:'CSVの重複または内容エラーで取り込みを停止しました。既存データは保持しています。'};
+      count=pendingRows.length;if(!count)throw Error('商品CSVを読み取れませんでした');
+      window._csvFileName=typeof res.fileName==='string'?res.fileName:'Drive商品CSV';
+      if(runImport()===false)throw Error('CSVの検証に失敗しました');imported=true;
+      showToast('✅ '+window._csvFileName+' から '+count+'件 取り込みました',4000);
+      return {ok:true,count:count};
+    }).catch(function(e){
+      if(imported)return {ok:true,count:count};
+      return fail('Drive連携先からCSVを取得・取込できませんでした（'+e.message+'）。取り込み済みデータか、CSVファイル取り込みを使用してください。');
+    }).finally(function(){clearTimeout(timer);if(btn){btn.textContent='☁ Driveから最新CSV取り込み';btn.disabled=false;btn.style.opacity='1';}});
 }
 // ===== スタッフ同期用（エクスポート・インポート） =====
 window.smExportData = function() {
