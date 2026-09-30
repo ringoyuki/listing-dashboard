@@ -13,6 +13,7 @@ window.openDailyWork=function(){
  if(oldPending||failed){el('p',failed?'旧記録を読み取れません。上書きせずオーナーに報告してください。':'このブラウザーに旧セールの終了待ちが'+oldPending+'件あります。共有画面は開けますが、この商品の新しい変更作業を始める前に終了処理を確認してください。',p);}
  {const a=el('a','毎日の共有作業を開く ↗',p);a.href=SHARED_URL;a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='display:inline-block;padding:16px 24px;background:#16788d;color:white;border-radius:10px;font-weight:bold';}
  el('p','初回は登録したGoogleアカウントでログインしてください。開始・照合待ちの商品は変更しません。メルカリShopsはオーナーが担当します。',p);
+ {const guide=el('a','スタッフ説明書・Q&A ↗',p);guide.href='staff_guide.html';guide.target='_blank';guide.rel='noopener noreferrer';guide.style.color='#b6daff';}
  const d=el('details',null,p);el('summary','従来の記録・旧セールの終了作業',d);el('p','過去の記録はこのブラウザーに保持しています。新しい共有画面へ自動移行したという意味ではありません。旧記録を消さないでください。',d);
  const b=el('button','従来の記録を開く',d);b.onclick=()=>{p.remove();if(oldOpen)oldOpen();};
 };
