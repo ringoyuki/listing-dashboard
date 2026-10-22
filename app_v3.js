@@ -161,7 +161,7 @@ function makeUrl(platKey, type, code, title) {
     if (platKey === 'yahoo_flea') return 'https://paypayfleamarket.yahoo.co.jp/search/' + qc + '?page=1';
   }
   if (type === 'title') {
-    if (platKey === 'mercari')       return 'https://jp.mercari.com/search?keyword=' + qt;
+    if (platKey === 'mercari')       return 'https://jp.mercari.com/search?keyword=' + qtRakuma;
     if (platKey === 'yahoo_auction') return 'https://auctions.yahoo.co.jp/search/search?auccat=&tab_ex=commerce&ei=utf-8&aq=-1&oq=&sc_i=&fr=auc_top&p=' + qt;
     if (platKey === 'rakuma')        return 'https://fril.jp/s?query=' + qtRakuma;
     if (platKey === 'yahoo_flea')    return 'https://paypayfleamarket.yahoo.co.jp/search/' + qt + '?page=1';
