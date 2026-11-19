@@ -14,7 +14,7 @@ function show(version){
  banner=document.createElement('div');banner.id='tool-update-notice';banner.setAttribute('role','status');
  banner.style.cssText='position:relative;z-index:1000;background:#fff1b8;color:#422006;padding:10px 16px;font:600 15px/1.6 system-ui;border-bottom:2px solid #eab308;box-sizing:border-box;width:100%';
  const work=location.pathname.endsWith('/single-work.html');
- banner.textContent=work?'ツールが更新されました。先に「作業終了」から結果JSONを保存し、ファイルを確認してから再読み込みしてください。':'ツールが更新されました。作業中のデータを保存してから、再読み込みしてください。';
+ banner.textContent=work?'ツールが更新されました。「一時保存」を押してから再読み込みしてください。毎日の最後は「作業終了」から結果JSONを保存・提出してください。':'ツールが更新されました。作業中のデータを保存してから、再読み込みしてください。';
  document.body.prepend(banner);
 }
 async function start(){
