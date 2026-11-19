@@ -1,0 +1,6 @@
+(function(root){'use strict';const KEY='ry_shared_shops_csv_v1';
+async function pack(text){const stream=new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));const bytes=new Uint8Array(await new Response(stream).arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary);}
+async function read(){const raw=localStorage.getItem(KEY);if(!raw)return null;const r=JSON.parse(raw);const bytes=Uint8Array.from(atob(r.payload),c=>c.charCodeAt(0));r.text=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();return r;}
+async function publish(text,name,modified){const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');const r={revision:crypto.randomUUID(),name,modified:modified||Date.now(),hash,importedAt:new Date().toISOString(),payload:await pack(text)};const raw=JSON.stringify(r);localStorage.setItem(KEY,raw);if(localStorage.getItem(KEY)!==raw)throw Error('共通CSVの保存確認に失敗しました');window.dispatchEvent(new Event('shared-csv-updated'));return {...r,text};}
+root.SharedShopsCsv={KEY,read,publish};
+})(window);
