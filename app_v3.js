@@ -1,4 +1,4 @@
-﻿// ===== パスワード認証 =====
+// ===== パスワード認証 =====
 var PASS = '132';
 function toHalfWidth(str) {
   return str.replace(/[０-９]/g, function(s) {
@@ -336,7 +336,7 @@ function platPriceBadge(platKey, basePrice) {
     var fp = Math.floor(p/1000)*1000;
     return '<button onclick="copyPlatPrice('+fp+',this)" style="'+sty+'">¥' + fp.toLocaleString() + '</button>';
   } else if (platKey === 'yahoo_auction') {
-    var bn = p < 10000 ? p+1000 : p < 20000 ? p+1500 : p+2000;
+    var bn = p + 100;
     if (typeof CONFIG === 'undefined' || CONFIG.YAHOO_AUCTION_STYLE_ENABLED !== true) {
       return '<button onclick="copyPlatPrice('+p+',this)" style="'+sty+'">定額¥' + p.toLocaleString() + '</button>';
     }
@@ -882,7 +882,7 @@ function runQuickCalc() {
   var rakuma = p;
   var yflea = Math.floor(p / 1000) * 1000;
   var yauc_start = p;
-  var yauc_bin = p < 10000 ? p + 1000 : (p < 20000 ? p + 1500 : p + 2000);
+  var yauc_bin = p + 100;
   var yahooAuctionStyle = typeof CONFIG !== 'undefined' && CONFIG.YAHOO_AUCTION_STYLE_ENABLED === true;
 
   // コピー用関数
