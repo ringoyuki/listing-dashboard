@@ -33,9 +33,9 @@ if(e.op==='inspect'){
  if(e.flowVersion>=11&&j.platform!=='yahoo_flea')ok(Object.hasOwn(e,'likesBand')?['0-2','3+'].includes(e.likesBand):Number.isSafeInteger(e.likes)&&e.likes>=0,'いいね数を選んでください');
  if(e.flowVersion>=4&&saleEligible&&j.platform==='mercari'){ok(price(c.price),'Shops基準価格が不明です');if(c.price*100>=e.currentPrice*(e.flowVersion>=6?110:e.flowVersion>=5?115:120)){j.stage='sale';j.saleMode='request';j.target=c.price;j.before=e.currentPrice;j.planAt=e.at;j.planVersion=e.flowVersion;return s;}}
  const previousRequest=j.previousSaleMode==='request';j.saleMode='normal';j.planVersion=e.flowVersion||1;
- if(e.flowVersion>=7&&j.platform==='yahoo_flea'){j.stage='price';j.target=Math.ceil(e.currentPrice*95/10000)*100;}
+ if(e.flowVersion>=7&&j.platform==='yahoo_flea'){j.stage='price';j.target=(e.flowVersion>=12?Math.floor:Math.ceil)(e.currentPrice*95/10000)*100;}
  else if(j.previousKind==='sale'&&saleEligible){ok((e.flowVersion>=4&&previousRequest)||e.currentPrice===j.normalPrice,'復帰価格と現在価格が異なります。保留してください');j.stage='sale';j.target=Math.floor(e.currentPrice*(e.flowVersion>=9?(e.currentPrice>=30000?90:85):90)/10000)*100;}
- else{let sale;if(Object.hasOwn(e,'likesBand')){ok(['0-2','3+'].includes(e.likesBand),'いいね数を選んでください');sale=e.likesBand==='3+';}else{ok(Number.isSafeInteger(e.likes)&&e.likes>=0,'いいね未取得を0件にはできません');sale=e.likes>=3;}j.stage=sale?'sale':'price';j.target=(j.stage==='sale'?Math.floor:Math.ceil)(e.currentPrice*(j.stage==='sale'&&e.flowVersion>=9?(e.currentPrice>=30000?95:90):95)/10000)*100;}
+ else{let sale;if(Object.hasOwn(e,'likesBand')){ok(['0-2','3+'].includes(e.likesBand),'いいね数を選んでください');sale=e.likesBand==='3+';}else{ok(Number.isSafeInteger(e.likes)&&e.likes>=0,'いいね未取得を0件にはできません');sale=e.likes>=3;}j.stage=sale?'sale':'price';j.target=(j.stage==='sale'||e.flowVersion>=12?Math.floor:Math.ceil)(e.currentPrice*(j.stage==='sale'&&e.flowVersion>=9?(e.currentPrice>=30000?95:90):95)/10000)*100;}
  ok(price(j.target)&&j.target<e.currentPrice,'通常ルールで値下げできません。オーナー判断へ');j.before=e.currentPrice;j.planAt=e.at;return s;
 }
 if(e.op==='execute'){
