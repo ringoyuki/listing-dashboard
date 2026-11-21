@@ -9,7 +9,7 @@ const active=Object.values(records).filter(r=>!r.closedBy&&r.file.assignee===rol
 if(role!=='OWNER'&&!old.receivedAt)throw Error('担当者の最新結果JSONを先に取り込んでください');
 if(Date.parse(source.modifiedTime)<Date.parse(old.file.source.modifiedTime))throw Error('追加先より古いCSVです');
 let seq=now,receipt;do{receipt=N.date(now).replaceAll('-','')+'_'+seq++;}while(records[receipt]);
-const items=copy(old.file.items);for(const platform of ['mercari','rakuma','yahoo_flea'])items.push({id:receipt+':'+c.productId+':'+platform,code:c.code,productId:c.productId,title:c.title,platform,url:'',listedAt:c.listedAt,round:0,previousKind:null,dueAt:new Date(Math.max(now,Date.parse(c.listedAt)+864000000)).toISOString(),normalPrice:null,historyRef:'owner-manual-shops',dateBasis:'shops'});
+const items=copy(old.file.items);for(const platform of ['mercari','rakuma','yahoo_flea'])items.push({id:receipt+':'+c.productId+':'+platform,code:c.code,productId:c.productId,title:c.title,platform,url:'',listedAt:c.listedAt,round:0,previousKind:null,dueAt:new Date(now).toISOString(),normalPrice:null,historyRef:'owner-manual-shops',dateBasis:'shops'});
 const file={...copy(old.file),receiptId:receipt,issuedAt:new Date(now).toISOString(),source:copy(source),items,carry:{file:copy(old.file),events:copy(old.events),countedIds:copy(old.noticeCountedIds||N.replay(old.file,old.events).firstProcessed)}};N.instruction(file);N.replay(file,[]);return {file,oldId:old.file.receiptId};
 }
 const api={assigned,issue};if(typeof module!=='undefined')module.exports=api;else root.ManualAssignment=api;
