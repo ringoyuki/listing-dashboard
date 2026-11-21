@@ -13,12 +13,8 @@ const base=kind==='sale'?j.target:j.salePrice;if(!Number.isSafeInteger(base)||ba
 const min=Math.ceil(base*80/100),yearEnd=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Tokyo'})<'2027-01-01';
 const titles=['3日間限定！年末売り切りセール','先着1名様！年末特別セール','年末の在庫圧縮！3日間限定セール','最大20％OFF！値下げ依頼を100％承認','ご検討中の方へ！先着1名様限定セール','年末在庫整理！ご希望価格をお送りください','3日間限定！値下げ依頼をお待ちしています','迷っていた方へ！年末売り切りのご案内','先着1名様！最大20％OFFのチャンス','年末特別企画！値下げ依頼受付中'];
 const bodies=["明後日22時まで、先着1名様限定！\n{min}円の値下げ依頼を100％承認します。\n「値下げ依頼」ボタンからお送りください。","先着1名様！{min}円の値下げ依頼を100％承認！\n受付は明後日22時まで。\n「値下げ依頼」ボタンからどうぞ！","明後日22時までの限定受付！\n先着1名様、{min}円への値下げ依頼を100％承認します。\n「値下げ依頼」ボタンからご依頼ください。"];
-if(kind==='notice'){
-const notices=["残り1日！明日22時で終了します。\n先着1名様、{min}円の値下げ依頼を100％承認！\n「値下げ依頼」ボタンからお送りください。","受付は明日22時まで！残り1日です。\n{min}円の値下げ依頼を先着1名様に100％承認します。\n「値下げ依頼」ボタンからどうぞ！","明日22時終了！お見逃しなく。\n残り1日、先着1名様限定で{min}円の値下げ依頼を100％承認！\n「値下げ依頼」ボタンからご依頼ください。"];
-const k=['requestNotice3',j.id,j.round,j.endAt,kind].join('|'),c={...(data.commentChoices||{})};
-if(!Number.isInteger(c[k])||c[k]<0||c[k]>=3){c[k]=Math.floor(Math.random()*3);save({...data,commentChoices:c});}
-return notices[c[k]].replace('{base}',base.toLocaleString('ja-JP')).replace('{min}',min.toLocaleString('ja-JP'));
-}
+if(kind==='notice'){return "🔥明日22時で終了！先着1名様🔥\n{min}円の値下げ依頼、100％承認！\n\nこの特別価格での受付は明日まで。\n\n先着1名様\n\n「値下げ依頼」ボタンから！".replace('{min}',min.toLocaleString('ja-JP'));}
+
 const key=['request20261119',j.id,j.round,j.dueAt,j.planAt||'',kind].join('|'),choices={...(data.commentChoices||{})};
 if(!Number.isInteger(choices[key])||choices[key]<0||choices[key]>=30){choices[key]=Math.floor(Math.random()*30);save({...data,commentChoices:choices});}
 const n=choices[key];let title=titles[Math.floor(n/3)];if(!yearEnd)title=title.replace('年末の','').replaceAll('年末','');
