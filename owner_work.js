@@ -3,7 +3,7 @@ if(!v.receivedAt){summary.textContent='結果未受領：完了・補充判定�
 else{
 const rows=N.due(s,Date.now()),open=rows.filter(j=>N.progress({items:[j]}).completed===0);
 const today=open.filter(j=>['inspect','price','sale','list','restore','announce'].includes(j.task)).length;
-const waiting=open.filter(j=>j.task==='wait').length,held=s.items.filter(j=>j.stage==='hold').length;
+const waiting=open.filter(j=>j.task==='wait').length,held=s.items.filter(j=>j.stage==='hold'&&j.reason!=='Shops在庫なし').length;
 const sold=s.items.filter(j=>j.stage==='sold').length,owner=s.items.filter(j=>j.stage==='owner').length;
 summary.textContent='初回処理済み '+replen.first+' / '+replen.total+'販路（今回の補充判定 '+replen.newFirst+'）／スタッフ完了 '+progress.completed+' / '+progress.total+'作業（売却 '+sold+'・オーナー引渡し '+owner+'を含む）／本日期限到来 '+today+'／期限待ち '+waiting+'／保留 '+held;
 const replenish=document.createElement('p');replenish.textContent=v.closedBy?'旧受付終了：'+v.closedBy:v.file.assignee==='OWNER'?'オーナーは補充対象外':replen.notify?'次回JSON補充が必要（この配布回の通知）':'新たな初回処理150販路まで '+Math.max(0,150-replen.newFirst)+'販路';box.append(replenish);const candidates=s.items.filter(j=>j.countsKnown&&j.stage!=='sold'&&j.stage!=='hold'&&N.progress({items:[j]}).completed&& (j.saleCount>=2||j.priceCount>=2));
