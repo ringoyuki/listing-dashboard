@@ -21,8 +21,17 @@ async function start(){
  await(window.OwnerEntryReady||Promise.resolve());
  if(performance.getEntriesByType('navigation')[0]?.type==='reload'&&read(pending)===loaded){write(key,loaded);try{localStorage.removeItem(pending);}catch{}}
 
+
+ const assetList=doc=>Array.from(doc.querySelectorAll('script[src]')).map(s=>s.getAttribute('src')).filter(src=>src&&!/^(?:https?:)?\/\//.test(src)).join('|');
+ const loadedAssets=assetList(document);
  let checking=false,last=0;
- async function check(){if(document.hidden||checking||Date.now()-last<60000)return;checking=true;last=Date.now();try{const r=await fetch('tool-release.json?check='+Date.now(),{cache:'no-store'});if(r.ok){const release=(await r.json()).version;if(typeof release==='string'&&release!==loaded){const page=await fetch(location.pathname+'?update_check='+Date.now(),{cache:'no-store'});if(page.ok){const html=await page.text(),doc=new DOMParser().parseFromString(html,'text/html'),v=doc.querySelector('script[data-release]')?.dataset.release;if(v&&v!==loaded)show(v);}}else if(release===loaded&&banner){banner.remove();banner=null;}}}catch{}finally{checking=false;}}
+ async function check(){if(document.hidden||checking||Date.now()-last<60000)return;checking=true;last=Date.now();try{
+ const page=await fetch(location.pathname+'?update_check='+Date.now(),{cache:'no-store'});
+ if(page.ok){const doc=new DOMParser().parseFromString(await page.text(),'text/html'),v=doc.querySelector('script[data-release]')?.dataset.release,assets=assetList(doc);
+ if(v&&(v!==loaded||assets!==loadedAssets))show(v!==loaded?v:'assets:'+assets);
+ else if(v===loaded&&assets===loadedAssets&&banner){banner.remove();banner=null;}}
+ }catch{}finally{checking=false;}}
+
  setInterval(check,60000);document.addEventListener('visibilitychange',check);window.addEventListener('focus',check);check();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
