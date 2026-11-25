@@ -101,6 +101,7 @@ function guideSteps(){
  let next=steps.find(n=>!n.dataset.copied&&!n.dataset.opened&&!n.disabled);
  steps.forEach((b,i)=>{if(!b.dataset.stepLabel)b.dataset.stepLabel=b.textContent.replace(/^✓ /,'');b.classList.add('work-step');b.classList.toggle('step-next',b===next);b.classList.toggle('copy-selected',!!(b.dataset.copied||b.dataset.opened));if(b===next)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');b.replaceChildren();const badge=el('small',['①','②','③','④','⑤','⑥','⑦','⑧'][i]||String(i+1),b);badge.className='step-number';b.append(document.createTextNode((b.dataset.opened?'開きました：':b.dataset.copied?'✓ ':b===next?'次は ':'')+b.dataset.stepLabel));});
 }
+document.addEventListener('ry132-copy-mark',guideSteps);
 function render(){renderView();guideSteps();const d=restoreDraft;restoreDraft=null;if(d&&d.receipt===data?.file.receiptId&&d.events===JSON.stringify(data.events)&&d.selected===selected){for(const f of d.fields){const n=Array.from($('detail').querySelectorAll('[aria-label]')).find(n=>n.getAttribute('aria-label')===f.label);if(n){n.value=f.value;n.dispatchEvent(new Event('change'));}}}formBaseline=JSON.stringify(fields());}
 if(data?.draft&&data.draft.receipt===data.file.receiptId&&data.draft.events===JSON.stringify(data.events)){restoreDraft=data.draft;({selected,editing,ending,reviewing,pendingCsv}=data.draft);}
 
