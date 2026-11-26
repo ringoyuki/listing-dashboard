@@ -49,7 +49,8 @@ const midnight=new Date(end+9*3600000).toISOString().slice(11,19)==='00:00:00';
 const local=new Date(end+9*3600000-(midnight?1:0));
 const deadline=(local.getUTCMonth()+1)+'/'+local.getUTCDate()+' '+(midnight?'24':local.getUTCHours())+'時';
 const campaign=j.platform==='mercari'&&now>=Date.parse('2026-11-26T08:00:00+09:00')&&now<Date.parse('2026-12-16T00:00:00+09:00');
-const head=campaign?'♠️超メルカリ市 開催記念セール♠️':'♠️期間限定セール♠️';
+const seasonDay=new Date(now+9*3600000).toISOString().slice(0,10);
+const head=campaign?'♠️超メルカリ市 開催記念セール♠️':seasonDay>='2026-12-16'&&seasonDay<'2026-12-26'?'🎄年末・クリスマスセール🎄':seasonDay>='2026-12-26'&&seasonDay<'2027-01-01'?'♠️年越しセール♠️':seasonDay>='2027-01-01'&&seasonDay<'2027-01-08'?'🎍新春セール🎍':'♠️期間限定セール♠️';
 const off=request?'20':String(Math.floor((normal-base)*100/normal));
 let text;
 if(j.platform==='rakuma'){
@@ -57,7 +58,7 @@ text=[head,'♦️'+(notice?'終了間近・':'先着1名様・')+deadline+'ま�
 '✨'+(request?fmt(base):fmt(normal))+'円→【'+fmt(amount)+'円】✨',off+'％OFF'+(request?'❗️':'に値下げしました❗️'),'',
 ...(request?['✅「購入希望」とコメントください','✅確認後、価格を変更します']:['✅即購入大歓迎','✅終了後は'+fmt(normal)+'円に戻します']),
 '✅一点もの・再入荷なし','','※追加のお値下げはご遠慮ください'].join('\n');
-if(text.length>140)text=text.replace(head,'♠️限定セール♠️').replace('に値下げしました','').replace('✅確認後、価格を変更します\n','').replace('✅一点もの・再入荷なし','✅一点もの');
+if(text.length>140)text=text.replace('に値下げしました','').replace('✅確認後、価格を変更します\n','').replace('✅一点もの・再入荷なし','✅一点もの');
 if(text.length>140)throw Error('ラクマ用コメントが140文字を超えています。オーナーへ報告してください');
 }else{
 text=[head,'♦️'+(notice?'終了間近・':'先着1名様・')+deadline+'まで♦️','',
