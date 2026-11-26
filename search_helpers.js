@@ -1,0 +1,13 @@
+(()=>{'use strict';
+const results=document.getElementById('results'),panel=document.querySelector('.search-panel');
+if(!results||!panel||typeof window.doSearch!=='function')return;
+const key='ry132_recent_search_v1';let history=[];
+try{const v=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(v))history=v.filter(x=>x&&typeof x.code==='string'&&typeof x.title==='string').slice(0,10);}catch{}
+const area=document.createElement('div');area.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px';panel.append(area);
+function render(){area.replaceChildren();if(!history.length)return;const label=document.createElement('span');label.textContent='最近の検索';area.append(label);history.forEach(x=>{const b=document.createElement('button');b.className='pbtn pbtn-code';b.textContent=[x.code,x.title].filter(Boolean).join(' ／ ');b.style.cssText='max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';b.title=b.textContent;b.onclick=()=>{document.getElementById('inp-code').value=x.code;document.getElementById('inp-title').value=x.title;window.doSearch();};area.append(b);});const clear=document.createElement('button');clear.className='pbtn';clear.textContent='履歴を消す';clear.onclick=()=>{history=[];try{localStorage.removeItem(key);}catch{}render();};area.append(clear);}
+const search=window.doSearch;window.doSearch=function(){const code=document.getElementById('inp-code').value.trim(),title=document.getElementById('inp-title').value.trim();const result=search.apply(this,arguments);if(code||title){history=[{code,title},...history.filter(x=>x.code!==code||x.title!==title)].slice(0,10);try{localStorage.setItem(key,JSON.stringify(history));}catch{}render();}return result;};
+function mark(){results.querySelectorAll('.rcard-info .rcode,.rcard-info .rtitle').forEach(e=>{e.tabIndex=0;e.setAttribute('role','button');e.title=e.classList.contains('rcode')?'管理番号をコピー':'商品名をコピー';e.setAttribute('aria-label',e.title+'：'+e.textContent);e.style.cursor='pointer';});}
+async function copy(e){const t=e.target.closest('.rcard-info .rcode,.rcard-info .rtitle');if(!t||!results.contains(t))return;try{await navigator.clipboard.writeText(t.textContent);showToast((t.classList.contains('rcode')?'管理番号':'商品名')+'をコピーしました');}catch{showToast('コピーできませんでした');}}
+results.addEventListener('click',copy);results.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.rcode,.rtitle')){e.preventDefault();copy(e);}});
+new MutationObserver(mark).observe(results,{childList:true,subtree:true});mark();render();
+})();
