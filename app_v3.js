@@ -403,7 +403,6 @@ function renderCard(item, searchCode, searchTitle) {
 
   // ★ 全部開くボタン：item.id のみ渡す（タイトルの特殊文字でJSが壊れる問題を修正）
   var sUrl = (item.urls && item.urls['mercari_shops']) ? item.urls['mercari_shops'] : '';
-   var openAllBtn = '<button class="btn-openall" onclick="openAllByData(\'' + esc(code) + '\', \'' + esc(title) + '\', \'' + esc(sUrl) + '\')">🔗 全プラット一気に開く</button>';
 
   // 日時情報
   var dateInfo = '';
@@ -428,7 +427,6 @@ function renderCard(item, searchCode, searchTitle) {
     + '</div>'
     + dateInfo
     + '<div class="plat-rows">'+rows+'</div>'
-    + '<div class="plat-footer">'+openAllBtn+'</div>'
     + '</div>';
 }
 
