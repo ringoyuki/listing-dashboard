@@ -55,14 +55,14 @@ const off=request?'20':String(Math.floor((normal-base)*100/normal));
 let text;
 if(j.platform==='rakuma'){
 text=[head,'♦️'+(notice?'終了間近・':'先着1名様・')+deadline+'まで♦️','',
-'✨'+(request?fmt(base):fmt(normal))+'円→【'+fmt(amount)+'円】✨',off+'％OFF'+(request?'❗️':'に値下げしました❗️'),'',
+'✨'+(request?fmt(base):fmt(normal))+'円→【'+fmt(amount)+'円】✨',(Number(off)<10?'値下げしました❗️':off+'％OFF'+(request?'❗️':'に値下げしました❗️')),'',
 ...(request?['✅「購入希望」とコメントください','✅確認後、価格を変更します']:['✅即購入大歓迎','✅終了後は'+fmt(normal)+'円に戻します']),
 '✅一点もの・再入荷なし','','※追加のお値下げはご遠慮ください'].join('\n');
 if(text.length>140)text=text.replace('に値下げしました','').replace('✅確認後、価格を変更します\n','').replace('✅一点もの・再入荷なし','✅一点もの');
 if(text.length>140)throw Error('ラクマ用コメントが140文字を超えています。オーナーへ報告してください');
 }else{
 text=[head,'♦️'+(notice?'終了間近・':'先着1名様・')+deadline+'まで♦️','',
-'✨'+fmt(request?base:normal)+'円 →【'+fmt(amount)+'円】✨',off+'％OFF'+(request?'❗️':notice?'で販売中❗️':'に値下げしました❗️'),'',
+'✨'+fmt(request?base:normal)+'円 →【'+fmt(amount)+'円】✨',(Number(off)<10?'値下げしました❗️':off+'％OFF'+(request?'❗️':notice?'で販売中❗️':'に値下げしました❗️')),'',
 ...(request?['✅「値下げ依頼」ボタンを押す','✅'+fmt(amount)+'円で申請するだけ','✅この金額なら100％承認❗️','','一点もの・再入荷なし','気になっていた方はこの機会に✨']:['✅コメントなし・即購入大歓迎','✅一点もの・再入荷なし','✅終了後は'+fmt(normal)+'円に戻します','','気になっていた方はこの機会に✨','そのまま購入手続きへどうぞ❗️']),
 '','※追加のお値下げはご遠慮ください'].join('\n');
 }return text;
