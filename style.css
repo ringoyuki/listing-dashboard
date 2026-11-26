@@ -230,3 +230,9 @@ body{font-family:'Noto Sans JP',-apple-system,sans-serif;background:var(--bg);co
   color:#f87171;
   border:1px solid rgba(239,68,68,0.3);
 }
+
+/* Align marketplace prices and search actions, including auction buy-now. */
+.plat-row{display:grid;grid-template-columns:130px 170px minmax(0,1fr);gap:12px;align-items:center}
+.plat-price{min-width:0;display:flex;flex-wrap:wrap;gap:6px;align-content:center}
+.plat-actions{grid-column:3;min-width:0}
+@media(max-width:650px){.plat-row{grid-template-columns:minmax(100px,1fr) minmax(0,1fr)}.plat-name{min-width:0}.plat-actions{grid-column:1 / -1}.plat-price{justify-content:flex-end}}
